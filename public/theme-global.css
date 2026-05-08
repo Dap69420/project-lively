@@ -1,0 +1,123 @@
+/* Global Theme Consistency System */
+
+/* ===========================================
+   GLASS MODE: Rounded, Modern, Smooth
+   =========================================== */
+
+body.theme-glass {
+    --theme-radius: 1rem;
+    --theme-shadow: 0_8px_32px_rgba(0,0,0,0.3);
+    --theme-border: 1px;
+    --theme-blur: backdrop-blur-xl;
+}
+
+body.theme-glass * {
+    border-radius: var(--theme-radius) !important;
+}
+
+/* Override all rounded utilities to use consistent values */
+body.theme-glass .rounded-none,
+body.theme-glass .rounded-sm,
+body.theme-glass .rounded,
+body.theme-glass .rounded-md,
+body.theme-glass .rounded-lg,
+body.theme-glass .rounded-xl,
+body.theme-glass .rounded-2xl,
+body.theme-glass .rounded-3xl,
+body.theme-glass .rounded-full {
+    border-radius: 1rem !important;
+}
+
+/* Glass specific utilities */
+body.theme-glass .glass-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border-radius: 1rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+body.theme-glass .transition-smooth {
+    transition: all 300ms ease-in-out;
+}
+
+/* ===========================================
+   BRUTAL MODE: Sharp Edges, Hard Shadows, Pixelated
+   =========================================== */
+
+body.theme-brutal {
+    --theme-radius: 0px;
+    --theme-shadow: 8px_8px_0px_#ccff00;
+    --theme-border: 4px;
+    --theme-blur: none;
+}
+
+/* CRITICAL: Force all rounded corners to ZERO */
+body.theme-brutal * {
+    border-radius: 0px !important;
+}
+
+body.theme-brutal .rounded-none,
+body.theme-brutal .rounded-sm,
+body.theme-brutal .rounded,
+body.theme-brutal .rounded-md,
+body.theme-brutal .rounded-lg,
+body.theme-brutal .rounded-xl,
+body.theme-brutal .rounded-2xl,
+body.theme-brutal .rounded-3xl,
+body.theme-brutal .rounded-full {
+    border-radius: 0px !important;
+}
+
+/* Pixelated corner effect for BRUTAL mode */
+body.theme-brutal .pixelated-corner::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, transparent 50%, #ccff00 50%);
+    opacity: 0.8;
+}
+
+body.theme-brutal .pixelated-corner::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: -4px;
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, #ccff00 50%, transparent 50%);
+    opacity: 0.8;
+}
+
+/* Brutal card styling */
+body.theme-brutal .glass-card {
+    background: #111111;
+    border: 4px solid white;
+    box-shadow: 8px 8px 0px #ccff00;
+    border-radius: 0px;
+}
+
+body.theme-brutal .transition-smooth {
+    transition: none !important;
+}
+
+/* Remove blur effects in BRUTAL mode */
+body.theme-brutal .backdrop-blur-xl,
+body.theme-brutal [class*="backdrop-blur"] {
+    backdrop-filter: none !important;
+}
+
+/* Disable smooth scrolling in BRUTAL mode */
+body.theme-brutal {
+    scroll-behavior: auto !important;
+}
+
+/* Force shadow overwrites */
+body.theme-brutal .shadow-lg,
+body.theme-brutal .shadow-xl,
+body.theme-brutal [class*="shadow-"] {
+    box-shadow: 8px 8px 0px #ccff00 !important;
+}

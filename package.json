@@ -2,12 +2,18 @@
   "name": "project-proj_2ewqw4gyabx",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
+  "main": "public/app.js",
   "scripts": {
+    "start": "serve public -l 3000",
+    "dev": "serve public -l 3000",
+    "preview": "serve public -l 4173",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "devDependencies": {
+    "serve": "^14.2.4"
+  }
 }

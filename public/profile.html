@@ -15,6 +15,7 @@
     <script src="https://resource.trickle.so/vendor_lib/unpkg/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://resource.trickle.so/vendor_lib/unpkg/lucide-static@0.516.0/font/lucide.css" rel="stylesheet">
+    <link href="theme-global.css" rel="stylesheet">
 
     <script>
         tailwind.config = {
@@ -53,9 +54,25 @@
         }
     }
     
-    /* Cross-Theme Overrides */
+    /* GLASS Mode: Rounded, modern, smooth */
+    body.theme-glass .glass-panel {
+        @apply bg-glassBg border border-glassBorder backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300 !important;
+    }
+    body.theme-glass [class*="rounded-none"],
+    body.theme-glass [class*="rounded-lg"] {
+        @apply rounded-2xl !important;
+    }
+    body.theme-glass .neon-text { @apply text-neonViolet drop-shadow-[0_0_12px_rgba(176,38,255,0.6)] !important; }
+    
+    /* BRUTAL Mode: Sharp edges, hard shadows, pixelated */
     body.theme-brutal .glass-panel {
         @apply bg-dark border-4 border-white p-6 shadow-[8px_8px_0px_#ccff00] rounded-none backdrop-blur-none !important;
+    }
+    body.theme-brutal .glass-panel,
+    body.theme-brutal [class*="rounded-2xl"],
+    body.theme-brutal [class*="rounded-xl"],
+    body.theme-brutal [class*="rounded-lg"] {
+        @apply rounded-none !important;
     }
     body.theme-brutal .neon-text { @apply text-lime drop-shadow-none !important; }
     body.theme-brutal .text-neonViolet { @apply text-lime !important; }

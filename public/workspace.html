@@ -15,6 +15,7 @@
     <script src="https://resource.trickle.so/vendor_lib/unpkg/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://resource.trickle.so/vendor_lib/unpkg/lucide-static@0.516.0/font/lucide.css" rel="stylesheet">
+    <link href="theme-global.css" rel="stylesheet">
 
     <script>
         tailwind.config = {
@@ -56,9 +57,9 @@
         }
     }
     
-    /* Cross-Theme Overrides */
+    /* GLASS Mode: Rounded, modern, smooth */
     body.theme-glass .bg-discordDarkest { @apply bg-darkBg !important; }
-    body.theme-glass .bg-discordDarker { @apply bg-glassBg backdrop-blur-xl border-glassBorder !important; }
+    body.theme-glass .bg-discordDarker { @apply bg-glassBg backdrop-blur-xl border-glassBorder rounded-2xl !important; }
     body.theme-glass .bg-\[\#313338\] { @apply bg-darkBg !important; }
     body.theme-glass .border-gray-700 { @apply border-white/10 !important; }
     body.theme-glass .text-mcGreen { @apply text-neonViolet !important; }
@@ -68,9 +69,28 @@
     body.theme-glass .comic-card {
         @apply bg-glassBg border border-glassBorder backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] text-white !important;
     }
+    body.theme-glass .panel {
+        @apply rounded-2xl !important;
+    }
+    body.theme-glass [class*="rounded-lg"],
+    body.theme-glass [class*="rounded-xl"],
+    body.theme-glass [class*="rounded-none"] {
+        @apply rounded-2xl !important;
+    }
     
+    /* BRUTAL Mode: Sharp edges, hard shadows, pixelated */
     body.theme-brutal .glass-panel {
-        @apply bg-discordDarker border-2 border-gray-700 rounded-none shadow-[8px_8px_0px_#ccff00] backdrop-blur-none !important;
+        @apply bg-discordDarker border-4 border-white rounded-none shadow-[8px_8px_0px_#ccff00] backdrop-blur-none !important;
+    }
+    body.theme-brutal .panel,
+    body.theme-brutal .comic-card,
+    body.theme-brutal [class*="rounded-lg"],
+    body.theme-brutal [class*="rounded-xl"],
+    body.theme-brutal [class*="rounded-2xl"] {
+        @apply rounded-none !important;
+    }
+    body.theme-brutal .comic-card {
+        @apply bg-white text-black border-4 border-black shadow-[8px_8px_0px_#ccff00] rounded-none !important;
     }
     body.theme-brutal .bg-glow {
         @apply hidden !important;
