@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Lively - Workspace</title>
+    <meta name="description" content="Your AI Study Partner Workspace">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <script src="https://resource.trickle.so/vendor_lib/unpkg/react@18/umd/react.production.min.js"></script>
+    <script src="https://resource.trickle.so/vendor_lib/unpkg/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://resource.trickle.so/vendor_lib/unpkg/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://resource.trickle.so/vendor_lib/unpkg/lucide-static@0.516.0/font/lucide.css" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        discordDark: '#313338',
+                        discordDarker: '#2b2d31',
+                        discordDarkest: '#1e1f22',
+                        mcGreen: '#55FF55',
+                        mcOrange: '#FFAA00',
+                        mcPurple: '#AA00AA',
+                        lime: '#ccff00',
+                        neonViolet: '#b026ff',
+                        darkBg: '#0a0a0f',
+                        glassBg: 'rgba(255, 255, 255, 0.03)',
+                        glassBorder: 'rgba(255, 255, 255, 0.08)'
+                    },
+                    fontFamily: {
+                        sans: ['"Inter"', 'sans-serif'],
+                        mono: ['"Space Mono"', 'monospace'],
+                        pixel: ['"VT323"', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+    @layer base {
+        body {
+            @apply font-sans antialiased overflow-hidden h-screen;
+        }
+        body.theme-brutal {
+            @apply bg-discordDarkest text-gray-200;
+        }
+        body.theme-glass {
+            @apply bg-darkBg text-gray-200;
+        }
+    }
+    
+    /* Cross-Theme Overrides */
+    body.theme-glass .bg-discordDarkest { @apply bg-darkBg !important; }
+    body.theme-glass .bg-discordDarker { @apply bg-glassBg backdrop-blur-xl border-glassBorder !important; }
+    body.theme-glass .bg-\[\#313338\] { @apply bg-darkBg !important; }
+    body.theme-glass .border-gray-700 { @apply border-white/10 !important; }
+    body.theme-glass .text-mcGreen { @apply text-neonViolet !important; }
+    body.theme-glass .bg-mcGreen { @apply bg-neonViolet text-white !important; }
+    body.theme-glass .text-mcPurple { @apply text-blue-400 !important; }
+    body.theme-glass .bg-mcPurple { @apply bg-blue-500 !important; }
+    body.theme-glass .comic-card {
+        @apply bg-glassBg border border-glassBorder backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] text-white !important;
+    }
+    
+    body.theme-brutal .glass-panel {
+        @apply bg-discordDarker border-2 border-gray-700 rounded-none shadow-[8px_8px_0px_#ccff00] backdrop-blur-none !important;
+    }
+    body.theme-brutal .bg-glow {
+        @apply hidden !important;
+    }
+
+    @layer components {
+        .panel {
+            @apply bg-discordDarker rounded-xl border border-gray-700/50 shadow-lg overflow-hidden flex flex-col;
+        }
+        .pixel-btn {
+            @apply font-pixel text-xl tracking-wider uppercase border-b-4 active:border-b-0 active:translate-y-1 transition-all;
+        }
+        .comic-card {
+            @apply bg-white text-black rounded-lg border-4 border-black p-4 relative overflow-hidden;
+            box-shadow: 4px 4px 0px 0px rgba(0,0,0,1);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e1f22; 
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #4e5058; 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #6d6f78; 
+        }
+    }
+
+    /* Animation Reduction & Extra Keyframes */
+    body.animations-reduced *,
+    body.animations-reduced ::before,
+    body.animations-reduced ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-5px) rotate(-2deg); }
+    }
+    .animate-float {
+        animation: float 4s ease-in-out infinite;
+    }
+    @keyframes scale-in {
+        from { transform: scale(0.95); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel" src="components/ThemeToggle.js"></script>
+    <script type="text/babel" src="components/workspace/Header.js"></script>
+    <script type="text/babel" src="components/workspace/Sidebar.js"></script>
+    <script type="text/babel" src="components/workspace/MissionCard.js"></script>
+    <script type="text/babel" src="components/workspace/AIChat.js"></script>
+    <script type="text/babel" src="workspace-app.js"></script>
+</body>
+</html>
