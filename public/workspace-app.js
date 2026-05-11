@@ -63,6 +63,17 @@ function WorkspaceApp() {
       return () => subscription.unsubscribe();
     }, []);
 
+    React.useEffect(() => {
+      window.LivelyWorkspace = {
+        switchToChat: () => setActiveTab('chat')
+      };
+      return () => {
+        if (window.LivelyWorkspace) {
+          delete window.LivelyWorkspace;
+        }
+      };
+    }, []);
+
     if (loading) return <div className="h-screen flex items-center justify-center bg-discordDarkest text-white font-mono">LOADING WORKSPACE...</div>;
 
     return (

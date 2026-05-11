@@ -2,7 +2,7 @@ function AIChat() {
   try {
     const progress = window.LivelyProgress.useProgress();
     const [messages, setMessages] = React.useState([
-      { role: 'ai', text: "Hey! Ready to tackle your current course? Let's hear what you think.", time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }
+      { role: 'ai', text: `Hey! Ready to tackle ${window.LivelyProgress.getSelectedCourse().name}? Let's hear what you think.`, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }
     ]);
     const [input, setInput] = React.useState('');
     const [mood, setMood] = React.useState('green'); // 'green', 'orange'
@@ -16,6 +16,30 @@ function AIChat() {
     React.useEffect(() => {
       scrollToBottom();
     }, [messages]);
+
+    React.useEffect(() => {
+      window.LivelyChat = {
+        addAssistantMessage: (text) => {
+          setMessages((prev) => [...prev, {
+            role: 'ai',
+            text,
+            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+          }]);
+        },
+        addSystemMessage: (text) => {
+          setMessages((prev) => [...prev, {
+            role: 'ai',
+            text,
+            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+          }]);
+        }
+      };
+      return () => {
+        if (window.LivelyChat) {
+          delete window.LivelyChat;
+        }
+      };
+    }, []);
 
     const handleSend = async () => {
       if (!input.trim() || isTyping) return;
@@ -75,6 +99,10 @@ function AIChat() {
           text: aiResponse, 
           time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
         }]);
+
+        if (window.LivelyProgress) {
+          window.LivelyProgress.setAlias(progress.alias || 'RECRUIT');
+        }
 
       } catch (error) {
         console.error("AI Chat Error:", error);

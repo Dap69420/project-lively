@@ -60,6 +60,7 @@ function Sketch({ user }) {
   const sendSketch = async () => {
     const canvas = canvasRef.current;
     const imageBase64 = canvas.toDataURL('image/png').split(',')[1];
+    const selectedCourse = window.LivelyProgress.getSelectedCourse();
 
     setLoading(true);
     try {
@@ -73,26 +74,60 @@ function Sketch({ user }) {
       });
 
       const data = await response.json().catch(() => null);
+      const sketchSummary = (data && data.text) ? data.text : localAnalyze(canvas);
 
-      if (!data || data.provider === 'fallback' || data.provider === 'error') {
-        const local = localAnalyze(canvas);
-        setAnalysis([
-          {
-            id: Date.now(),
-            text: data?.text || local || 'No analysis available',
-            provider: data?.provider || 'local-fallback',
-            timestamp: new Date().toLocaleTimeString()
-          }
-        ]);
-      } else {
-        setAnalysis([
-          {
-            id: Date.now(),
-            text: data.text,
-            provider: data.provider,
-            timestamp: new Date().toLocaleTimeString()
-          }
-        ]);
+      const chatPrompt = `The student just drew something for the ${selectedCourse.name} course. Here is the sketch summary: ${sketchSummary}. Reply like a real friend who is helping them learn. Start naturally and do not mention that you are a model.`;
+
+      let finalChatResponse = '';
+      try {
+        const chatResponse = await fetch('/api/ai/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemPrompt: `You are Buddy_AI helping with ${selectedCourse.name}. Keep it natural and friendly, like a friend studying together.`,
+            userText: chatPrompt
+          })
+        });
+        const chatData = await chatResponse.json().catch(() => ({}));
+        if (chatResponse.ok && chatData.text) {
+          finalChatResponse = chatData.text;
+        }
+      } catch (chatError) {
+        console.error('Sketch chat follow-up failed:', chatError);
+      }
+
+      setAnalysis([
+        {
+          id: Date.now(),
+          text: `Sketch summary: ${sketchSummary}`,
+          provider: data?.provider || 'local-fallback',
+          timestamp: new Date().toLocaleTimeString()
+        }
+      ]);
+
+      if (window.LivelyChat) {
+        window.LivelyChat.addAssistantMessage(`I looked at your sketch for ${selectedCourse.name}: ${sketchSummary}`);
+        if (finalChatResponse) {
+          window.LivelyChat.addAssistantMessage(finalChatResponse);
+        } else {
+          window.LivelyChat.addAssistantMessage(`Nice sketch. I think you are exploring ${selectedCourse.focus.toLowerCase()}. Want to talk it through together?`);
+        }
+      }
+
+      if (window.LivelyWorkspace && window.LivelyWorkspace.switchToChat) {
+        window.LivelyWorkspace.switchToChat();
+      }
+
+      if (window.LivelyProgress) {
+        const xpReward = 20;
+        const coinReward = 4;
+        window.LivelyProgress.awardProgress({
+          xp: xpReward,
+          coins: coinReward,
+          correct: true,
+          courseId: selectedCourse.id,
+          source: 'sketch'
+        });
       }
     } catch (error) {
       console.error('Sketch analysis error:', error);
