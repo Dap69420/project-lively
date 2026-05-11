@@ -3,6 +3,10 @@
   "trailingSlash": false,
   "rewrites": [
     {
+      "source": "/config.js",
+      "destination": "/api/config.js"
+    },
+    {
       "source": "/",
       "destination": "/index.html"
     },
