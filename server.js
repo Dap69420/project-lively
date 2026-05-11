@@ -57,6 +57,12 @@ app.get('/config.js', (_req, res) => {
   res.send(`window.__APP_CONFIG__ = ${JSON.stringify(getSupabaseConfig())};`);
 });
 
+app.get('/api/config', (_req, res) => {
+  res.type('application/javascript');
+  res.setHeader('Cache-Control', 'no-store');
+  res.send(`window.__APP_CONFIG__ = ${JSON.stringify(getSupabaseConfig())};`);
+});
+
 app.get(['/login', '/profile', '/workspace', '/founders'], (req, res) => {
   const page = req.path.slice(1);
   res.sendFile(path.join(publicDir, `${page}.html`));
