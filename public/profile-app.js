@@ -30,6 +30,27 @@ class ErrorBoundary extends React.Component {
 
 function ProfileApp() {
   try {
+    const [user, setUser] = React.useState(null);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+      if (!supabaseClient) {
+        setLoading(false);
+        return;
+      }
+      
+      supabaseClient.auth.getSession().then(({ data: { session } }) => {
+        if (!session) {
+          window.location.href = 'login.html';
+        } else {
+          setUser(session.user);
+        }
+        setLoading(false);
+      });
+    }, []);
+
+    if (loading) return <div className="min-h-screen flex items-center justify-center bg-darkBg text-white font-mono">LOADING PROFILE...</div>;
+
     return (
       <div className="min-h-screen relative py-8 px-4 sm:px-6 lg:px-8" data-name="profile-app" data-file="profile-app.js">
         
@@ -55,7 +76,7 @@ function ProfileApp() {
             
             {/* Left Column */}
             <div className="lg:col-span-5 flex flex-col gap-8">
-              <AvatarSection />
+              <AvatarSection user={user} />
               <RecentBadges />
             </div>
 

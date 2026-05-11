@@ -31,11 +31,68 @@ class ErrorBoundary extends React.Component {
 function LoginApp() {
   try {
     const [isLogin, setIsLogin] = React.useState(true);
+    const [isLoading, setIsLoading] = React.useState(false);
+    const [email, setEmail] = React.useState('');
+    const [password, setPassword] = React.useState('');
+    const [alias, setAlias] = React.useState('');
+    const [errorMsg, setErrorMsg] = React.useState('');
 
-    const handleSubmit = (e) => {
+    React.useEffect(() => {
+      if (supabaseClient) {
+        supabaseClient.auth.getSession().then(({ data: { session } }) => {
+          if (session) window.location.href = 'workspace.html';
+        });
+      }
+    }, []);
+
+    const handleSubmit = async (e) => {
       e.preventDefault();
-      // Simulate authentication and redirect to workspace
-      window.location.href = 'workspace.html';
+      if (!supabaseClient) return;
+      setErrorMsg('');
+      setIsLoading(true);
+
+      try {
+        if (isLogin) {
+          const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          window.location.href = 'workspace.html';
+        } else {
+          const { error } = await supabaseClient.auth.signUp({
+            email,
+            password,
+            options: {
+              data: { alias: alias || email.split('@')[0] }
+            }
+          });
+          if (error) throw error;
+          // Auto-login might happen, or require email verification. For now, redirect.
+          window.location.href = 'workspace.html';
+        }
+      } catch (err) {
+        console.error(err);
+        setErrorMsg(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const handleGoogleLogin = async () => {
+      if (!supabaseClient) return;
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabaseClient.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin + '/workspace.html'
+          }
+        });
+        if (error) throw error;
+      } catch (error) {
+        console.error('Auth error:', error);
+        alert('Failed to connect: ' + error.message);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     return (
@@ -81,6 +138,12 @@ function LoginApp() {
               </div>
             </div>
 
+            {errorMsg && (
+              <div className="mb-4 bg-red-500 text-white p-3 font-mono text-sm border-2 border-white shadow-[4px_4px_0px_#ff00ff]">
+                {errorMsg}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
               {!isLogin && (
                 <div className="space-y-2">
@@ -89,7 +152,7 @@ function LoginApp() {
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <div className="icon-user text-gray-500"></div>
                     </div>
-                    <input type="text" required className="brutal-input pl-10" placeholder="e.g. PhysicsNinja" />
+                    <input type="text" required value={alias} onChange={e => setAlias(e.target.value)} className="brutal-input pl-10" placeholder="e.g. PhysicsNinja" />
                   </div>
                 </div>
               )}
@@ -100,7 +163,7 @@ function LoginApp() {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <div className="icon-mail text-gray-500"></div>
                   </div>
-                  <input type="email" required className="brutal-input pl-10" placeholder="student@school.edu" />
+                  <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="brutal-input pl-10" placeholder="student@school.edu" />
                 </div>
               </div>
 
@@ -110,14 +173,30 @@ function LoginApp() {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <div className="icon-lock text-gray-500"></div>
                   </div>
-                  <input type="password" required className="brutal-input pl-10" placeholder="••••••••" />
+                  <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="brutal-input pl-10" placeholder="••••••••" />
                 </div>
               </div>
 
-              <button type="submit" className="brutal-btn-lime w-full flex justify-center items-center gap-2 mt-4 text-xl">
-                {isLogin ? 'INITIALIZE SESSION' : 'CREATE AVATAR'} <div className="icon-arrow-right"></div>
+              <button type="submit" disabled={isLoading} className="brutal-btn-lime w-full flex justify-center items-center gap-2 mt-4 text-xl disabled:opacity-50">
+                {isLoading ? 'PROCESSING...' : (isLogin ? 'INITIALIZE SESSION' : 'CREATE AVATAR')} <div className="icon-arrow-right"></div>
               </button>
             </form>
+
+            <div className="mt-6 flex items-center justify-between">
+              <div className="w-full h-1 bg-white/20"></div>
+              <span className="px-4 font-mono text-sm text-gray-400 font-bold uppercase">OR</span>
+              <div className="w-full h-1 bg-white/20"></div>
+            </div>
+
+            <button 
+              type="button" 
+              onClick={handleGoogleLogin} 
+              disabled={isLoading}
+              className="w-full bg-white text-black font-bold uppercase border-4 border-black px-6 py-3 shadow-[6px_6px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_#000] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none transition-all flex justify-center items-center gap-3 mt-6"
+            >
+              <div className="icon-globe text-xl"></div>
+              {isLoading ? 'CONNECTING...' : 'CONTINUE WITH GOOGLE'}
+            </button>
           </div>
         </div>
         

@@ -36,6 +36,35 @@ class ErrorBoundary extends React.Component {
 
 function WorkspaceApp() {
   try {
+    const [user, setUser] = React.useState(null);
+    const [loading, setLoading] = React.useState(true);
+    const [activeTab, setActiveTab] = React.useState('chat');
+
+    React.useEffect(() => {
+      if (!supabaseClient) {
+        setLoading(false);
+        return;
+      }
+      
+      supabaseClient.auth.getSession().then(({ data: { session } }) => {
+        if (!session) {
+          window.location.href = 'login.html';
+        } else {
+          setUser(session.user);
+        }
+        setLoading(false);
+      });
+
+      const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+        if (!session) window.location.href = 'login.html';
+        else setUser(session.user);
+      });
+
+      return () => subscription.unsubscribe();
+    }, []);
+
+    if (loading) return <div className="h-screen flex items-center justify-center bg-discordDarkest text-white font-mono">LOADING WORKSPACE...</div>;
+
     return (
       <div className="h-screen w-full flex flex-col bg-discordDarkest relative overflow-hidden" data-name="workspace-app" data-file="workspace-app.js">
         {/* Background glow effects */}
@@ -43,15 +72,48 @@ function WorkspaceApp() {
         <div className="bg-glow fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-600 rounded-full mix-blend-screen filter blur-[120px] opacity-10 pointer-events-none z-0"></div>
         
         <div className="relative z-10 flex flex-col h-full w-full">
-          <Header />
+          <Header user={user} />
           
           <main className="flex-1 flex overflow-hidden">
             <Sidebar />
             
-            <div className="flex-1 flex" style={{ minWidth: 0 }}>
-              {/* Split Screen Duo-Mode */}
-              <MissionCard />
-              <AIChat />
+            <div className="flex-1 flex flex-col" style={{ minWidth: 0 }}>
+              {/* Tab Navigation */}
+              <div className="flex gap-2 p-3 bg-discordDarker border-b border-gray-700 z-20">
+                <button
+                  onClick={() => setActiveTab('chat')}
+                  className={`px-4 py-2 rounded font-mono text-sm font-bold transition-all ${
+                    activeTab === 'chat'
+                      ? 'bg-mcGreen text-black'
+                      : 'bg-discordDarkest text-gray-300 hover:text-white border border-gray-700'
+                  }`}
+                >
+                  💬 AI Chat
+                </button>
+                <button
+                  onClick={() => setActiveTab('sketch')}
+                  className={`px-4 py-2 rounded font-mono text-sm font-bold transition-all ${
+                    activeTab === 'sketch'
+                      ? 'bg-mcGreen text-black'
+                      : 'bg-discordDarkest text-gray-300 hover:text-white border border-gray-700'
+                  }`}
+                >
+                  ✏️ Sketch
+                </button>
+              </div>
+
+              {/* Tab Content */}
+              <div className="flex-1 flex overflow-hidden">
+                {activeTab === 'chat' && (
+                  <div className="flex-1 flex">
+                    <MissionCard />
+                    <AIChat user={user} />
+                  </div>
+                )}
+                {activeTab === 'sketch' && (
+                  <Sketch user={user} />
+                )}
+              </div>
             </div>
           </main>
         </div>

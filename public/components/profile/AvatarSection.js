@@ -1,5 +1,14 @@
-function AvatarSection() {
+function AvatarSection({ user }) {
   try {
+    const handleLogout = async () => {
+      if (supabaseClient) {
+        await supabaseClient.auth.signOut();
+        window.location.href = 'index.html';
+      }
+    };
+    
+    const alias = user?.user_metadata?.alias || user?.email?.split('@')[0] || 'RECRUIT';
+
     return (
       <div className="glass-panel p-8 flex flex-col items-center justify-center relative overflow-hidden group" data-name="avatar-section" data-file="components/profile/AvatarSection.js">
         
@@ -22,15 +31,20 @@ function AvatarSection() {
         </div>
 
         <div className="mt-10 text-center relative z-10">
-          <h2 className="text-3xl font-bold tracking-tight mb-1">PhysicsNinja</h2>
+          <h2 className="text-3xl font-bold tracking-tight mb-1">{alias}</h2>
           <div className="text-gray-400 font-mono text-sm uppercase tracking-widest flex items-center justify-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div> Online
           </div>
         </div>
 
-        <button className="mt-6 w-full py-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 font-mono text-sm tracking-wider transition-colors flex items-center justify-center gap-2 relative z-10">
-          <div className="icon-settings text-sm"></div> CUSTOMIZE
-        </button>
+        <div className="mt-6 w-full flex gap-2 relative z-10">
+          <button className="flex-1 py-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 font-mono text-sm tracking-wider transition-colors flex items-center justify-center gap-2">
+            <div className="icon-settings text-sm"></div> CUSTOMIZE
+          </button>
+          <button onClick={handleLogout} className="py-3 px-4 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 font-mono text-sm transition-colors flex items-center justify-center">
+            <div className="icon-log-out text-sm"></div>
+          </button>
+        </div>
 
       </div>
     );

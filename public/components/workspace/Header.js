@@ -1,5 +1,14 @@
-function Header() {
+function Header({ user }) {
   try {
+    const handleLogout = async () => {
+      if (supabaseClient) {
+        await supabaseClient.auth.signOut();
+        window.location.href = 'index.html';
+      }
+    };
+    
+    const alias = user?.user_metadata?.alias || user?.email?.split('@')[0] || 'RECRUIT';
+
     return (
       <div className="w-full bg-discordDarker flex flex-col" data-name="workspace-header" data-file="components/workspace/Header.js">
         {/* Full width XP Bar */}
@@ -18,11 +27,14 @@ function Header() {
               <div className="icon-user text-gray-300"></div>
             </a>
             <h1 className="font-pixel text-3xl text-white tracking-wider flex items-center gap-2 ml-2">
-              <div className="w-4 h-4 bg-mcGreen"></div> LIVELY_WORKSPACE
+              <div className="w-4 h-4 bg-mcGreen"></div> {alias.toUpperCase()}_WORKSPACE
             </h1>
           </div>
           
           <div className="flex items-center gap-6">
+            <button onClick={handleLogout} className="font-mono text-xs text-red-400 hover:text-red-300 transition-colors uppercase border border-red-900/50 px-3 py-1 rounded bg-red-950/20">
+              LOGOUT
+            </button>
             <div className="flex items-center gap-2 bg-discordDarkest px-3 py-1.5 rounded-lg border border-gray-700">
               <span className="font-mono text-sm text-gray-400">LVL</span>
               <span className="font-pixel text-2xl text-mcPurple">14</span>

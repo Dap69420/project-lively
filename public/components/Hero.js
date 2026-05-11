@@ -6,7 +6,7 @@ function Hero() {
         <div className="flex-1 space-y-8 relative z-10">
           <div className="inline-block brutal-badge bg-hotpink text-white border-white shadow-[4px_4px_0px_#ccff00] mb-4">
             <span className="flex items-center gap-2">
-              <div className="icon-circle-alert text-sm"></div> Grade 6-9 Coming Soon!
+              <div className="icon-circle-alert text-sm"></div> Grade 6-9 Beta Live
             </span>
           </div>
           

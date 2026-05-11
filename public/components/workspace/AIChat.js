@@ -1,10 +1,11 @@
 function AIChat() {
   try {
     const [messages, setMessages] = React.useState([
-      { role: 'ai', text: "Hey! Ready to tackle Newton's First Law? Let's hear what you think Inertia is.", time: "10:00 AM" }
+      { role: 'ai', text: "Hey! Ready to tackle Newton's First Law? Let's hear what you think Inertia is.", time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }
     ]);
     const [input, setInput] = React.useState('');
     const [mood, setMood] = React.useState('green'); // 'green', 'orange'
+    const [isTyping, setIsTyping] = React.useState(false);
     const messagesEndRef = React.useRef(null);
 
     const scrollToBottom = () => {
@@ -15,24 +16,61 @@ function AIChat() {
       scrollToBottom();
     }, [messages]);
 
-    const handleSend = () => {
-      if (!input.trim()) return;
+    const handleSend = async () => {
+      if (!input.trim() || isTyping) return;
       
-      const newMsgs = [...messages, { role: 'user', text: input, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }];
+      const userText = input;
+      const timeNow = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      const newMsgs = [...messages, { role: 'user', text: userText, time: timeNow }];
+      
       setMessages(newMsgs);
       setInput('');
+      setIsTyping(true);
       
-      // Simulate AI thinking and changing mood occasionally
-      setTimeout(() => {
-        const isStruggling = input.length < 20 || input.toLowerCase().includes("i don't know");
+      try {
+        const systemPrompt = "You are Buddy_AI, an encouraging study partner helping a student with Newton's First Law (Inertia). Be brief, use emojis, and don't give direct answers.";
+
+        let aiResponse = '';
+        try {
+          const response = await fetch('/api/ai/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ systemPrompt, userText })
+          });
+
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(data.error || 'AI request failed');
+          }
+
+          aiResponse = data.text || '';
+        } catch (apiError) {
+          console.log('SambaNova call failed, using fallback.', apiError);
+        }
+
+        if (!aiResponse || typeof aiResponse !== 'string' || aiResponse.trim() === '') {
+          aiResponse = "That's a great thought! Inertia is all about objects wanting to keep doing what they're already doing. What do you think happens if you push a stationary rock? 🪨";
+        }
+
+        const isStruggling = userText.length < 15 || userText.toLowerCase().includes("don't know") || userText.toLowerCase().includes("stuck");
         setMood(isStruggling ? 'orange' : 'green');
-        
+
         setMessages(prev => [...prev, { 
           role: 'ai', 
-          text: isStruggling ? "That's okay! Think about when you're riding a bike and suddenly hit the brakes. What happens to your body?" : "Spot on! That's inertia in action. Now, can you apply that to a spaceship in deep space?", 
+          text: aiResponse, 
           time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
         }]);
-      }, 1500);
+
+      } catch (error) {
+        console.error("AI Chat Error:", error);
+        setMessages(prev => [...prev, { 
+          role: 'ai', 
+          text: "Oops, my circuits glitched! Can you repeat that?", 
+          time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+        }]);
+      } finally {
+        setIsTyping(false);
+      }
     };
 
     return (
