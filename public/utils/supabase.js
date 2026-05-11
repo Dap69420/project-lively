@@ -12,7 +12,7 @@ const supabaseAnonKey = appConfig.SUPABASE_ANON_KEY;
 const supabaseClient = window.supabase && supabaseUrl && supabaseAnonKey ? window.supabase.createClient(supabaseUrl, supabaseAnonKey) : null;
 
 if (!supabaseClient) {
-  console.warn('Supabase client was not created. Check /config.js, Vercel rewrites, and environment variables.');
+  console.warn('Supabase client was not created. Check /config.js, /api/config, and environment variable names.');
 }
 
 window.supabaseClient = supabaseClient;
