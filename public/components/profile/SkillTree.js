@@ -1,10 +1,19 @@
 function SkillTree() {
   try {
-    const nodes = [
-      { id: 1, subject: "Mathematics", level: "Algebra Basics", status: "completed", icon: "icon-calculator" },
-      { id: 2, subject: "Science", level: "Laws of Motion", status: "in-progress", icon: "icon-flask-conical" },
-      { id: 3, subject: "English", level: "Grammar & Syntax", status: "locked", icon: "icon-book" }
-    ];
+    const progress = window.LivelyProgress.useProgress();
+    const nodes = window.LivelyProgress.courses.map((course) => {
+      const courseState = progress.courseProgress[course.id] || { xp: 0, mastery: 0, questions: 0 };
+      const status = course.id === progress.selectedCourse ? 'in-progress' : courseState.xp >= 100 ? 'completed' : courseState.xp > 0 ? 'in-progress' : 'locked';
+      return {
+        id: course.id,
+        subject: course.name,
+        level: course.focus,
+        status,
+        icon: course.icon,
+        mastery: courseState.mastery,
+        questions: courseState.questions
+      };
+    });
 
     return (
       <div className="glass-panel p-6 sm:p-8 flex-1" data-name="skill-tree" data-file="components/profile/SkillTree.js">
@@ -50,14 +59,14 @@ function SkillTree() {
                   )}
                 </div>
 
-                {node.status === 'in-progress' && (
+                {node.status !== 'locked' && (
                   <div className="mt-4">
                     <div className="flex justify-between text-xs font-mono text-gray-400 mb-1">
                       <span>Progress</span>
-                      <span>65%</span>
+                      <span>{node.mastery}%</span>
                     </div>
                     <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-500 w-[65%] shadow-[0_0_8px_#3b82f6]"></div>
+                      <div className="h-full bg-blue-500" style={{ width: `${Math.max(10, node.mastery)}%` }}></div>
                     </div>
                   </div>
                 )}

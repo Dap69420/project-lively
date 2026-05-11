@@ -32,6 +32,7 @@ function ProfileApp() {
   try {
     const [user, setUser] = React.useState(null);
     const [loading, setLoading] = React.useState(true);
+    const progress = window.LivelyProgress.useProgress();
 
     React.useEffect(() => {
       if (!supabaseClient) {
@@ -48,6 +49,13 @@ function ProfileApp() {
         setLoading(false);
       });
     }, []);
+
+    React.useEffect(() => {
+      const alias = user?.user_metadata?.alias || user?.email?.split('@')[0] || 'RECRUIT';
+      if (window.LivelyProgress) {
+        window.LivelyProgress.setAlias(alias);
+      }
+    }, [user]);
 
     if (loading) return <div className="min-h-screen flex items-center justify-center bg-darkBg text-white font-mono">LOADING PROFILE...</div>;
 
@@ -77,6 +85,7 @@ function ProfileApp() {
             {/* Left Column */}
             <div className="lg:col-span-5 flex flex-col gap-8">
               <AvatarSection user={user} />
+              <CourseSelector />
               <RecentBadges />
             </div>
 

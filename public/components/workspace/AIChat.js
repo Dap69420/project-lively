@@ -1,7 +1,8 @@
 function AIChat() {
   try {
+    const progress = window.LivelyProgress.useProgress();
     const [messages, setMessages] = React.useState([
-      { role: 'ai', text: "Hey! Ready to tackle Newton's First Law? Let's hear what you think Inertia is.", time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }
+      { role: 'ai', text: "Hey! Ready to tackle your current course? Let's hear what you think.", time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }
     ]);
     const [input, setInput] = React.useState('');
     const [mood, setMood] = React.useState('green'); // 'green', 'orange'
@@ -28,7 +29,8 @@ function AIChat() {
       setIsTyping(true);
       
       try {
-        const systemPrompt = "You are Buddy_AI, an encouraging study partner helping a student with Newton's First Law (Inertia). Be brief, use emojis, and don't give direct answers.";
+        const selectedCourse = window.LivelyProgress.getSelectedCourse();
+        const systemPrompt = `You are Buddy_AI, an encouraging study partner helping a student study ${selectedCourse.name}. Focus on these topics: ${selectedCourse.focus}. Be brief, use emojis, and don't give direct answers.`;
 
         let aiResponse = '';
         try {
@@ -54,6 +56,19 @@ function AIChat() {
 
         const isStruggling = userText.length < 15 || userText.toLowerCase().includes("don't know") || userText.toLowerCase().includes("stuck");
         setMood(isStruggling ? 'orange' : 'green');
+
+        const countedAsCorrect = aiResponse && aiResponse !== "That's a great thought! Inertia is all about objects wanting to keep doing what they're already doing. What do you think happens if you push a stationary rock? 🪨";
+        if (countedAsCorrect && window.LivelyProgress) {
+          const xpReward = Math.max(10, Math.min(30, Math.floor(userText.length / 2)));
+          const coinReward = Math.max(2, Math.floor(xpReward / 5));
+          window.LivelyProgress.awardProgress({
+            xp: xpReward,
+            coins: coinReward,
+            correct: true,
+            courseId: selectedCourse.id,
+            source: 'ai'
+          });
+        }
 
         setMessages(prev => [...prev, { 
           role: 'ai', 
@@ -90,7 +105,7 @@ function AIChat() {
             </div>
             <div>
               <h3 className="font-bold text-gray-200">Buddy_AI</h3>
-              <p className="text-xs font-mono text-gray-400">Online & Listening</p>
+              <p className="text-xs font-mono text-gray-400">{window.LivelyProgress.getSelectedCourse().name} • Online & Listening</p>
             </div>
           </div>
           <div className="flex gap-2">

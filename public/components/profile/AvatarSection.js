@@ -1,5 +1,6 @@
 function AvatarSection({ user }) {
   try {
+    const progress = window.LivelyProgress.useProgress();
     const handleLogout = async () => {
       if (supabaseClient) {
         await supabaseClient.auth.signOut();
@@ -26,7 +27,7 @@ function AvatarSection({ user }) {
 
           {/* Level Badge */}
           <div className="absolute -bottom-4 bg-darkBg border-2 border-neonViolet text-white font-mono font-bold px-4 py-1 rounded-full text-sm shadow-[0_0_10px_rgba(176,38,255,0.5)]">
-            LVL 14
+            LVL {progress.level}
           </div>
         </div>
 
@@ -34,6 +35,10 @@ function AvatarSection({ user }) {
           <h2 className="text-3xl font-bold tracking-tight mb-1">{alias}</h2>
           <div className="text-gray-400 font-mono text-sm uppercase tracking-widest flex items-center justify-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div> Online
+          </div>
+          <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 text-xs font-mono text-gray-300 uppercase tracking-wider">
+            <div className="icon-book-open text-neonViolet"></div>
+            {window.LivelyProgress.getSelectedCourse().name}
           </div>
         </div>
 
@@ -44,6 +49,21 @@ function AvatarSection({ user }) {
           <button onClick={handleLogout} className="py-3 px-4 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 font-mono text-sm transition-colors flex items-center justify-center">
             <div className="icon-log-out text-sm"></div>
           </button>
+        </div>
+
+        <div className="mt-4 w-full grid grid-cols-3 gap-2 relative z-10 text-center">
+          <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+            <div className="text-lg font-bold text-neonViolet">{progress.xp}</div>
+            <div className="text-[10px] font-mono text-gray-400 uppercase">XP</div>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+            <div className="text-lg font-bold text-yellow-400">{progress.coins}</div>
+            <div className="text-[10px] font-mono text-gray-400 uppercase">Coins</div>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+            <div className="text-lg font-bold text-blue-400">{progress.streak}</div>
+            <div className="text-[10px] font-mono text-gray-400 uppercase">Streak</div>
+          </div>
         </div>
 
       </div>

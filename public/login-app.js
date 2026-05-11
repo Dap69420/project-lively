@@ -40,7 +40,7 @@ function LoginApp() {
     React.useEffect(() => {
       if (supabaseClient) {
         supabaseClient.auth.getSession().then(({ data: { session } }) => {
-          if (session) window.location.href = 'workspace.html';
+          if (session) window.location.href = 'profile.html';
         });
       }
     }, []);
@@ -55,7 +55,7 @@ function LoginApp() {
         if (isLogin) {
           const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
           if (error) throw error;
-          window.location.href = 'workspace.html';
+          window.location.href = 'profile.html';
         } else {
           const { error } = await supabaseClient.auth.signUp({
             email,
@@ -66,7 +66,7 @@ function LoginApp() {
           });
           if (error) throw error;
           // Auto-login might happen, or require email verification. For now, redirect.
-          window.location.href = 'workspace.html';
+          window.location.href = 'profile.html';
         }
       } catch (err) {
         console.error(err);
@@ -83,7 +83,7 @@ function LoginApp() {
         const { data, error } = await supabaseClient.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: window.location.origin + '/workspace.html'
+            redirectTo: window.location.origin + '/profile.html'
           }
         });
         if (error) throw error;

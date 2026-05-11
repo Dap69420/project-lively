@@ -1,10 +1,12 @@
 function StatsGrid() {
   try {
+    const progress = window.LivelyProgress.useProgress();
+    const nextLevel = window.LivelyProgress.getNextLevelXp(progress);
     const stats = [
-      { label: "Brain Power", value: "3,450", unit: "XP", icon: "icon-zap", color: "text-neonViolet", glow: "shadow-[0_0_15px_rgba(176,38,255,0.3)]" },
-      { label: "Sync Streak", value: "12", unit: "DAYS", icon: "icon-flame", color: "text-orange-400", glow: "shadow-[0_0_15px_rgba(251,146,60,0.2)]" },
-      { label: "Concepts Taught", value: "48", unit: "PTS", icon: "icon-graduation-cap", color: "text-blue-400", glow: "shadow-[0_0_15px_rgba(96,165,250,0.2)]" },
-      { label: "Global Rank", value: "#4,092", unit: "TOP 10%", icon: "icon-trophy", color: "text-yellow-400", glow: "shadow-[0_0_15px_rgba(250,204,21,0.2)]" }
+      { label: "Brain Power", value: progress.xp.toLocaleString(), unit: "XP", icon: "icon-zap", color: "text-neonViolet", glow: "shadow-[0_0_15px_rgba(176,38,255,0.3)]" },
+      { label: "Sync Streak", value: progress.streak.toString(), unit: "DAYS", icon: "icon-flame", color: "text-orange-400", glow: "shadow-[0_0_15px_rgba(251,146,60,0.2)]" },
+      { label: "Coins", value: progress.coins.toLocaleString(), unit: "GOLD", icon: "icon-coin", color: "text-yellow-400", glow: "shadow-[0_0_15px_rgba(250,204,21,0.2)]" },
+      { label: "Level", value: nextLevel.currentLevel.toString(), unit: `NEXT ${nextLevel.remaining} XP`, icon: "icon-trophy", color: "text-blue-400", glow: "shadow-[0_0_15px_rgba(96,165,250,0.2)]" }
     ];
 
     return (
