@@ -1,13 +1,27 @@
 function AIChat() {
   try {
     const progress = window.LivelyProgress.useProgress();
-    const [messages, setMessages] = React.useState([
-      { role: 'ai', text: `Hey! Ready to tackle ${window.LivelyProgress.getSelectedCourse().name}? Let's hear what you think.`, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }
-    ]);
+    const selectedCourseId = progress.selectedCourse;
+    const selectedCourse = window.LivelyProgress.getSelectedCourse();
+    
+    const [messages, setMessages] = React.useState([]);
     const [input, setInput] = React.useState('');
-    const [mood, setMood] = React.useState('green'); // 'green', 'orange'
+    const [mood, setMood] = React.useState('green');
     const [isTyping, setIsTyping] = React.useState(false);
     const messagesEndRef = React.useRef(null);
+
+    // Load messages from progression when course changes
+    React.useEffect(() => {
+      const savedMessages = window.LivelyProgress.getChatMessages(selectedCourseId);
+      if (savedMessages && savedMessages.length > 0) {
+        setMessages(savedMessages);
+      } else {
+        // Show greeting only for new courses
+        setMessages([
+          { role: 'ai', text: `Hey! Ready to tackle ${selectedCourse.name}? Let's hear what you think.`, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }
+        ]);
+      }
+    }, [selectedCourseId, selectedCourse.name]);
 
     const scrollToBottom = () => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -20,18 +34,39 @@ function AIChat() {
     React.useEffect(() => {
       window.LivelyChat = {
         addAssistantMessage: (text) => {
-          setMessages((prev) => [...prev, {
+          const msg = {
             role: 'ai',
             text,
             time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-          }]);
+          };
+          setMessages((prev) => {
+            const updated = [...prev, msg];
+            // Persist to progression
+            window.LivelyProgress.addChatMessage({
+              role: msg.role,
+              text: msg.text,
+              time: msg.time,
+              courseId: selectedCourseId
+            });
+            return updated;
+          });
         },
         addSystemMessage: (text) => {
-          setMessages((prev) => [...prev, {
+          const msg = {
             role: 'ai',
             text,
             time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-          }]);
+          };
+          setMessages((prev) => {
+            const updated = [...prev, msg];
+            window.LivelyProgress.addChatMessage({
+              role: msg.role,
+              text: msg.text,
+              time: msg.time,
+              courseId: selectedCourseId
+            });
+            return updated;
+          });
         }
       };
       return () => {
@@ -39,21 +74,29 @@ function AIChat() {
           delete window.LivelyChat;
         }
       };
-    }, []);
+    }, [selectedCourseId]);
 
     const handleSend = async () => {
       if (!input.trim() || isTyping) return;
       
       const userText = input;
       const timeNow = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-      const newMsgs = [...messages, { role: 'user', text: userText, time: timeNow }];
+      const userMsg = { role: 'user', text: userText, time: timeNow };
+      const newMsgs = [...messages, userMsg];
       
       setMessages(newMsgs);
+      // Persist user message
+      window.LivelyProgress.addChatMessage({
+        role: userMsg.role,
+        text: userMsg.text,
+        time: userMsg.time,
+        courseId: selectedCourseId
+      });
+      
       setInput('');
       setIsTyping(true);
       
       try {
-        const selectedCourse = window.LivelyProgress.getSelectedCourse();
         const systemPrompt = `You are Buddy_AI, an encouraging study partner helping a student study ${selectedCourse.name}. Focus on these topics: ${selectedCourse.focus}. Be brief, use emojis, and don't give direct answers.`;
 
         let aiResponse = '';
@@ -89,16 +132,24 @@ function AIChat() {
             xp: xpReward,
             coins: coinReward,
             correct: true,
-            courseId: selectedCourse.id,
+            courseId: selectedCourseId,
             source: 'ai'
           });
         }
 
-        setMessages(prev => [...prev, { 
+        const aiMsg = { 
           role: 'ai', 
           text: aiResponse, 
           time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
-        }]);
+        };
+        setMessages(prev => [...prev, aiMsg]);
+        // Persist AI message
+        window.LivelyProgress.addChatMessage({
+          role: aiMsg.role,
+          text: aiMsg.text,
+          time: aiMsg.time,
+          courseId: selectedCourseId
+        });
 
         if (window.LivelyProgress) {
           window.LivelyProgress.setAlias(progress.alias || 'RECRUIT');
@@ -106,11 +157,18 @@ function AIChat() {
 
       } catch (error) {
         console.error("AI Chat Error:", error);
-        setMessages(prev => [...prev, { 
+        const errMsg = { 
           role: 'ai', 
           text: "Oops, my circuits glitched! Can you repeat that?", 
           time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
-        }]);
+        };
+        setMessages(prev => [...prev, errMsg]);
+        window.LivelyProgress.addChatMessage({
+          role: errMsg.role,
+          text: errMsg.text,
+          time: errMsg.time,
+          courseId: selectedCourseId
+        });
       } finally {
         setIsTyping(false);
       }

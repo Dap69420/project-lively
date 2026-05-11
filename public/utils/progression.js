@@ -37,7 +37,8 @@
       correctAnswers: 0,
       lastStudyDate: '',
       achievements: [],
-      courseProgress: createDefaultCourseProgress()
+      courseProgress: createDefaultCourseProgress(),
+      chatHistory: {}
     };
   }
 
@@ -165,6 +166,33 @@
     return COURSE_LIBRARY.find((course) => course.id === currentState.selectedCourse) || COURSE_LIBRARY[0];
   }
 
+  function addChatMessage(message) {
+    const next = normalizeState(currentState);
+    const courseId = message.courseId || currentState.selectedCourse;
+    if (!next.chatHistory) next.chatHistory = {};
+    if (!next.chatHistory[courseId]) next.chatHistory[courseId] = [];
+    next.chatHistory[courseId].push({
+      role: message.role,
+      text: message.text,
+      time: message.time,
+      timestamp: Date.now()
+    });
+    return saveState(next);
+  }
+
+  function getChatMessages(courseId) {
+    const course = courseId || currentState.selectedCourse;
+    return (currentState.chatHistory && currentState.chatHistory[course]) || [];
+  }
+
+  function clearChatHistory(courseId) {
+    const next = normalizeState(currentState);
+    if (!next.chatHistory) next.chatHistory = {};
+    const course = courseId || currentState.selectedCourse;
+    next.chatHistory[course] = [];
+    return saveState(next);
+  }
+
   function getNextLevelXp(state) {
     const snapshot = normalizeState(state || currentState);
     const nextLevel = snapshot.level * 100;
@@ -194,7 +222,10 @@
       setSelectedCourse,
       setAlias,
       getSelectedCourse,
-      getNextLevelXp
+      getNextLevelXp,
+      addChatMessage,
+      getChatMessages,
+      clearChatHistory
     };
 
     window.addEventListener('storage', () => {

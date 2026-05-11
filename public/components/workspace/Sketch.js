@@ -61,10 +61,15 @@ function Sketch({ user }) {
     const canvas = canvasRef.current;
     const imageBase64 = canvas.toDataURL('image/png').split(',')[1];
     const selectedCourse = window.LivelyProgress.getSelectedCourse();
+    const selectedCourseId = selectedCourse.id;
 
     setLoading(true);
+    console.log('[Sketch] Starting analysis for course:', selectedCourseId);
+    
     try {
-      const response = await fetch('/api/ai/vision', {
+      // Step 1: Analyze the sketch with vision API
+      console.log('[Sketch] Calling /api/ai/vision...');
+      const visionResponse = await fetch('/api/ai/vision', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,12 +78,45 @@ function Sketch({ user }) {
         })
       });
 
-      const data = await response.json().catch(() => null);
-      const sketchSummary = (data && data.text) ? data.text : localAnalyze(canvas);
+      let sketchSummary = '';
+      if (visionResponse.ok) {
+        try {
+          const visionData = await visionResponse.json();
+          sketchSummary = (visionData && visionData.text) ? visionData.text : localAnalyze(canvas);
+          console.log('[Sketch] Vision analysis received:', sketchSummary.substring(0, 100) + '...');
+        } catch (parseError) {
+          console.error('[Sketch] Failed to parse vision response:', parseError);
+          sketchSummary = localAnalyze(canvas);
+        }
+      } else {
+        console.warn('[Sketch] Vision API returned non-ok status:', visionResponse.status);
+        sketchSummary = localAnalyze(canvas);
+      }
 
+      // Step 2: Add sketch summary to chat via window.LivelyChat (for immediate UI) and progression (for persistence)
+      const summaryMsg = `I looked at your sketch for ${selectedCourse.name}: ${sketchSummary}`;
+      console.log('[Sketch] Adding summary message to chat');
+      
+      if (window.LivelyChat && typeof window.LivelyChat.addAssistantMessage === 'function') {
+        window.LivelyChat.addAssistantMessage(summaryMsg);
+      } else {
+        console.warn('[Sketch] window.LivelyChat not available, persisting directly');
+      }
+      
+      // Always persist to progression
+      window.LivelyProgress.addChatMessage({
+        role: 'ai',
+        text: summaryMsg,
+        courseId: selectedCourseId
+      });
+
+      // Step 3: Get follow-up response from chat API
+      console.log('[Sketch] Calling /api/ai/chat for follow-up...');
       const chatPrompt = `The student just drew something for the ${selectedCourse.name} course. Here is the sketch summary: ${sketchSummary}. Reply like a real friend who is helping them learn. Start naturally and do not mention that you are a model.`;
 
       let finalChatResponse = '';
+      let chatProvider = 'none';
+      
       try {
         const chatResponse = await fetch('/api/ai/chat', {
           method: 'POST',
@@ -88,36 +126,55 @@ function Sketch({ user }) {
             userText: chatPrompt
           })
         });
-        const chatData = await chatResponse.json().catch(() => ({}));
-        if (chatResponse.ok && chatData.text) {
-          finalChatResponse = chatData.text;
+        
+        console.log('[Sketch] Chat API response status:', chatResponse.status);
+        
+        if (chatResponse.ok) {
+          try {
+            const chatData = await chatResponse.json();
+            if (chatData && chatData.text) {
+              finalChatResponse = chatData.text;
+              chatProvider = chatData.provider || 'sambanova';
+              console.log('[Sketch] Chat response received from', chatProvider, ':', finalChatResponse.substring(0, 100) + '...');
+            } else {
+              console.warn('[Sketch] Chat response missing text field:', chatData);
+            }
+          } catch (parseError) {
+            console.error('[Sketch] Failed to parse chat response:', parseError);
+          }
+        } else {
+          console.error('[Sketch] Chat API returned status:', chatResponse.status);
         }
       } catch (chatError) {
-        console.error('Sketch chat follow-up failed:', chatError);
+        console.error('[Sketch] Chat API call failed:', chatError);
       }
 
+      // Step 4: Add follow-up response to chat
+      const followUpMsg = finalChatResponse || `Nice sketch. I think you are exploring ${selectedCourse.focus.toLowerCase()}. Want to talk it through together?`;
+      console.log('[Sketch] Adding follow-up message:', followUpMsg.substring(0, 50) + '...');
+      
+      if (window.LivelyChat && typeof window.LivelyChat.addAssistantMessage === 'function') {
+        window.LivelyChat.addAssistantMessage(followUpMsg);
+      }
+      
+      // Always persist to progression
+      window.LivelyProgress.addChatMessage({
+        role: 'ai',
+        text: followUpMsg,
+        courseId: selectedCourseId
+      });
+
+      // Step 5: Update analysis display
       setAnalysis([
         {
           id: Date.now(),
           text: `Sketch summary: ${sketchSummary}`,
-          provider: data?.provider || 'local-fallback',
+          provider: chatProvider,
           timestamp: new Date().toLocaleTimeString()
         }
       ]);
 
-      if (window.LivelyChat) {
-        window.LivelyChat.addAssistantMessage(`I looked at your sketch for ${selectedCourse.name}: ${sketchSummary}`);
-        if (finalChatResponse) {
-          window.LivelyChat.addAssistantMessage(finalChatResponse);
-        } else {
-          window.LivelyChat.addAssistantMessage(`Nice sketch. I think you are exploring ${selectedCourse.focus.toLowerCase()}. Want to talk it through together?`);
-        }
-      }
-
-      if (window.LivelyWorkspace && window.LivelyWorkspace.switchToChat) {
-        window.LivelyWorkspace.switchToChat();
-      }
-
+      // Step 6: Award progress
       if (window.LivelyProgress) {
         const xpReward = 20;
         const coinReward = 4;
@@ -125,12 +182,22 @@ function Sketch({ user }) {
           xp: xpReward,
           coins: coinReward,
           correct: true,
-          courseId: selectedCourse.id,
+          courseId: selectedCourseId,
           source: 'sketch'
         });
+        console.log('[Sketch] Awarded', xpReward, 'XP and', coinReward, 'coins');
       }
+
+      // Step 7: Switch to chat tab
+      console.log('[Sketch] Switching to chat tab');
+      if (window.LivelyWorkspace && typeof window.LivelyWorkspace.switchToChat === 'function') {
+        window.LivelyWorkspace.switchToChat();
+      } else {
+        console.warn('[Sketch] window.LivelyWorkspace.switchToChat not available');
+      }
+
     } catch (error) {
-      console.error('Sketch analysis error:', error);
+      console.error('[Sketch] Sketch analysis error:', error);
       const local = localAnalyze(canvas);
       setAnalysis([
         {
