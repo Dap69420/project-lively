@@ -96,19 +96,6 @@ function Sketch({ user }) {
       // Step 2: Add sketch summary to chat via window.LivelyChat (for immediate UI) and progression (for persistence)
       const summaryMsg = `I looked at your sketch for ${selectedCourse.name}: ${sketchSummary}`;
       console.log('[Sketch] Adding summary message to chat');
-      
-      if (window.LivelyChat && typeof window.LivelyChat.addAssistantMessage === 'function') {
-        window.LivelyChat.addAssistantMessage(summaryMsg);
-      } else {
-        console.warn('[Sketch] window.LivelyChat not available, persisting directly');
-      }
-      
-      // Always persist to progression
-      window.LivelyProgress.addChatMessage({
-        role: 'ai',
-        text: summaryMsg,
-        courseId: selectedCourseId
-      });
 
       // Step 3: Get follow-up response from chat API
       console.log('[Sketch] Calling /api/ai/chat for follow-up...');
@@ -149,18 +136,21 @@ function Sketch({ user }) {
         console.error('[Sketch] Chat API call failed:', chatError);
       }
 
-      // Step 4: Add follow-up response to chat
+      // Step 4: Combine into single message
       const followUpMsg = finalChatResponse || `Nice sketch. I think you are exploring ${selectedCourse.focus.toLowerCase()}. Want to talk it through together?`;
-      console.log('[Sketch] Adding follow-up message:', followUpMsg.substring(0, 50) + '...');
+      const combinedMsg = `${summaryMsg}\n\n${followUpMsg}`;
+      console.log('[Sketch] Sending combined message');
       
       if (window.LivelyChat && typeof window.LivelyChat.addAssistantMessage === 'function') {
-        window.LivelyChat.addAssistantMessage(followUpMsg);
+        window.LivelyChat.addAssistantMessage(combinedMsg);
+      } else {
+        console.warn('[Sketch] window.LivelyChat not available, persisting directly');
       }
       
       // Always persist to progression
       window.LivelyProgress.addChatMessage({
         role: 'ai',
-        text: followUpMsg,
+        text: combinedMsg,
         courseId: selectedCourseId
       });
 

@@ -1,5 +1,68 @@
 function AIChat() {
   try {
+    // Simple markdown to React converter
+    const renderMarkdown = (text) => {
+      if (!text) return '';
+      
+      const parts = [];
+      let lastIndex = 0;
+      
+      // Split by newlines first to preserve structure
+      const lines = text.split('\n');
+      
+      return lines.map((line, lineIdx) => {
+        let content = [];
+        let index = 0;
+        
+        // Handle bold **text**
+        const boldRegex = /\*\*([^*]+)\*\*/g;
+        let match;
+        let lastBoldIndex = 0;
+        
+        const boldMatches = [];
+        while ((match = boldRegex.exec(line)) !== null) {
+          boldMatches.push({start: match.index, end: boldRegex.lastIndex, text: match[1]});
+        }
+        
+        // Handle italics *text*
+        const italicRegex = /\*([^*]+)\*/g;
+        let lastItalicIndex = 0;
+        const italicMatches = [];
+        while ((match = italicRegex.exec(line)) !== null) {
+          italicMatches.push({start: match.index, end: italicRegex.lastIndex, text: match[1]});
+        }
+        
+        // Combine and sort all formatting matches
+        const allMatches = [...boldMatches.map(m => ({...m, type: 'bold'})), 
+                           ...italicMatches.map(m => ({...m, type: 'italic'}))].sort((a,b) => a.start - b.start);
+        
+        let result = [];
+        let currentIndex = 0;
+        
+        allMatches.forEach(match => {
+          if (match.start > currentIndex) {
+            result.push(line.substring(currentIndex, match.start));
+          }
+          if (match.type === 'bold') {
+            result.push(<strong key={lineIdx + '-' + match.start}>{match.text}</strong>);
+          } else if (match.type === 'italic') {
+            result.push(<em key={lineIdx + '-' + match.start}>{match.text}</em>);
+          }
+          currentIndex = match.end;
+        });
+        
+        if (currentIndex < line.length) {
+          result.push(line.substring(currentIndex));
+        }
+        
+        if (result.length === 0) {
+          result = [line];
+        }
+        
+        return <div key={lineIdx} className="mb-1">{result}</div>;
+      });
+    };
+    
     const progress = window.LivelyProgress.useProgress();
     const selectedCourseId = progress.selectedCourse;
     const selectedCourse = window.LivelyProgress.getSelectedCourse();
@@ -217,7 +280,7 @@ function AIChat() {
                   <span className="text-[10px] font-mono text-gray-500">{msg.time}</span>
                 </div>
                 <div className={`p-3 rounded-lg text-sm leading-relaxed ${msg.role === 'user' ? 'bg-mcPurple text-white rounded-tr-none' : 'bg-discordDarkest text-gray-200 rounded-tl-none border border-gray-700'}`}>
-                  {msg.text}
+                  {msg.role === 'ai' ? renderMarkdown(msg.text) : msg.text}
                 </div>
               </div>
             </div>
