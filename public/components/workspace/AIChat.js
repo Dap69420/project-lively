@@ -15,7 +15,7 @@ function AIChat() {
       if (!text) return null;
 
       const tokens = [];
-      const inlineRegex = /(\*\*([^*]+)\*\*|\*([^*]+)\*|\\\((.+?)\\\)|\$\$(.+?)\$\$)/g;
+      const inlineRegex = /(\*\*([^*]+)\*\*|\*([^*]+)\*|\\\((.+?)\\\)|\$\$([\s\S]+?)\$\$)/g;
       let lastIndex = 0;
       let match;
 
@@ -30,7 +30,7 @@ function AIChat() {
           tokens.push(<em key={`${match.index}-i`}>{match[3]}</em>);
         } else if (match[4] || match[5]) {
           tokens.push(
-            <span key={`${match.index}-m`} className="inline-block align-baseline">
+            <span key={`${match.index}-m`} className="inline-block align-baseline whitespace-pre-wrap">
               {match[0]}
             </span>
           );
@@ -50,50 +50,92 @@ function AIChat() {
       if (!text) return null;
 
       const lines = text.split('\n');
-      return lines.map((line, lineIdx) => {
+      const rendered = [];
+      let displayMathLines = [];
+      let inDisplayMath = false;
+
+      const flushDisplayMath = (key) => {
+        if (!displayMathLines.length) return;
+        rendered.push(
+          <div key={key} className="my-2 overflow-x-auto rounded bg-black/20 px-3 py-2 border border-gray-700">
+            <span className="block whitespace-pre-wrap text-center">{displayMathLines.join('\n')}</span>
+          </div>
+        );
+        displayMathLines = [];
+      };
+
+      lines.forEach((line, lineIdx) => {
         const trimmed = line.trim();
 
+        if (trimmed === '\\[' || trimmed === '$$') {
+          inDisplayMath = true;
+          displayMathLines = [];
+          return;
+        }
+
+        if (inDisplayMath && (trimmed === '\\]' || trimmed === '$$')) {
+          flushDisplayMath(`math-${lineIdx}`);
+          inDisplayMath = false;
+          return;
+        }
+
+        if (inDisplayMath) {
+          displayMathLines.push(line);
+          return;
+        }
+
         if (!trimmed) {
-          return <div key={lineIdx} className="h-2" />;
+          rendered.push(<div key={lineIdx} className="h-2" />);
+          return;
         }
 
         if (trimmed === '---') {
-          return <hr key={lineIdx} className="my-2 border-gray-600" />;
+          rendered.push(<hr key={lineIdx} className="my-2 border-gray-600" />);
+          return;
         }
 
         const headingMatch = trimmed.match(/^(#{1,3})\s+(.*)$/);
         if (headingMatch) {
           const level = headingMatch[1].length;
           const HeadingTag = `h${Math.min(level + 2, 5)}`;
-          return (
+          rendered.push(
             <HeadingTag key={lineIdx} className="font-bold text-gray-100 mb-1">
               {renderInline(headingMatch[2])}
             </HeadingTag>
           );
+          return;
         }
 
         const bulletMatch = trimmed.match(/^[-*]\s+(.*)$/);
         if (bulletMatch) {
-          return (
+          rendered.push(
             <div key={lineIdx} className="flex gap-2 mb-1">
               <span className="text-mcGreen shrink-0">•</span>
               <div>{renderInline(bulletMatch[1])}</div>
             </div>
           );
+          return;
         }
 
         const numberedMatch = trimmed.match(/^\d+[.)]\s+(.*)$/);
         if (numberedMatch) {
-          return (
+          rendered.push(
             <div key={lineIdx} className="flex gap-2 mb-1">
               <span className="text-mcGreen shrink-0 font-semibold">{trimmed.match(/^\d+/)?.[0]}.</span>
               <div>{renderInline(numberedMatch[1])}</div>
             </div>
           );
+          return;
         }
 
-        return <div key={lineIdx} className="mb-1">{renderInline(line)}</div>;
+        rendered.push(<div key={lineIdx} className="mb-1">{renderInline(line)}</div>);
       });
+
+      if (inDisplayMath) {
+        flushDisplayMath(`math-end-${lines.length}`);
+      }
+
+      return rendered;
     };
 
     const progress = window.LivelyProgress.useProgress();

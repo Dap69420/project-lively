@@ -229,6 +229,63 @@ function Sketch({ user }) {
     redrawCanvas();
   };
 
+  const handlePointerDown = (e) => {
+    if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+      e.preventDefault();
+    }
+
+    if (currentTool === 'text' || currentTool === 'select') {
+      handleCanvasClick(e);
+      return;
+    }
+
+    if (e.currentTarget && e.pointerId !== undefined && e.currentTarget.setPointerCapture) {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+
+    startDrawing(e);
+  };
+
+  const handlePointerMove = (e) => {
+    if (isDrawing) {
+      if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+        e.preventDefault();
+      }
+      draw(e);
+    }
+  };
+
+  const handlePointerUp = (e) => {
+    if (isDrawing) {
+      if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+        e.preventDefault();
+      }
+      stopDrawing(e);
+    }
+
+    if (e.currentTarget && e.pointerId !== undefined && e.currentTarget.releasePointerCapture) {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch (error) {
+        // Ignore if capture was already released
+      }
+    }
+  };
+
+  const handlePointerCancel = (e) => {
+    if (isDrawing) {
+      stopDrawing(e);
+    }
+
+    if (e.currentTarget && e.pointerId !== undefined && e.currentTarget.releasePointerCapture) {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch (error) {
+        // Ignore if capture was already released
+      }
+    }
+  };
+
   const handleCanvasClick = (e) => {
     if (currentTool === 'text') {
       const coords = getCanvasCoords(e);
@@ -461,7 +518,16 @@ function Sketch({ user }) {
         </div>
       )}
 
-      <canvas ref={canvasRef} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onClick={handleCanvasClick} className="flex-1 border-2 border-gray-700 rounded-lg bg-discordDarker cursor-crosshair shadow-lg" />
+      <canvas
+        ref={canvasRef}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        onPointerLeave={handlePointerCancel}
+        onClick={handleCanvasClick}
+        className="flex-1 border-2 border-gray-700 rounded-lg bg-discordDarker cursor-crosshair shadow-lg touch-none"
+      />
 
       {/* Text Input Modal */}
       {showTextInput && (
