@@ -58,7 +58,9 @@ function AIChat() {
         if (!displayMathLines.length) return;
         rendered.push(
           <div key={key} className="my-2 overflow-x-auto rounded bg-black/20 px-3 py-2 border border-gray-700">
-            <span className="block whitespace-pre-wrap text-center">{displayMathLines.join('\n')}</span>
+            <span className="block whitespace-pre-wrap text-center">{`\\[
+${displayMathLines.join('\n')}
+\\]`}</span>
           </div>
         );
         displayMathLines = [];
