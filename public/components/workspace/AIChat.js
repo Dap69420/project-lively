@@ -91,6 +91,7 @@ function AIChat() {
     
     const [messages, setMessages] = React.useState([]);
     const [input, setInput] = React.useState('');
+    const [mood, setMood] = React.useState('green');
     const [isTyping, setIsTyping] = React.useState(false);
     const messagesEndRef = React.useRef(null);
 
