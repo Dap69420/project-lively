@@ -1,130 +1,96 @@
 function AIChat() {
   try {
-    // Simple markdown to React converter
-    const renderMarkdown = (text) => {
-      if (!text) return '';
-      
-      const parts = [];
+    const renderInline = (text) => {
+      if (!text) return null;
+
+      const tokens = [];
+      const inlineRegex = /(\*\*([^*]+)\*\*|\*([^*]+)\*|\\\((.+?)\\\)|\$\$(.+?)\$\$)/g;
       let lastIndex = 0;
-      
-      // Split by newlines first to preserve structure
+      let match;
+
+      while ((match = inlineRegex.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+          tokens.push(text.slice(lastIndex, match.index));
+        }
+
+        if (match[2]) {
+          tokens.push(<strong key={`${match.index}-b`}>{match[2]}</strong>);
+        } else if (match[3]) {
+          tokens.push(<em key={`${match.index}-i`}>{match[3]}</em>);
+        } else if (match[4] || match[5]) {
+          tokens.push(
+            <span key={`${match.index}-m`} className="inline-block align-baseline">
+              {match[0]}
+            </span>
+          );
+        }
+
+        lastIndex = match.index + match[0].length;
+      }
+
+      if (lastIndex < text.length) {
+        tokens.push(text.slice(lastIndex));
+      }
+
+      return tokens.length ? tokens : text;
+    };
+
+    const renderFormattedMessage = (text) => {
+      if (!text) return null;
+
       const lines = text.split('\n');
-      
       return lines.map((line, lineIdx) => {
-        let content = [];
-        let index = 0;
-        
-        // Handle bold **text**
-        const boldRegex = /\*\*([^*]+)\*\*/g;
-        let match;
-        let lastBoldIndex = 0;
-        
-        const boldMatches = [];
-        while ((match = boldRegex.exec(line)) !== null) {
-          boldMatches.push({start: match.index, end: boldRegex.lastIndex, text: match[1]});
+        const trimmed = line.trim();
+
+        if (!trimmed) {
+          return <div key={lineIdx} className="h-2" />;
         }
-        
-        // Handle italics *text*
-        const italicRegex = /\*([^*]+)\*/g;
-        let lastItalicIndex = 0;
-        const italicMatches = [];
-        while ((match = italicRegex.exec(line)) !== null) {
-          italicMatches.push({start: match.index, end: italicRegex.lastIndex, text: match[1]});
+
+        if (trimmed === '---') {
+          return <hr key={lineIdx} className="my-2 border-gray-600" />;
         }
-        
-        // Combine and sort all formatting matches
-        const allMatches = [...boldMatches.map(m => ({...m, type: 'bold'})), 
-                           ...italicMatches.map(m => ({...m, type: 'italic'}))].sort((a,b) => a.start - b.start);
-        
-        let result = [];
-        let currentIndex = 0;
-        
-        allMatches.forEach(match => {
-          if (match.start > currentIndex) {
-            result.push(line.substring(currentIndex, match.start));
-          }
-          if (match.type === 'bold') {
-            result.push(<strong key={lineIdx + '-' + match.start}>{match.text}</strong>);
-          } else if (match.type === 'italic') {
-            result.push(<em key={lineIdx + '-' + match.start}>{match.text}</em>);
-          }
-          currentIndex = match.end;
-        });
-        
-        if (currentIndex < line.length) {
-          result.push(line.substring(currentIndex));
+
+        const headingMatch = trimmed.match(/^(#{1,3})\s+(.*)$/);
+        if (headingMatch) {
+          const level = headingMatch[1].length;
+          const HeadingTag = `h${Math.min(level + 2, 5)}`;
+          return (
+            <HeadingTag key={lineIdx} className="font-bold text-gray-100 mb-1">
+              {renderInline(headingMatch[2])}
+            </HeadingTag>
+          );
         }
-        
-        if (result.length === 0) {
-          result = [line];
+
+        const bulletMatch = trimmed.match(/^[-*]\s+(.*)$/);
+        if (bulletMatch) {
+          return (
+            <div key={lineIdx} className="flex gap-2 mb-1">
+              <span className="text-mcGreen shrink-0">•</span>
+              <div>{renderInline(bulletMatch[1])}</div>
+            </div>
+          );
         }
-        
-        return <div key={lineIdx} className="mb-1">{result}</div>;
+
+        const numberedMatch = trimmed.match(/^\d+[.)]\s+(.*)$/);
+        if (numberedMatch) {
+          return (
+            <div key={lineIdx} className="flex gap-2 mb-1">
+              <span className="text-mcGreen shrink-0 font-semibold">{trimmed.match(/^\d+/)?.[0]}.</span>
+              <div>{renderInline(numberedMatch[1])}</div>
+            </div>
+          );
+        }
+
+        return <div key={lineIdx} className="mb-1">{renderInline(line)}</div>;
       });
     };
-    
+
     const progress = window.LivelyProgress.useProgress();
     const selectedCourseId = progress.selectedCourse;
     const selectedCourse = window.LivelyProgress.getSelectedCourse();
     
     const [messages, setMessages] = React.useState([]);
     const [input, setInput] = React.useState('');
-          const renderMarkdownWithMath = (text) => {
-            if (!text) return '';
-      
-            const lines = text.split('\n');
-      
-            return lines.map((line, lineIdx) => {
-              const parts = [];
-              let currentIndex = 0;
-        
-              // Match display math $$...$$ and inline math \(...\)
-              const mathRegex = /(\$\$[^\$]+\$\$|\\\\?\([^)]+\))/g;
-              let match;
-        
-              while ((match = mathRegex.exec(line)) !== null) {
-                const mathExpr = match[0];
-                const start = match.index;
-          
-                // Add text before math
-                if (start > currentIndex) {
-                  const beforeText = line.substring(currentIndex, start);
-                  parts.push(
-                    <span key={`text-${lineIdx}-${currentIndex}`}>
-                      {renderMarkdown(beforeText)}
-                    </span>
-                  );
-                }
-          
-                // Add math element
-                parts.push(
-                  <span key={`math-${lineIdx}-${start}`} className="inline-block">
-                    {mathExpr}
-                  </span>
-                );
-          
-                currentIndex = match.index + mathExpr.length;
-              }
-        
-              // Add remaining text
-              if (currentIndex < line.length) {
-                const remainingText = line.substring(currentIndex);
-                parts.push(
-                  <span key={`text-${lineIdx}-${currentIndex}`}>
-                    {renderMarkdown(remainingText)}
-                  </span>
-                );
-              }
-        
-              if (parts.length === 0) {
-                parts.push(renderMarkdown(line));
-              }
-        
-              return <div key={lineIdx} className="mb-1">{parts}</div>;
-            });
-          };
-
-          const progress = window.LivelyProgress.useProgress();
     const [isTyping, setIsTyping] = React.useState(false);
     const messagesEndRef = React.useRef(null);
 
@@ -342,7 +308,7 @@ function AIChat() {
                   <span className="text-[10px] font-mono text-gray-500">{msg.time}</span>
                 </div>
                 <div className={`p-3 rounded-lg text-sm leading-relaxed ${msg.role === 'user' ? 'bg-mcPurple text-white rounded-tr-none' : 'bg-discordDarkest text-gray-200 rounded-tl-none border border-gray-700'}`}>
-                  {msg.role === 'ai' ? renderMarkdownWithMath(msg.text) : msg.text}
+                  {msg.role === 'ai' ? renderFormattedMessage(msg.text) : msg.text}
                 </div>
               </div>
             </div>
