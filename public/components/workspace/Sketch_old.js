@@ -1,15 +1,10 @@
 function Sketch({ user }) {
   const canvasRef = React.useRef(null);
-  const [currentTool, setCurrentTool] = React.useState('brush'); // 'brush', 'eraser', 'line', 'ray', 'rectangle', 'circle', 'text'
   const [isDrawing, setIsDrawing] = React.useState(false);
   const [analysis, setAnalysis] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [brushSize, setBrushSize] = React.useState(3);
   const [brushColor, setBrushColor] = React.useState('#ffffff');
-  const [startPos, setStartPos] = React.useState(null);
-  const [textInput, setTextInput] = React.useState('');
-  const [showTextInput, setShowTextInput] = React.useState(false);
-  const canvasImageRef = React.useRef(null); // Store canvas state for undo/preview
 
   React.useEffect(() => {
     const canvas = canvasRef.current;
@@ -22,165 +17,36 @@ function Sketch({ user }) {
     // Fill with dark background
     ctx.fillStyle = '#1e1f22';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    canvasImageRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
   }, []);
 
-  const getCanvasCoords = (e) => {
+  const startDrawing = (e) => {
+    setIsDrawing(true);
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    };
-  };
-
-  const startDrawing = (e) => {
-    if (currentTool === 'text') return; // text handled separately
-
-    const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    const coords = getCanvasCoords(e);
 
-    setIsDrawing(true);
-    setStartPos(coords);
-    canvasImageRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-    if (currentTool === 'brush') {
-      ctx.beginPath();
-      ctx.moveTo(coords.x, coords.y);
-    }
+    ctx.beginPath();
+    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
   };
 
   const draw = (e) => {
-    if (!isDrawing || currentTool === 'text') return;
+    if (!isDrawing) return;
 
     const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
     const ctx = canvas.getContext('2d');
-    const coords = getCanvasCoords(e);
 
-    if (currentTool === 'brush') {
-      ctx.lineWidth = brushSize;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.strokeStyle = brushColor;
-      ctx.lineTo(coords.x, coords.y);
-      ctx.stroke();
-    } else if (currentTool === 'eraser') {
-      ctx.clearRect(coords.x - brushSize, coords.y - brushSize, brushSize * 2, brushSize * 2);
-    } else if (['line', 'ray', 'rectangle', 'circle'].includes(currentTool)) {
-      // Restore background for preview
-      ctx.putImageData(canvasImageRef.current, 0, 0);
+    ctx.lineWidth = brushSize;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = brushColor;
 
-      ctx.strokeStyle = brushColor;
-      ctx.lineWidth = brushSize;
-      ctx.fillStyle = 'transparent';
-
-      const dx = coords.x - startPos.x;
-      const dy = coords.y - startPos.y;
-
-      if (currentTool === 'line') {
-        ctx.beginPath();
-        ctx.moveTo(startPos.x, startPos.y);
-        ctx.lineTo(coords.x, coords.y);
-        ctx.stroke();
-      } else if (currentTool === 'ray') {
-        // Ray: line extending from start point through current point
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const extendedX = startPos.x + (dx / distance) * (distance + 500);
-        const extendedY = startPos.y + (dy / distance) * (distance + 500);
-        ctx.beginPath();
-        ctx.moveTo(startPos.x, startPos.y);
-        ctx.lineTo(extendedX, extendedY);
-        ctx.stroke();
-        // Draw point at start
-        ctx.fillStyle = brushColor;
-        ctx.beginPath();
-        ctx.arc(startPos.x, startPos.y, brushSize * 1.5, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (currentTool === 'rectangle') {
-        ctx.strokeRect(startPos.x, startPos.y, dx, dy);
-      } else if (currentTool === 'circle') {
-        const radius = Math.sqrt(dx * dx + dy * dy);
-        ctx.beginPath();
-        ctx.arc(startPos.x, startPos.y, radius, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-    }
+    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.stroke();
   };
 
-  const stopDrawing = (e) => {
-    if (!isDrawing || currentTool === 'text') {
-      setIsDrawing(false);
-      return;
-    }
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    const coords = getCanvasCoords(e);
-
-    // Final draw for non-brush tools
-    if (['line', 'ray', 'rectangle', 'circle'].includes(currentTool)) {
-      ctx.putImageData(canvasImageRef.current, 0, 0);
-
-      ctx.strokeStyle = brushColor;
-      ctx.lineWidth = brushSize;
-      ctx.fillStyle = 'transparent';
-
-      const dx = coords.x - startPos.x;
-      const dy = coords.y - startPos.y;
-
-      if (currentTool === 'line') {
-        ctx.beginPath();
-        ctx.moveTo(startPos.x, startPos.y);
-        ctx.lineTo(coords.x, coords.y);
-        ctx.stroke();
-      } else if (currentTool === 'ray') {
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const extendedX = startPos.x + (dx / distance) * (distance + 500);
-        const extendedY = startPos.y + (dy / distance) * (distance + 500);
-        ctx.beginPath();
-        ctx.moveTo(startPos.x, startPos.y);
-        ctx.lineTo(extendedX, extendedY);
-        ctx.stroke();
-        ctx.fillStyle = brushColor;
-        ctx.beginPath();
-        ctx.arc(startPos.x, startPos.y, brushSize * 1.5, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (currentTool === 'rectangle') {
-        ctx.strokeRect(startPos.x, startPos.y, dx, dy);
-      } else if (currentTool === 'circle') {
-        const radius = Math.sqrt(dx * dx + dy * dy);
-        ctx.beginPath();
-        ctx.arc(startPos.x, startPos.y, radius, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-    }
-
+  const stopDrawing = () => {
     setIsDrawing(false);
-    setStartPos(null);
-  };
-
-  const handleCanvasClick = (e) => {
-    if (currentTool === 'text') {
-      const coords = getCanvasCoords(e);
-      setStartPos(coords);
-      setShowTextInput(true);
-    }
-  };
-
-  const addTextToCanvas = () => {
-    if (!textInput.trim() || !startPos) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-
-    ctx.fillStyle = brushColor;
-    ctx.font = `${Math.max(12, brushSize * 4)}px Arial`;
-    ctx.fillText(textInput, startPos.x, startPos.y);
-
-    setTextInput('');
-    setShowTextInput(false);
-    setStartPos(null);
   };
 
   const clearCanvas = () => {
@@ -322,7 +188,7 @@ function Sketch({ user }) {
 
     } catch (error) {
       console.error('[Sketch] Sketch analysis error:', error);
-      const local = localAnalyze(canvasRef.current);
+      const local = localAnalyze(canvas);
       setAnalysis([
         {
           id: Date.now(),
@@ -392,25 +258,6 @@ function Sketch({ user }) {
     }
   }
   
-  const toolIcons = {
-    brush: 'icon-pen-tool',
-    eraser: 'icon-eraser',
-    line: 'icon-minus',
-    ray: 'icon-arrow-right',
-    rectangle: 'icon-square',
-    circle: 'icon-circle',
-    text: 'icon-type'
-  };
-
-  const toolLabels = {
-    brush: 'Brush',
-    eraser: 'Eraser',
-    line: 'Line',
-    ray: 'Ray',
-    rectangle: 'Rectangle',
-    circle: 'Circle',
-    text: 'Text'
-  };
 
   return (
     <div className="flex flex-col h-full w-full gap-4 p-4 bg-discordDarkest">
@@ -418,16 +265,15 @@ function Sketch({ user }) {
         <h2 className="text-xl font-bold text-mcGreen">✏️ Sketch Board</h2>
         <div className="flex gap-2 items-center">
           <label className="flex items-center gap-2 text-sm text-gray-300">
-            Size:
+            Brush:
             <input
               type="range"
               min="1"
-              max="20"
+              max="10"
               value={brushSize}
               onChange={(e) => setBrushSize(Number(e.target.value))}
-              className="w-24"
+              className="w-20"
             />
-            <span className="text-xs font-mono">{brushSize}</span>
           </label>
           <input
             type="color"
@@ -438,77 +284,14 @@ function Sketch({ user }) {
         </div>
       </div>
 
-      {/* Tool Palette */}
-      <div className="flex gap-2 flex-wrap bg-discordDarker p-3 rounded-lg border border-gray-700">
-        {Object.keys(toolIcons).map((tool) => (
-          <button
-            key={tool}
-            onClick={() => setCurrentTool(tool)}
-            className={`px-3 py-2 rounded flex items-center gap-2 text-xs font-mono transition-all ${
-              currentTool === tool
-                ? 'bg-mcGreen text-black font-bold'
-                : 'bg-discordDarkest text-gray-300 hover:bg-gray-700 border border-gray-600'
-            }`}
-            title={toolLabels[tool]}
-          >
-            <div className={`${toolIcons[tool]} text-sm`}></div>
-            <span className="hidden sm:inline">{toolLabels[tool]}</span>
-          </button>
-        ))}
-      </div>
-
       <canvas
         ref={canvasRef}
         onMouseDown={startDrawing}
         onMouseMove={draw}
         onMouseUp={stopDrawing}
         onMouseLeave={stopDrawing}
-        onClick={handleCanvasClick}
         className="flex-1 border-2 border-gray-700 rounded-lg bg-discordDarker cursor-crosshair shadow-lg"
       />
-
-      {/* Text Input Modal */}
-      {showTextInput && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-discordDarkest border-2 border-gray-700 rounded-lg p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-bold text-gray-200 mb-4">Add Text</h3>
-            <input
-              autoFocus
-              type="text"
-              value={textInput}
-              onChange={(e) => setTextInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') addTextToCanvas();
-                if (e.key === 'Escape') {
-                  setShowTextInput(false);
-                  setTextInput('');
-                  setStartPos(null);
-                }
-              }}
-              placeholder="Enter text..."
-              className="w-full bg-discordDarker border border-gray-600 rounded px-3 py-2 text-gray-200 mb-4 focus:outline-none focus:border-mcGreen"
-            />
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => {
-                  setShowTextInput(false);
-                  setTextInput('');
-                  setStartPos(null);
-                }}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-gray-300"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={addTextToCanvas}
-                className="px-4 py-2 bg-mcGreen hover:bg-green-400 rounded text-black font-bold"
-              >
-                Add
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="flex gap-2 justify-between">
         <button
