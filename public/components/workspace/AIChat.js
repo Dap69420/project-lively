@@ -1,5 +1,16 @@
 function AIChat() {
   try {
+    const sanitizeAssistantText = (text) => {
+      if (!text) return '';
+
+      return text
+        .replace(/```[\s\S]*?```/g, '')
+        .split('\n')
+        .filter((line) => !/^(thinking|reasoning|analysis|chain of thought|internal note|step-by-step)\b[:\-]?/i.test(line.trim()))
+        .join('\n')
+        .trim();
+    };
+
     const renderInline = (text) => {
       if (!text) return null;
 
@@ -189,7 +200,7 @@ function AIChat() {
       setIsTyping(true);
       
       try {
-        const systemPrompt = `You are Buddy_AI, an encouraging study partner helping a student study ${selectedCourse.name}. Focus on these topics: ${selectedCourse.focus}. Be brief, use emojis, and don't give direct answers.`;
+        const systemPrompt = `You are Buddy_AI, an encouraging study partner helping a student study ${selectedCourse.name}. Focus only on the current course topic: ${selectedCourse.focus}. Do not talk about drawings, shapes, unrelated topics, or any other subject. Do not reveal your reasoning, hidden thinking, analysis, or step-by-step process. Only provide the final helpful response for the student.`;
 
         let aiResponse = '';
         try {
@@ -208,6 +219,8 @@ function AIChat() {
         } catch (apiError) {
           console.log('SambaNova call failed, using fallback.', apiError);
         }
+
+        aiResponse = sanitizeAssistantText(aiResponse);
 
         if (!aiResponse || typeof aiResponse !== 'string' || aiResponse.trim() === '') {
           aiResponse = "That's a great thought! Inertia is all about objects wanting to keep doing what they're already doing. What do you think happens if you push a stationary rock? 🪨";
@@ -231,7 +244,7 @@ function AIChat() {
 
         const aiMsg = { 
           role: 'ai', 
-          text: aiResponse, 
+          text: sanitizeAssistantText(aiResponse), 
           time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
         };
         setMessages(prev => [...prev, aiMsg]);

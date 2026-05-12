@@ -338,9 +338,7 @@ function Sketch({ user }) {
         sketchSummary = 'Sketch analyzed successfully.';
       }
 
-      const summaryMsg = `I looked at your sketch for ${selectedCourse.name}: ${sketchSummary}`;
-
-      const chatPrompt = `The student just drew something for the ${selectedCourse.name} course. Here is the sketch summary: ${sketchSummary}. Reply like a real friend who is helping them learn. Start naturally and do not mention that you are a model.`;
+      const chatPrompt = `The student is studying ${selectedCourse.name}. Keep the reply focused only on ${selectedCourse.focus}. Do not mention sketches, shapes, drawings, or unrelated topics. Do not reveal reasoning or step-by-step thinking. Give one helpful final response only.`;
 
       let finalChatResponse = '';
       
@@ -368,8 +366,8 @@ function Sketch({ user }) {
         // Continue
       }
 
-      const followUpMsg = finalChatResponse || `Nice sketch. I think you are exploring ${selectedCourse.focus.toLowerCase()}. Want to talk it through together?`;
-      const combinedMsg = `${summaryMsg}\n\n${followUpMsg}`;
+      const followUpMsg = finalChatResponse || `Let's stay on ${selectedCourse.focus.toLowerCase()}. What part of this topic do you want help with?`;
+      const combinedMsg = followUpMsg;
       
       if (window.LivelyChat && typeof window.LivelyChat.addAssistantMessage === 'function') {
         window.LivelyChat.addAssistantMessage(combinedMsg);
