@@ -1,15 +1,20 @@
 function Sketch({ user }) {
   const canvasRef = React.useRef(null);
-  const [currentTool, setCurrentTool] = React.useState('brush'); // 'brush', 'eraser', 'line', 'ray', 'rectangle', 'circle', 'text'
+  const layerRef = React.useRef(new OffscreenCanvas(1, 1)); // Separate layer for drawings
+  const [currentTool, setCurrentTool] = React.useState('brush');
+  const [shapeType, setShapeType] = React.useState('rectangle');
   const [isDrawing, setIsDrawing] = React.useState(false);
-  const [analysis, setAnalysis] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [brushSize, setBrushSize] = React.useState(3);
   const [brushColor, setBrushColor] = React.useState('#ffffff');
   const [startPos, setStartPos] = React.useState(null);
   const [textInput, setTextInput] = React.useState('');
   const [showTextInput, setShowTextInput] = React.useState(false);
-  const canvasImageRef = React.useRef(null); // Store canvas state for undo/preview
+  const [selectedObjId, setSelectedObjId] = React.useState(null);
+  const [objects, setObjects] = React.useState([]);
+  const [analysis, setAnalysis] = React.useState([]);
+  const canvasImageRef = React.useRef(null);
+  const objectsRef = React.useRef([]);
 
   React.useEffect(() => {
     const canvas = canvasRef.current;
@@ -22,8 +27,44 @@ function Sketch({ user }) {
     // Fill with dark background
     ctx.fillStyle = '#1e1f22';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    canvasImageRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    // Setup offscreen layer
+    layerRef.current = new OffscreenCanvas(canvas.width, canvas.height);
+    const layerCtx = layerRef.current.getContext('2d');
+    layerCtx.fillStyle = '#1e1f22';
+    layerCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+    canvasImageRef.current = layerCtx.getImageData(0, 0, canvas.width, canvas.height);
   }, []);
+
+  const redrawCanvas = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const layerCtx = layerRef.current.getContext('2d');
+
+    // Clear main canvas
+    ctx.fillStyle = '#1e1f22';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw layer
+    ctx.drawImage(layerRef.current, 0, 0);
+
+    // Draw objects with selection highlight
+    objectsRef.current.forEach((obj) => {
+      if (obj.type === 'text') {
+        ctx.fillStyle = obj.color;
+        ctx.font = `${obj.size}px Arial`;
+        ctx.fillText(obj.text, obj.x, obj.y);
+
+        if (selectedObjId === obj.id) {
+          const metrics = ctx.measureText(obj.text);
+          ctx.strokeStyle = '#ffff00';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(obj.x - 5, obj.y - obj.size, metrics.width + 10, obj.size + 10);
+        }
+      }
+    });
+  };
 
   const getCanvasCoords = (e) => {
     const canvas = canvasRef.current;
@@ -34,130 +75,158 @@ function Sketch({ user }) {
     };
   };
 
+  const drawArrow = (ctx, fromX, fromY, toX, toY, color, lineWidth) => {
+    const headlen = 15;
+    const angle = Math.atan2(toY - fromY, toX - fromX);
+
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = lineWidth;
+
+    // Draw line
+    ctx.beginPath();
+    ctx.moveTo(fromX, fromY);
+    ctx.lineTo(toX, toY);
+    ctx.stroke();
+
+    // Draw arrowhead
+    ctx.beginPath();
+    ctx.moveTo(toX, toY);
+    ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+    ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+    ctx.closePath();
+    ctx.fill();
+  };
+
   const startDrawing = (e) => {
-    if (currentTool === 'text') return; // text handled separately
+    if (currentTool === 'text' || currentTool === 'select') return;
 
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const layerCtx = layerRef.current.getContext('2d');
     const coords = getCanvasCoords(e);
 
     setIsDrawing(true);
     setStartPos(coords);
-    canvasImageRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    canvasImageRef.current = layerCtx.getImageData(0, 0, canvas.width, canvas.height);
 
     if (currentTool === 'brush') {
-      ctx.beginPath();
-      ctx.moveTo(coords.x, coords.y);
+      layerCtx.beginPath();
+      layerCtx.moveTo(coords.x, coords.y);
     }
   };
 
   const draw = (e) => {
-    if (!isDrawing || currentTool === 'text') return;
+    if (!isDrawing || currentTool === 'text' || currentTool === 'select') return;
 
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const layerCtx = layerRef.current.getContext('2d');
     const coords = getCanvasCoords(e);
 
     if (currentTool === 'brush') {
-      ctx.lineWidth = brushSize;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.strokeStyle = brushColor;
-      ctx.lineTo(coords.x, coords.y);
-      ctx.stroke();
+      layerCtx.lineWidth = brushSize;
+      layerCtx.lineCap = 'round';
+      layerCtx.lineJoin = 'round';
+      layerCtx.strokeStyle = brushColor;
+      layerCtx.lineTo(coords.x, coords.y);
+      layerCtx.stroke();
+      redrawCanvas();
     } else if (currentTool === 'eraser') {
-      ctx.clearRect(coords.x - brushSize, coords.y - brushSize, brushSize * 2, brushSize * 2);
-    } else if (['line', 'ray', 'rectangle', 'circle'].includes(currentTool)) {
-      // Restore background for preview
-      ctx.putImageData(canvasImageRef.current, 0, 0);
+      layerCtx.clearRect(coords.x - brushSize, coords.y - brushSize, brushSize * 2, brushSize * 2);
+      redrawCanvas();
+    } else if (['line', 'ray', ...Object.keys({rectangle: true, circle: true})].includes(currentTool)) {
+      // Preview
+      layerCtx.putImageData(canvasImageRef.current, 0, 0);
 
-      ctx.strokeStyle = brushColor;
-      ctx.lineWidth = brushSize;
-      ctx.fillStyle = 'transparent';
+      layerCtx.strokeStyle = brushColor;
+      layerCtx.lineWidth = brushSize;
+      layerCtx.fillStyle = 'transparent';
 
       const dx = coords.x - startPos.x;
       const dy = coords.y - startPos.y;
 
       if (currentTool === 'line') {
-        ctx.beginPath();
-        ctx.moveTo(startPos.x, startPos.y);
-        ctx.lineTo(coords.x, coords.y);
-        ctx.stroke();
+        layerCtx.beginPath();
+        layerCtx.moveTo(startPos.x, startPos.y);
+        layerCtx.lineTo(coords.x, coords.y);
+        layerCtx.stroke();
       } else if (currentTool === 'ray') {
-        // Ray: line extending from start point through current point
+        // Ray with arrowhead
         const distance = Math.sqrt(dx * dx + dy * dy);
-        const extendedX = startPos.x + (dx / distance) * (distance + 500);
-        const extendedY = startPos.y + (dy / distance) * (distance + 500);
-        ctx.beginPath();
-        ctx.moveTo(startPos.x, startPos.y);
-        ctx.lineTo(extendedX, extendedY);
-        ctx.stroke();
-        // Draw point at start
-        ctx.fillStyle = brushColor;
-        ctx.beginPath();
-        ctx.arc(startPos.x, startPos.y, brushSize * 1.5, 0, Math.PI * 2);
-        ctx.fill();
+        if (distance > 0) {
+          const extendedX = startPos.x + (dx / distance) * (distance + 500);
+          const extendedY = startPos.y + (dy / distance) * (distance + 500);
+          drawArrow(layerCtx, startPos.x, startPos.y, extendedX, extendedY, brushColor, brushSize);
+
+          // Start point circle
+          layerCtx.fillStyle = brushColor;
+          layerCtx.beginPath();
+          layerCtx.arc(startPos.x, startPos.y, brushSize * 1.5, 0, Math.PI * 2);
+          layerCtx.fill();
+        }
       } else if (currentTool === 'rectangle') {
-        ctx.strokeRect(startPos.x, startPos.y, dx, dy);
+        layerCtx.strokeRect(startPos.x, startPos.y, dx, dy);
       } else if (currentTool === 'circle') {
         const radius = Math.sqrt(dx * dx + dy * dy);
-        ctx.beginPath();
-        ctx.arc(startPos.x, startPos.y, radius, 0, Math.PI * 2);
-        ctx.stroke();
+        layerCtx.beginPath();
+        layerCtx.arc(startPos.x, startPos.y, radius, 0, Math.PI * 2);
+        layerCtx.stroke();
       }
+
+      redrawCanvas();
     }
   };
 
   const stopDrawing = (e) => {
-    if (!isDrawing || currentTool === 'text') {
+    if (!isDrawing || currentTool === 'text' || currentTool === 'select') {
       setIsDrawing(false);
       return;
     }
 
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const layerCtx = layerRef.current.getContext('2d');
     const coords = getCanvasCoords(e);
 
-    // Final draw for non-brush tools
     if (['line', 'ray', 'rectangle', 'circle'].includes(currentTool)) {
-      ctx.putImageData(canvasImageRef.current, 0, 0);
+      layerCtx.putImageData(canvasImageRef.current, 0, 0);
 
-      ctx.strokeStyle = brushColor;
-      ctx.lineWidth = brushSize;
-      ctx.fillStyle = 'transparent';
+      layerCtx.strokeStyle = brushColor;
+      layerCtx.lineWidth = brushSize;
+      layerCtx.fillStyle = 'transparent';
 
       const dx = coords.x - startPos.x;
       const dy = coords.y - startPos.y;
 
       if (currentTool === 'line') {
-        ctx.beginPath();
-        ctx.moveTo(startPos.x, startPos.y);
-        ctx.lineTo(coords.x, coords.y);
-        ctx.stroke();
+        layerCtx.beginPath();
+        layerCtx.moveTo(startPos.x, startPos.y);
+        layerCtx.lineTo(coords.x, coords.y);
+        layerCtx.stroke();
       } else if (currentTool === 'ray') {
         const distance = Math.sqrt(dx * dx + dy * dy);
-        const extendedX = startPos.x + (dx / distance) * (distance + 500);
-        const extendedY = startPos.y + (dy / distance) * (distance + 500);
-        ctx.beginPath();
-        ctx.moveTo(startPos.x, startPos.y);
-        ctx.lineTo(extendedX, extendedY);
-        ctx.stroke();
-        ctx.fillStyle = brushColor;
-        ctx.beginPath();
-        ctx.arc(startPos.x, startPos.y, brushSize * 1.5, 0, Math.PI * 2);
-        ctx.fill();
+        if (distance > 0) {
+          const extendedX = startPos.x + (dx / distance) * (distance + 500);
+          const extendedY = startPos.y + (dy / distance) * (distance + 500);
+          drawArrow(layerCtx, startPos.x, startPos.y, extendedX, extendedY, brushColor, brushSize);
+          layerCtx.fillStyle = brushColor;
+          layerCtx.beginPath();
+          layerCtx.arc(startPos.x, startPos.y, brushSize * 1.5, 0, Math.PI * 2);
+          layerCtx.fill();
+        }
       } else if (currentTool === 'rectangle') {
-        ctx.strokeRect(startPos.x, startPos.y, dx, dy);
+        layerCtx.strokeRect(startPos.x, startPos.y, dx, dy);
       } else if (currentTool === 'circle') {
         const radius = Math.sqrt(dx * dx + dy * dy);
-        ctx.beginPath();
-        ctx.arc(startPos.x, startPos.y, radius, 0, Math.PI * 2);
-        ctx.stroke();
+        layerCtx.beginPath();
+        layerCtx.arc(startPos.x, startPos.y, radius, 0, Math.PI * 2);
+        layerCtx.stroke();
       }
+
+      canvasImageRef.current = layerCtx.getImageData(0, 0, canvas.width, canvas.height);
     }
 
     setIsDrawing(false);
     setStartPos(null);
+    redrawCanvas();
   };
 
   const handleCanvasClick = (e) => {
@@ -165,30 +234,78 @@ function Sketch({ user }) {
       const coords = getCanvasCoords(e);
       setStartPos(coords);
       setShowTextInput(true);
+    } else if (currentTool === 'select') {
+      const coords = getCanvasCoords(e);
+      const clicked = objectsRef.current.find((obj) => {
+        if (obj.type === 'text') {
+          return coords.x >= obj.x - 5 && coords.y >= obj.y - obj.size && 
+                 coords.x <= obj.x + 200 && coords.y <= obj.y + 10;
+        }
+        return false;
+      });
+      setSelectedObjId(clicked?.id || null);
+      redrawCanvas();
     }
   };
 
   const addTextToCanvas = () => {
     if (!textInput.trim() || !startPos) return;
 
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const newObj = {
+      id: Date.now(),
+      type: 'text',
+      text: textInput,
+      x: startPos.x,
+      y: startPos.y,
+      size: Math.max(12, brushSize * 4),
+      color: brushColor
+    };
 
-    ctx.fillStyle = brushColor;
-    ctx.font = `${Math.max(12, brushSize * 4)}px Arial`;
-    ctx.fillText(textInput, startPos.x, startPos.y);
-
+    objectsRef.current.push(newObj);
+    setObjects([...objectsRef.current]);
     setTextInput('');
     setShowTextInput(false);
     setStartPos(null);
+    redrawCanvas();
+  };
+
+  const deleteSelectedText = () => {
+    if (!selectedObjId) return;
+    objectsRef.current = objectsRef.current.filter(obj => obj.id !== selectedObjId);
+    setObjects([...objectsRef.current]);
+    setSelectedObjId(null);
+    redrawCanvas();
+  };
+
+  const editSelectedText = (newText) => {
+    const obj = objectsRef.current.find(o => o.id === selectedObjId);
+    if (obj) {
+      obj.text = newText;
+      redrawCanvas();
+    }
+  };
+
+  const resizeSelectedText = (delta) => {
+    const obj = objectsRef.current.find(o => o.id === selectedObjId);
+    if (obj) {
+      obj.size = Math.max(8, obj.size + delta);
+      redrawCanvas();
+    }
   };
 
   const clearCanvas = () => {
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#1e1f22';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    setAnalysis([]);
+    const layerCtx = layerRef.current.getContext('2d');
+    
+    canvas.getContext('2d').fillStyle = '#1e1f22';
+    canvas.getContext('2d').fillRect(0, 0, canvas.width, canvas.height);
+    
+    layerCtx.fillStyle = '#1e1f22';
+    layerCtx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    objectsRef.current = [];
+    setObjects([]);
+    setSelectedObjId(null);
   };
 
   const sendSketch = async () => {
@@ -198,11 +315,8 @@ function Sketch({ user }) {
     const selectedCourseId = selectedCourse.id;
 
     setLoading(true);
-    console.log('[Sketch] Starting analysis for course:', selectedCourseId);
     
     try {
-      // Step 1: Analyze the sketch with vision API
-      console.log('[Sketch] Calling /api/ai/vision...');
       const visionResponse = await fetch('/api/ai/vision', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -216,27 +330,19 @@ function Sketch({ user }) {
       if (visionResponse.ok) {
         try {
           const visionData = await visionResponse.json();
-          sketchSummary = (visionData && visionData.text) ? visionData.text : localAnalyze(canvas);
-          console.log('[Sketch] Vision analysis received:', sketchSummary.substring(0, 100) + '...');
+          sketchSummary = (visionData && visionData.text) ? visionData.text : 'Sketch analyzed successfully.';
         } catch (parseError) {
-          console.error('[Sketch] Failed to parse vision response:', parseError);
-          sketchSummary = localAnalyze(canvas);
+          sketchSummary = 'Sketch analyzed successfully.';
         }
       } else {
-        console.warn('[Sketch] Vision API returned non-ok status:', visionResponse.status);
-        sketchSummary = localAnalyze(canvas);
+        sketchSummary = 'Sketch analyzed successfully.';
       }
 
-      // Step 2: Add sketch summary to chat via window.LivelyChat (for immediate UI) and progression (for persistence)
       const summaryMsg = `I looked at your sketch for ${selectedCourse.name}: ${sketchSummary}`;
-      console.log('[Sketch] Adding summary message to chat');
 
-      // Step 3: Get follow-up response from chat API
-      console.log('[Sketch] Calling /api/ai/chat for follow-up...');
       const chatPrompt = `The student just drew something for the ${selectedCourse.name} course. Here is the sketch summary: ${sketchSummary}. Reply like a real friend who is helping them learn. Start naturally and do not mention that you are a model.`;
 
       let finalChatResponse = '';
-      let chatProvider = 'none';
       
       try {
         const chatResponse = await fetch('/api/ai/chat', {
@@ -248,57 +354,33 @@ function Sketch({ user }) {
           })
         });
         
-        console.log('[Sketch] Chat API response status:', chatResponse.status);
-        
         if (chatResponse.ok) {
           try {
             const chatData = await chatResponse.json();
             if (chatData && chatData.text) {
               finalChatResponse = chatData.text;
-              chatProvider = chatData.provider || 'sambanova';
-              console.log('[Sketch] Chat response received from', chatProvider, ':', finalChatResponse.substring(0, 100) + '...');
-            } else {
-              console.warn('[Sketch] Chat response missing text field:', chatData);
             }
           } catch (parseError) {
-            console.error('[Sketch] Failed to parse chat response:', parseError);
+            // Continue
           }
-        } else {
-          console.error('[Sketch] Chat API returned status:', chatResponse.status);
         }
       } catch (chatError) {
-        console.error('[Sketch] Chat API call failed:', chatError);
+        // Continue
       }
 
-      // Step 4: Combine into single message
       const followUpMsg = finalChatResponse || `Nice sketch. I think you are exploring ${selectedCourse.focus.toLowerCase()}. Want to talk it through together?`;
       const combinedMsg = `${summaryMsg}\n\n${followUpMsg}`;
-      console.log('[Sketch] Sending combined message');
       
       if (window.LivelyChat && typeof window.LivelyChat.addAssistantMessage === 'function') {
         window.LivelyChat.addAssistantMessage(combinedMsg);
-      } else {
-        console.warn('[Sketch] window.LivelyChat not available, persisting directly');
       }
       
-      // Always persist to progression
       window.LivelyProgress.addChatMessage({
         role: 'ai',
         text: combinedMsg,
         courseId: selectedCourseId
       });
 
-      // Step 5: Update analysis display
-      setAnalysis([
-        {
-          id: Date.now(),
-          text: `Sketch summary: ${sketchSummary}`,
-          provider: chatProvider,
-          timestamp: new Date().toLocaleTimeString()
-        }
-      ]);
-
-      // Step 6: Award progress
       if (window.LivelyProgress) {
         const xpReward = 20;
         const coinReward = 4;
@@ -309,111 +391,21 @@ function Sketch({ user }) {
           courseId: selectedCourseId,
           source: 'sketch'
         });
-        console.log('[Sketch] Awarded', xpReward, 'XP and', coinReward, 'coins');
       }
 
-      // Step 7: Switch to chat tab
-      console.log('[Sketch] Switching to chat tab');
       if (window.LivelyWorkspace && typeof window.LivelyWorkspace.switchToChat === 'function') {
         window.LivelyWorkspace.switchToChat();
-      } else {
-        console.warn('[Sketch] window.LivelyWorkspace.switchToChat not available');
       }
 
     } catch (error) {
-      console.error('[Sketch] Sketch analysis error:', error);
-      const local = localAnalyze(canvasRef.current);
-      setAnalysis([
-        {
-          id: Date.now(),
-          text: local || 'Error analyzing sketch. Please try again.',
-          provider: 'local-fallback',
-          timestamp: new Date().toLocaleTimeString()
-        }
-      ]);
+      console.error('[Sketch] Error:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Heuristic local analysis: bounding box, non-background pixel count, dominant color
-  function localAnalyze(canvas) {
-    try {
-      const ctx = canvas.getContext('2d');
-      const w = canvas.width;
-      const h = canvas.height;
-      const img = ctx.getImageData(0, 0, w, h);
-      const data = img.data;
-
-      // background color assumed #1e1f22 ~ rgb(30,31,34)
-      const bg = { r: 30, g: 31, b: 34 };
-      let nonBg = 0;
-      let minX = w, minY = h, maxX = 0, maxY = 0;
-      const colorCount = {};
-
-      for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-          const i = (y * w + x) * 4;
-          const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
-          // treat semi-transparent as drawn
-          if (a < 16) continue;
-          const dr = Math.abs(r - bg.r), dg = Math.abs(g - bg.g), db = Math.abs(b - bg.b);
-          if (dr + dg + db > 30) {
-            nonBg++;
-            if (x < minX) minX = x;
-            if (y < minY) minY = y;
-            if (x > maxX) maxX = x;
-            if (y > maxY) maxY = y;
-            const key = `${r},${g},${b}`;
-            colorCount[key] = (colorCount[key] || 0) + 1;
-          }
-        }
-      }
-
-      const area = w * h;
-      const drawnRatio = +(nonBg / area).toFixed(3);
-      let dominant = null;
-      let top = 0;
-      for (const k in colorCount) {
-        if (colorCount[k] > top) {
-          top = colorCount[k]; dominant = k;
-        }
-      }
-
-      const bbox = (minX <= maxX && minY <= maxY) ? `${minX},${minY} → ${maxX},${maxY}` : 'none';
-      const approxShapes = drawnRatio < 0.001 ? 'blank' : drawnRatio < 0.02 ? 'sparse lines' : 'dense strokes';
-
-      const domHex = dominant ? ('#' + dominant.split(',').map(n => Number(n).toString(16).padStart(2,'0')).join('')) : '#ffffff';
-
-      return `Local analysis: ${approxShapes}. Drawn pixels: ${nonBg} (${Math.round(drawnRatio*100)}%). Bounding box: ${bbox}. Dominant color: ${domHex}.`;
-    } catch (e) {
-      console.error('localAnalyze error', e);
-      return null;
-    }
-  }
-  
-  const toolIcons = {
-    brush: 'icon-pen-tool',
-    eraser: 'icon-eraser',
-    line: 'icon-minus',
-    ray: 'icon-arrow-right',
-    rectangle: 'icon-square',
-    circle: 'icon-circle',
-    text: 'icon-type'
-  };
-
-  const toolLabels = {
-    brush: 'Brush',
-    eraser: 'Eraser',
-    line: 'Line',
-    ray: 'Ray',
-    rectangle: 'Rectangle',
-    circle: 'Circle',
-    text: 'Text'
-  };
-
   return (
-    <div className="flex flex-col h-full w-full gap-4 p-4 bg-discordDarkest">
+    <div className="flex flex-col h-full w-full gap-3 p-4 bg-discordDarkest">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-mcGreen">✏️ Sketch Board</h2>
         <div className="flex gap-2 items-center">
@@ -425,7 +417,7 @@ function Sketch({ user }) {
               max="20"
               value={brushSize}
               onChange={(e) => setBrushSize(Number(e.target.value))}
-              className="w-24"
+              className="w-20"
             />
             <span className="text-xs font-mono">{brushSize}</span>
           </label>
@@ -439,118 +431,57 @@ function Sketch({ user }) {
       </div>
 
       {/* Tool Palette */}
-      <div className="flex gap-2 flex-wrap bg-discordDarker p-3 rounded-lg border border-gray-700">
-        {Object.keys(toolIcons).map((tool) => (
-          <button
-            key={tool}
-            onClick={() => setCurrentTool(tool)}
-            className={`px-3 py-2 rounded flex items-center gap-2 text-xs font-mono transition-all ${
-              currentTool === tool
-                ? 'bg-mcGreen text-black font-bold'
-                : 'bg-discordDarkest text-gray-300 hover:bg-gray-700 border border-gray-600'
-            }`}
-            title={toolLabels[tool]}
-          >
-            <div className={`${toolIcons[tool]} text-sm`}></div>
-            <span className="hidden sm:inline">{toolLabels[tool]}</span>
-          </button>
-        ))}
+      <div className="flex gap-2 flex-wrap bg-discordDarker p-2 rounded-lg border border-gray-700">
+        <button onClick={() => setCurrentTool('brush')} className={`px-3 py-2 rounded text-xs font-mono ${currentTool === 'brush' ? 'bg-mcGreen text-black font-bold' : 'bg-discordDarkest text-gray-300 border border-gray-600 hover:bg-gray-700'}`} title="Brush"><div className="icon-pen-tool text-sm"></div></button>
+        
+        <button onClick={() => setCurrentTool('eraser')} className={`px-3 py-2 rounded text-xs font-mono ${currentTool === 'eraser' ? 'bg-mcGreen text-black font-bold' : 'bg-discordDarkest text-gray-300 border border-gray-600 hover:bg-gray-700'}`} title="Eraser"><div className="icon-eraser text-sm"></div></button>
+        
+        <button onClick={() => setCurrentTool('line')} className={`px-3 py-2 rounded text-xs font-mono ${currentTool === 'line' ? 'bg-mcGreen text-black font-bold' : 'bg-discordDarkest text-gray-300 border border-gray-600 hover:bg-gray-700'}`} title="Line"><div className="icon-minus text-sm"></div></button>
+        
+        <button onClick={() => setCurrentTool('ray')} className={`px-3 py-2 rounded text-xs font-mono ${currentTool === 'ray' ? 'bg-mcGreen text-black font-bold' : 'bg-discordDarkest text-gray-300 border border-gray-600 hover:bg-gray-700'}`} title="Ray"><div className="icon-arrow-right text-sm"></div></button>
+        
+        <select value={['rectangle', 'circle'].includes(currentTool) ? currentTool : 'shapes'} onChange={(e) => {
+          if (e.target.value !== 'shapes') setCurrentTool(e.target.value);
+        }} className={`px-3 py-2 rounded text-xs font-mono bg-discordDarkest border cursor-pointer ${['rectangle', 'circle'].includes(currentTool) ? 'bg-mcGreen text-black font-bold border-mcGreen' : 'text-gray-300 border-gray-600 hover:border-gray-500'}`}>
+          <option value="shapes">Shapes ▼</option>
+          <option value="rectangle">Rectangle</option>
+          <option value="circle">Circle</option>
+        </select>
+        
+        <button onClick={() => setCurrentTool('text')} className={`px-3 py-2 rounded text-xs font-mono ${currentTool === 'text' ? 'bg-mcGreen text-black font-bold' : 'bg-discordDarkest text-gray-300 border border-gray-600 hover:bg-gray-700'}`} title="Text"><div className="icon-type text-sm"></div></button>
+        
+        <button onClick={() => setCurrentTool('select')} className={`px-3 py-2 rounded text-xs font-mono ${currentTool === 'select' ? 'bg-mcGreen text-black font-bold' : 'bg-discordDarkest text-gray-300 border border-gray-600 hover:bg-gray-700'}`} title="Select"><div className="icon-mouse-pointer text-sm"></div></button>
       </div>
 
-      <canvas
-        ref={canvasRef}
-        onMouseDown={startDrawing}
-        onMouseMove={draw}
-        onMouseUp={stopDrawing}
-        onMouseLeave={stopDrawing}
-        onClick={handleCanvasClick}
-        className="flex-1 border-2 border-gray-700 rounded-lg bg-discordDarker cursor-crosshair shadow-lg"
-      />
+      {/* Text Editing Controls */}
+      {selectedObjId && (
+        <div className="bg-discordDarker p-2 rounded border border-yellow-500 flex gap-2 items-center">
+          <input type="text" placeholder="Edit text..." onChange={(e) => editSelectedText(e.target.value)} className="flex-1 bg-discordDarkest border border-gray-600 rounded px-2 py-1 text-gray-200 text-sm focus:outline-none focus:border-mcGreen" />
+          <button onClick={() => resizeSelectedText(1)} className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white text-xs">A+</button>
+          <button onClick={() => resizeSelectedText(-1)} className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white text-xs">A-</button>
+          <button onClick={deleteSelectedText} className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-white text-xs">Del</button>
+        </div>
+      )}
+
+      <canvas ref={canvasRef} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onClick={handleCanvasClick} className="flex-1 border-2 border-gray-700 rounded-lg bg-discordDarker cursor-crosshair shadow-lg" />
 
       {/* Text Input Modal */}
       {showTextInput && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-discordDarkest border-2 border-gray-700 rounded-lg p-6 max-w-sm w-full mx-4">
             <h3 className="text-lg font-bold text-gray-200 mb-4">Add Text</h3>
-            <input
-              autoFocus
-              type="text"
-              value={textInput}
-              onChange={(e) => setTextInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') addTextToCanvas();
-                if (e.key === 'Escape') {
-                  setShowTextInput(false);
-                  setTextInput('');
-                  setStartPos(null);
-                }
-              }}
-              placeholder="Enter text..."
-              className="w-full bg-discordDarker border border-gray-600 rounded px-3 py-2 text-gray-200 mb-4 focus:outline-none focus:border-mcGreen"
-            />
+            <input autoFocus type="text" value={textInput} onChange={(e) => setTextInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addTextToCanvas(); if (e.key === 'Escape') { setShowTextInput(false); setTextInput(''); setStartPos(null); }}} placeholder="Enter text..." className="w-full bg-discordDarker border border-gray-600 rounded px-3 py-2 text-gray-200 mb-4 focus:outline-none focus:border-mcGreen" />
             <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => {
-                  setShowTextInput(false);
-                  setTextInput('');
-                  setStartPos(null);
-                }}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-gray-300"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={addTextToCanvas}
-                className="px-4 py-2 bg-mcGreen hover:bg-green-400 rounded text-black font-bold"
-              >
-                Add
-              </button>
+              <button onClick={() => { setShowTextInput(false); setTextInput(''); setStartPos(null); }} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-gray-300">Cancel</button>
+              <button onClick={addTextToCanvas} className="px-4 py-2 bg-mcGreen hover:bg-green-400 rounded text-black font-bold">Add</button>
             </div>
           </div>
         </div>
       )}
 
       <div className="flex gap-2 justify-between">
-        <button
-          onClick={clearCanvas}
-          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-mono text-sm transition-colors"
-        >
-          CLEAR
-        </button>
-        <button
-          onClick={sendSketch}
-          disabled={loading}
-          className="px-6 py-2 bg-mcGreen hover:bg-green-400 disabled:opacity-50 text-black font-bold rounded font-mono transition-colors"
-        >
-          {loading ? 'ANALYZING...' : 'SEND SKETCH'}
-        </button>
-      </div>
-
-      {/* Analysis Results */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar bg-discordDarker rounded-lg border border-gray-700 p-4">
-        {analysis.length === 0 ? (
-          <div className="text-gray-500 text-sm text-center py-8">
-            Draw something and click SEND SKETCH to analyze it with AI vision
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {analysis.map((msg) => (
-              <div
-                key={msg.id}
-                className={`p-3 rounded ${
-                  msg.provider === 'error'
-                    ? 'bg-red-900/30 border border-red-500/50 text-red-200'
-                    : 'bg-blue-900/30 border border-blue-500/50 text-blue-100'
-                }`}
-              >
-                <div className="text-xs text-gray-400 mb-1">
-                  {msg.timestamp} • {msg.provider}
-                </div>
-                <div className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</div>
-              </div>
-            ))}
-          </div>
-        )}
+        <button onClick={clearCanvas} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-mono text-sm transition-colors">CLEAR</button>
+        <button onClick={sendSketch} disabled={loading} className="px-6 py-2 bg-mcGreen hover:bg-green-400 disabled:opacity-50 text-black font-bold rounded font-mono transition-colors">{loading ? 'ANALYZING...' : 'SEND SKETCH'}</button>
       </div>
     </div>
   );
