@@ -69,7 +69,62 @@ function AIChat() {
     
     const [messages, setMessages] = React.useState([]);
     const [input, setInput] = React.useState('');
-    const [mood, setMood] = React.useState('green');
+          const renderMarkdownWithMath = (text) => {
+            if (!text) return '';
+      
+            const lines = text.split('\n');
+      
+            return lines.map((line, lineIdx) => {
+              const parts = [];
+              let currentIndex = 0;
+        
+              // Match display math $$...$$ and inline math \(...\)
+              const mathRegex = /(\$\$[^\$]+\$\$|\\\\?\([^)]+\))/g;
+              let match;
+        
+              while ((match = mathRegex.exec(line)) !== null) {
+                const mathExpr = match[0];
+                const start = match.index;
+          
+                // Add text before math
+                if (start > currentIndex) {
+                  const beforeText = line.substring(currentIndex, start);
+                  parts.push(
+                    <span key={`text-${lineIdx}-${currentIndex}`}>
+                      {renderMarkdown(beforeText)}
+                    </span>
+                  );
+                }
+          
+                // Add math element
+                parts.push(
+                  <span key={`math-${lineIdx}-${start}`} className="inline-block">
+                    {mathExpr}
+                  </span>
+                );
+          
+                currentIndex = match.index + mathExpr.length;
+              }
+        
+              // Add remaining text
+              if (currentIndex < line.length) {
+                const remainingText = line.substring(currentIndex);
+                parts.push(
+                  <span key={`text-${lineIdx}-${currentIndex}`}>
+                    {renderMarkdown(remainingText)}
+                  </span>
+                );
+              }
+        
+              if (parts.length === 0) {
+                parts.push(renderMarkdown(line));
+              }
+        
+              return <div key={lineIdx} className="mb-1">{parts}</div>;
+            });
+          };
+
+          const progress = window.LivelyProgress.useProgress();
     const [isTyping, setIsTyping] = React.useState(false);
     const messagesEndRef = React.useRef(null);
 
@@ -93,6 +148,13 @@ function AIChat() {
     React.useEffect(() => {
       scrollToBottom();
     }, [messages]);
+
+      // Typewrite math after rendering
+      React.useEffect(() => {
+        if (window.MathJax && window.MathJax.typesetPromise) {
+          window.MathJax.typesetPromise().catch(err => console.log('MathJax error:', err));
+        }
+      }, [messages]);
 
     React.useEffect(() => {
       window.LivelyChat = {
@@ -280,7 +342,7 @@ function AIChat() {
                   <span className="text-[10px] font-mono text-gray-500">{msg.time}</span>
                 </div>
                 <div className={`p-3 rounded-lg text-sm leading-relaxed ${msg.role === 'user' ? 'bg-mcPurple text-white rounded-tr-none' : 'bg-discordDarkest text-gray-200 rounded-tl-none border border-gray-700'}`}>
-                  {msg.role === 'ai' ? renderMarkdown(msg.text) : msg.text}
+                  {msg.role === 'ai' ? renderMarkdownWithMath(msg.text) : msg.text}
                 </div>
               </div>
             </div>
