@@ -1,4 +1,4 @@
-const { query } = require('../../lib/db');
+const { query } = require('../lib/db');
 
 module.exports = async (req, res) => {
   res.setHeader('Content-Type', 'application/json');
