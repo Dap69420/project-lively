@@ -36,11 +36,24 @@ function LoginApp() {
     const [password, setPassword] = React.useState('');
     const [alias, setAlias] = React.useState('');
     const [errorMsg, setErrorMsg] = React.useState('');
+    const [currentUser, setCurrentUser] = React.useState(null);
+    const [showSetup, setShowSetup] = React.useState(false);
+
+    const checkSetupCompletion = (user) => {
+      if (user?.user_metadata?.setupComplete) {
+        window.location.href = 'profile.html';
+      } else {
+        setCurrentUser(user);
+        setShowSetup(true);
+      }
+    };
 
     React.useEffect(() => {
       if (supabaseClient) {
         supabaseClient.auth.getSession().then(({ data: { session } }) => {
-          if (session) window.location.href = 'profile.html';
+          if (session) {
+            checkSetupCompletion(session.user);
+          }
         });
       }
     }, []);
@@ -53,11 +66,11 @@ function LoginApp() {
 
       try {
         if (isLogin) {
-          const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+          const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
           if (error) throw error;
-          window.location.href = 'profile.html';
+          checkSetupCompletion(data.user);
         } else {
-          const { error } = await supabaseClient.auth.signUp({
+          const { data, error } = await supabaseClient.auth.signUp({
             email,
             password,
             options: {
@@ -65,8 +78,7 @@ function LoginApp() {
             }
           });
           if (error) throw error;
-          // Auto-login might happen, or require email verification. For now, redirect.
-          window.location.href = 'profile.html';
+          checkSetupCompletion(data.user);
         }
       } catch (err) {
         console.error(err);
@@ -83,20 +95,31 @@ function LoginApp() {
         const { data, error } = await supabaseClient.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: window.location.origin + '/profile.html'
+            redirectTo: window.location.origin + '/login.html'
           }
         });
         if (error) throw error;
       } catch (error) {
         console.error('Auth error:', error);
         alert('Failed to connect: ' + error.message);
-      } finally {
         setIsLoading(false);
       }
     };
 
     return (
-      <div className="flex-grow flex flex-col items-center justify-center p-6 relative overflow-hidden" data-name="login-app" data-file="login-app.js">
+      <>
+        {showSetup && currentUser ? (
+          <ProfileSetup 
+            user={currentUser}
+            onComplete={() => {
+              setTimeout(() => {
+                window.location.href = 'profile.html';
+              }, 500);
+            }}
+          />
+        ) : null}
+        
+        <div className="flex-grow flex flex-col items-center justify-center p-6 relative overflow-hidden" data-name="login-app" data-file="login-app.js">
         
         {/* Background glow effects */}
         <div className="bg-glow fixed top-[-20%] left-[-10%] w-[50%] h-[50%] bg-neonViolet rounded-full mix-blend-screen filter blur-[120px] opacity-20 pointer-events-none z-0"></div>
@@ -202,6 +225,7 @@ function LoginApp() {
         
         <ThemeToggle />
       </div>
+      </>
     );
   } catch (error) {
     console.error('LoginApp component error:', error);

@@ -40,6 +40,20 @@ function AvatarSection({ user }) {
             <div className="icon-book-open text-neonViolet"></div>
             {window.LivelyProgress.getSelectedCourse().name}
           </div>
+          
+          {/* User Type and Grade */}
+          {user?.user_metadata?.userType && (
+            <div className="mt-3 flex items-center justify-center gap-3">
+              <div className="px-2 py-1 rounded bg-neonViolet/20 border border-neonViolet/50 text-xs font-mono font-semibold text-neonViolet uppercase">
+                {user.user_metadata.userType}
+              </div>
+              {user?.user_metadata?.grade && (
+                <div className="px-2 py-1 rounded bg-blue-500/20 border border-blue-500/50 text-xs font-mono font-semibold text-blue-400 uppercase">
+                  Grade {user.user_metadata.grade}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="mt-6 w-full flex gap-2 relative z-10">

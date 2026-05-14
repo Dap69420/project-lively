@@ -110,11 +110,18 @@
         from { transform: scale(0.95); opacity: 0; }
         to { transform: scale(1); opacity: 1; }
     }
+
+    @layer components {
+        .glass-panel {
+            @apply bg-glassBg border border-glassBorder backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300;
+        }
+    }
     </style>
 </head>
 <body>
     <div id="root" class="flex-grow flex flex-col"></div>
     <script type="text/babel" src="components/ThemeToggle.js"></script>
+    <script type="text/babel" src="components/ProfileSetup.js"></script>
     <script type="text/babel" src="login-app.js"></script>
 </body>
 </html>
