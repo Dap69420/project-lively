@@ -30,6 +30,7 @@ class ErrorBoundary extends React.Component {
 
 function AdminApp() {
   try {
+    const supabaseClient = window.supabaseClient || null;
     const [allCourses, setAllCourses] = React.useState([]);
     const [loadingCourses, setLoadingCourses] = React.useState(true);
     const [session, setSession] = React.useState(null);
