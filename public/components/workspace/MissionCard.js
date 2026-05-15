@@ -2,39 +2,24 @@ function MissionCard() {
   try {
     const progress = window.LivelyProgress.useProgress();
     const course = window.LivelyProgress.getSelectedCourse();
-    const missionByCourse = {
-      physics: {
-        episode: 'EPISODE 4: PHYSICS',
-        title: 'The Laws of Motion',
-        body: 'Newton dropped the hottest rules of the universe. Your mission is to decode motion, force, and inertia.',
-        objectives: ['Explain why a skateboard stops moving.', 'Give a real-world example of inertia.']
-      },
-      math: {
-        episode: 'EPISODE 2: MATH',
-        title: 'Pattern Hunt',
-        body: 'Track the hidden structure behind equations, graphs, and problem solving.',
-        objectives: ['Break down an algebra expression.', 'Explain a pattern in plain language.']
-      },
-      biology: {
-        episode: 'EPISODE 3: BIOLOGY',
-        title: 'Life Systems',
-        body: 'Explore cells, organs, and ecosystems like a systems engineer of nature.',
-        objectives: ['Describe a cell part and its job.', 'Explain how one system affects another.']
-      },
-      coding: {
-        episode: 'EPISODE 1: CODING',
-        title: 'Logic Quest',
-        body: 'Debug the machine. Turn messy ideas into clear steps and code-like thinking.',
-        objectives: ['Explain a loop using a real life example.', 'Find the bug in a simple snippet.']
-      },
-      history: {
-        episode: 'EPISODE 5: HISTORY',
-        title: 'Timeline Raid',
-        body: 'Travel through events, causes, and consequences to understand how change happens.',
-        objectives: ['Summarize an event in one sentence.', 'Explain why it mattered.']
-      }
+    const lessonObjectives = Array.isArray(course.lessons)
+      ? course.lessons.slice(0, 2).map((lesson, index) => {
+          if (typeof lesson === 'string') return lesson;
+          return lesson.title || lesson.name || lesson.text || `Lesson ${index + 1}`;
+        })
+      : [];
+
+    const mission = {
+      episode: `GRADE ${course.grade || '--'} • ${String(course.subject || 'COURSE').toUpperCase()}`,
+      title: course.name || 'Learning Path',
+      body: course.aiAim || course.description || `Work through ${course.focus}.`,
+      objectives: lessonObjectives.length > 0
+        ? lessonObjectives
+        : [
+            `Complete ${course.completionXp || 250} XP in this course.`,
+            `Explain ${course.focus} in your own words.`
+          ]
     };
-    const mission = missionByCourse[course.id] || missionByCourse.physics;
 
     return (
       <div className="panel flex-1 m-4" data-name="mission-card" data-file="components/workspace/MissionCard.js">

@@ -66,7 +66,8 @@ function CourseSelector() {
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {courses.map((course) => {
             const isActive = course.id === progress.selectedCourse;
-            const courseState = progress.courseProgress[course.id] || { xp: 0, mastery: 0, questions: 0 };
+            const courseState = progress.courseProgress[course.id] || { xp: 0, mastery: 0, questions: 0, completed: false };
+            const isCompleted = Boolean(courseState.completed) || courseState.mastery >= 100;
             return (
               <button
                 key={course.id}
@@ -85,7 +86,11 @@ function CourseSelector() {
                     <div className="font-bold text-white">{course.name}</div>
                     <div className="text-xs font-mono text-gray-400 mt-1">{course.focus}</div>
                   </div>
-                  {isActive && <span className="text-[10px] font-mono px-2 py-1 rounded-full bg-neonViolet/20 text-neonViolet border border-neonViolet/30">LIVE</span>}
+                  {isCompleted ? (
+                    <span className="text-[10px] font-mono px-2 py-1 rounded-full bg-green-500/20 text-green-300 border border-green-500/30">COMPLETED</span>
+                  ) : isActive ? (
+                    <span className="text-[10px] font-mono px-2 py-1 rounded-full bg-neonViolet/20 text-neonViolet border border-neonViolet/30">LIVE</span>
+                  ) : null}
                 </div>
 
                 <div className="flex items-center justify-between text-xs font-mono text-gray-400 mb-2">

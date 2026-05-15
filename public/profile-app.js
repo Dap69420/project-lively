@@ -51,14 +51,12 @@ function ProfileApp() {
     }, []);
 
     React.useEffect(() => {
-      const grade = user?.user_metadata?.grade;
-
-      if (!grade || !window.LivelyProgress?.loadCoursesForGrade) {
+      if (!user || !window.LivelyProgress?.setUserContext) {
         return;
       }
 
-      window.LivelyProgress.loadCoursesForGrade(grade).catch((error) => {
-        console.error('Failed to load grade courses:', error);
+      window.LivelyProgress.setUserContext(user).catch((error) => {
+        console.error('Failed to hydrate user state:', error);
       });
     }, [user]);
 

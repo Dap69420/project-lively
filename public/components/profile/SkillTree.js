@@ -19,8 +19,8 @@ function SkillTree() {
     }
 
     const nodes = courses.map((course) => {
-      const courseState = progress.courseProgress[course.id] || { xp: 0, mastery: 0, questions: 0 };
-      const status = course.id === progress.selectedCourse ? 'in-progress' : courseState.xp >= 100 ? 'completed' : courseState.xp > 0 ? 'in-progress' : 'locked';
+      const courseState = progress.courseProgress[course.id] || { xp: 0, mastery: 0, questions: 0, completed: false };
+      const status = courseState.completed || courseState.mastery >= 100 ? 'completed' : course.id === progress.selectedCourse ? 'in-progress' : courseState.xp > 0 ? 'in-progress' : 'locked';
       return {
         id: course.id,
         subject: course.name,

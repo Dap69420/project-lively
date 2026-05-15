@@ -6,7 +6,7 @@ module.exports = async (req, res) => {
   try {
     const { method } = req;
     const { userId } = req.query;
-    const { courseId, userCourseId } = req.body;
+    const { courseId, userCourseId } = req.body || {};
 
     if (!userId) {
       return res.status(400).json({
@@ -81,10 +81,10 @@ module.exports = async (req, res) => {
 
     // PATCH /api/user/courses - Update course progress
     if (method === 'PATCH') {
-      if (!userCourseId) {
+      if (!userCourseId && !courseId) {
         return res.status(400).json({
           success: false,
-          error: 'Missing userCourseId in request body',
+          error: 'Missing userCourseId or courseId in request body',
         });
       }
 
@@ -129,6 +129,45 @@ module.exports = async (req, res) => {
         params.push(JSON.stringify(stats));
       }
 
+      const currentResult = userCourseId
+        ? await query('SELECT * FROM user_courses WHERE id = $1 AND user_id = $2', [userCourseId, userId])
+        : await query('SELECT * FROM user_courses WHERE user_id = $1 AND course_id = $2', [userId, courseId]);
+
+      let targetRow = currentResult.rows[0] || null;
+
+      if (!targetRow && courseId) {
+        const inserted = await query(
+          `INSERT INTO user_courses (user_id, course_id)
+           VALUES ($1, $2)
+           RETURNING *`,
+          [userId, courseId]
+        );
+        targetRow = inserted.rows[0];
+      }
+
+      if (!targetRow) {
+        return res.status(404).json({
+          success: false,
+          error: 'User course not found',
+        });
+      }
+
+      if (completed !== undefined && completed && targetRow.completed !== true) {
+        await query(
+          `INSERT INTO user_progression (user_id, total_courses_completed)
+           VALUES ($1, 1)
+           ON CONFLICT (user_id)
+           DO UPDATE SET total_courses_completed = user_progression.total_courses_completed + 1,
+                         updated_at = CURRENT_TIMESTAMP`,
+          [userId]
+        );
+      }
+
+      if (completed === true && progress_percentage === undefined) {
+        updates.push(`progress_percentage = $${paramCount++}`);
+        params.push(100);
+      }
+
       if (updates.length === 0) {
         return res.status(400).json({
           success: false,
@@ -137,7 +176,7 @@ module.exports = async (req, res) => {
       }
 
       updates.push(`updated_at = CURRENT_TIMESTAMP`);
-      params.push(userCourseId);
+      params.push(targetRow.id);
 
       const sql = `UPDATE user_courses SET ${updates.join(', ')} 
                    WHERE id = $${paramCount} 

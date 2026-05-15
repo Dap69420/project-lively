@@ -82,19 +82,25 @@ module.exports = async (req, res) => {
       updates.push(`updated_at = CURRENT_TIMESTAMP`);
       params.push(userId);
 
+      let existing = await query(
+        'SELECT id FROM user_progression WHERE user_id = $1',
+        [userId]
+      );
+
+      if (existing.rows.length === 0) {
+        await query(
+          `INSERT INTO user_progression (user_id)
+           VALUES ($1)`,
+          [userId]
+        );
+      }
+
       const sql = `UPDATE user_progression 
                    SET ${updates.join(', ')}
                    WHERE user_id = $${paramCount}
                    RETURNING *`;
 
       const result = await query(sql, params);
-
-      if (result.rows.length === 0) {
-        return res.status(404).json({
-          success: false,
-          error: 'User progression not found',
-        });
-      }
 
       return res.status(200).json({
         success: true,

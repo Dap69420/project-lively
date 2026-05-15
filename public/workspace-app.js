@@ -64,6 +64,12 @@ function WorkspaceApp() {
     }, []);
 
     React.useEffect(() => {
+      if (user && window.LivelyProgress?.setUserContext) {
+        window.LivelyProgress.setUserContext(user).catch((error) => {
+          console.error('Failed to hydrate workspace state:', error);
+        });
+      }
+
       window.LivelyWorkspace = {
         switchToChat: () => setActiveTab('chat')
       };

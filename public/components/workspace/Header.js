@@ -1,5 +1,7 @@
 function Header({ user }) {
   try {
+    const progress = window.LivelyProgress.useProgress();
+    const nextLevel = window.LivelyProgress.getNextLevelXp(progress);
     const handleLogout = async () => {
       if (supabaseClient) {
         await supabaseClient.auth.signOut();
@@ -37,14 +39,14 @@ function Header({ user }) {
             </button>
             <div className="flex items-center gap-2 bg-discordDarkest px-3 py-1.5 rounded-lg border border-gray-700">
               <span className="font-mono text-sm text-gray-400">LVL</span>
-              <span className="font-pixel text-2xl text-mcPurple">14</span>
+              <span className="font-pixel text-2xl text-mcPurple">{nextLevel.currentLevel}</span>
               <div className="w-px h-4 bg-gray-700 mx-2"></div>
-              <span className="font-mono text-xs text-gray-300">3,450 / 5,000 XP</span>
+              <span className="font-mono text-xs text-gray-300">{progress.xp.toLocaleString()} / {nextLevel.nextLevelXp.toLocaleString()} XP</span>
             </div>
             
             <div className="flex items-center gap-2 text-mcOrange bg-mcOrange/10 px-3 py-1.5 rounded-lg border border-mcOrange/30">
               <div className="icon-flame animate-pulse"></div>
-              <span className="font-pixel text-2xl">12 DAYS</span>
+              <span className="font-pixel text-2xl">{progress.streak} DAYS</span>
             </div>
           </div>
         </div>
