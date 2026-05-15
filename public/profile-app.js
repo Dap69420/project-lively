@@ -51,6 +51,18 @@ function ProfileApp() {
     }, []);
 
     React.useEffect(() => {
+      const grade = user?.user_metadata?.grade;
+
+      if (!grade || !window.LivelyProgress?.loadCoursesForGrade) {
+        return;
+      }
+
+      window.LivelyProgress.loadCoursesForGrade(grade).catch((error) => {
+        console.error('Failed to load grade courses:', error);
+      });
+    }, [user]);
+
+    React.useEffect(() => {
       const alias = user?.user_metadata?.alias || user?.email?.split('@')[0] || 'RECRUIT';
       if (window.LivelyProgress) {
         window.LivelyProgress.setAlias(alias);

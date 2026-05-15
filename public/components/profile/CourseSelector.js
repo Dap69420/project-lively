@@ -2,6 +2,57 @@ function CourseSelector() {
   try {
     const progress = window.LivelyProgress.useProgress();
     const currentCourse = window.LivelyProgress.getSelectedCourse();
+    const courses = progress.availableCourses || [];
+
+    if (progress.catalogStatus === 'loading') {
+      return (
+        <div className="glass-panel p-6" data-name="course-selector" data-file="components/profile/CourseSelector.js">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-mono text-sm uppercase tracking-widest text-gray-400 flex items-center gap-2">
+              <div className="icon-sparkles"></div> ACTIVE COURSES
+            </h3>
+            <span className="font-mono text-xs text-gray-500 uppercase">Loading grade courses...</span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-32 rounded-xl bg-black/20 border border-white/10 animate-pulse"></div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (progress.catalogStatus === 'error') {
+      return (
+        <div className="glass-panel p-6" data-name="course-selector" data-file="components/profile/CourseSelector.js">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-mono text-sm uppercase tracking-widest text-gray-400 flex items-center gap-2">
+              <div className="icon-sparkles"></div> ACTIVE COURSES
+            </h3>
+            <span className="font-mono text-xs text-red-400 uppercase">Load failed</span>
+          </div>
+          <div className="p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-sm text-red-300 font-mono">
+            {progress.catalogError || 'Unable to load courses for this grade.'}
+          </div>
+        </div>
+      );
+    }
+
+    if (courses.length === 0) {
+      return (
+        <div className="glass-panel p-6" data-name="course-selector" data-file="components/profile/CourseSelector.js">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-mono text-sm uppercase tracking-widest text-gray-400 flex items-center gap-2">
+              <div className="icon-sparkles"></div> ACTIVE COURSES
+            </h3>
+            <span className="font-mono text-xs text-gray-500 uppercase">No courses yet</span>
+          </div>
+          <div className="p-4 rounded-xl border border-white/10 bg-black/20 text-sm text-gray-400 font-mono">
+            No courses are available for your grade yet.
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="glass-panel p-6" data-name="course-selector" data-file="components/profile/CourseSelector.js">
@@ -9,11 +60,11 @@ function CourseSelector() {
           <h3 className="font-mono text-sm uppercase tracking-widest text-gray-400 flex items-center gap-2">
             <div className="icon-sparkles"></div> ACTIVE COURSE
           </h3>
-          <span className="font-mono text-xs text-gray-500 uppercase">Stored locally</span>
+          <span className="font-mono text-xs text-gray-500 uppercase">Grade-based</span>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {window.LivelyProgress.courses.map((course) => {
+          {courses.map((course) => {
             const isActive = course.id === progress.selectedCourse;
             const courseState = progress.courseProgress[course.id] || { xp: 0, mastery: 0, questions: 0 };
             return (
