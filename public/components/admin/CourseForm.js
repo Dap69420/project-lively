@@ -1,4 +1,4 @@
-function CourseForm({ adminKey, onSuccess }) {
+function CourseForm({ accessToken, onSuccess }) {
   try {
     const [formData, setFormData] = React.useState({
       title: '',
@@ -36,6 +36,12 @@ function CourseForm({ adminKey, onSuccess }) {
       setError('');
       setSuccess('');
 
+      if (!accessToken) {
+        setError('You must be signed in as an authorized admin to create courses.');
+        setLoading(false);
+        return;
+      }
+
       // Validation
       if (!formData.title.trim()) {
         setError('Title is required');
@@ -56,13 +62,27 @@ function CourseForm({ adminKey, onSuccess }) {
       }
 
       try {
-        const response = await fetch(`/api/admin/courses?adminKey=${adminKey}`, {
+        const response = await fetch('/api/admin/courses', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
           body: JSON.stringify(formData)
         });
 
-        const result = await response.json();
+        const responseText = await response.text();
+        let result;
+
+        try {
+          result = responseText ? JSON.parse(responseText) : {};
+        } catch (_parseError) {
+          throw new Error(responseText || `Request failed with status ${response.status}`);
+        }
+
+        if (!response.ok) {
+          throw new Error(result?.error || `Request failed with status ${response.status}`);
+        }
 
         if (!result.success) {
           setError(result.error || 'Failed to create course');
@@ -90,7 +110,7 @@ function CourseForm({ adminKey, onSuccess }) {
         setTimeout(() => setSuccess(''), 3000);
       } catch (err) {
         console.error('Course creation error:', err);
-        setError('An error occurred while creating the course');
+        setError(err?.message || 'An error occurred while creating the course');
       } finally {
         setLoading(false);
       }

@@ -1,7 +1,11 @@
 module.exports = (req, res) => {
   const config = {
     SUPABASE_URL: process.env.SUPABASE_URL || process.env.MAIN_SUPABASE_URL || process.env.MAIN_MAINSUPABASE_URL || '',
-    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || process.env.MAIN_SUPABASE_ANON_KEY || process.env.MAIN_MAINSUPABASE_ANON_KEY || ''
+    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || process.env.MAIN_SUPABASE_ANON_KEY || process.env.MAIN_MAINSUPABASE_ANON_KEY || '',
+    ADMIN_ALLOWED_EMAILS: String(process.env.ADMIN_ALLOWED_EMAILS || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
   };
 
   res.setHeader('Content-Type', 'application/javascript; charset=utf-8');

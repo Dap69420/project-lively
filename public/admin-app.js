@@ -32,23 +32,121 @@ function AdminApp() {
   try {
     const [allCourses, setAllCourses] = React.useState([]);
     const [loadingCourses, setLoadingCourses] = React.useState(true);
+    const [session, setSession] = React.useState(null);
+    const [authLoading, setAuthLoading] = React.useState(true);
+    const [accessDenied, setAccessDenied] = React.useState('');
 
-    React.useEffect(() => {
-      // Load all courses
-      fetch('/api/courses')
-        .then(r => r.json())
-        .then(result => {
-          if (result.success) {
-            setAllCourses(result.data);
-          }
-        })
-        .catch(err => console.error('Failed to load courses:', err))
-        .finally(() => setLoadingCourses(false));
+    const adminAllowlist = React.useMemo(() => {
+      return (window.__APP_CONFIG__?.ADMIN_ALLOWED_EMAILS || []).map((value) => String(value).toLowerCase());
     }, []);
 
-    const handleCourseCreated = (newCourse) => {
-      setAllCourses([newCourse, ...allCourses]);
+    const isAdminUser = React.useMemo(() => {
+      const email = String(session?.user?.email || '').toLowerCase();
+      const metadataAdmin = session?.user?.user_metadata?.isAdmin === true || session?.user?.app_metadata?.isAdmin === true;
+      return metadataAdmin || (adminAllowlist.length > 0 && adminAllowlist.includes(email));
+    }, [session, adminAllowlist]);
+
+    React.useEffect(() => {
+      let mounted = true;
+
+      if (!supabaseClient) {
+        setAccessDenied('Authentication is unavailable.');
+        setAuthLoading(false);
+        return;
+      }
+
+      supabaseClient.auth.getSession().then(({ data: { session } }) => {
+        if (!mounted) return;
+        setSession(session || null);
+        setAuthLoading(false);
+        if (!session) {
+          setAccessDenied('Please sign in to access the admin panel.');
+          return;
+        }
+
+        const email = String(session.user?.email || '').toLowerCase();
+        const metadataAdmin = session.user?.user_metadata?.isAdmin === true || session.user?.app_metadata?.isAdmin === true;
+        if (!metadataAdmin && !(adminAllowlist.length > 0 && adminAllowlist.includes(email))) {
+          setAccessDenied('Your account is not authorized to access the admin panel.');
+        }
+      });
+
+      return () => {
+        mounted = false;
+      };
+    }, []);
+
+    const fetchJson = async (url, options) => {
+      const response = await fetch(url, options);
+      const text = await response.text();
+      let payload = null;
+
+      try {
+        payload = text ? JSON.parse(text) : {};
+      } catch (_error) {
+        payload = { success: false, error: text || `Request failed with status ${response.status}` };
+      }
+
+      if (!response.ok) {
+        const error = new Error(payload?.error || `Request failed with status ${response.status}`);
+        error.payload = payload;
+        error.status = response.status;
+        throw error;
+      }
+
+      return payload;
     };
+
+    React.useEffect(() => {
+      if (!isAdminUser || !session?.access_token) {
+        setLoadingCourses(false);
+        return;
+      }
+
+      // Load all courses
+      fetchJson('/api/admin/courses', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+        .then((result) => {
+          if (result.success) {
+            setAllCourses(result.data || []);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to load courses:', err);
+          setAccessDenied(err.message || 'Failed to load courses');
+        })
+        .finally(() => setLoadingCourses(false));
+    }, [isAdminUser, session]);
+
+    const handleCourseCreated = (newCourse) => {
+      setAllCourses((currentCourses) => [newCourse, ...currentCourses]);
+    };
+
+    if (authLoading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-darkBg text-white">
+          <div className="glass-panel p-8 font-mono text-sm text-gray-400">Checking admin access...</div>
+        </div>
+      );
+    }
+
+    if (!isAdminUser) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-darkBg text-white p-6">
+          <div className="glass-panel max-w-md p-8 text-center">
+            <h1 className="text-3xl font-black mb-3 text-red-400">Access denied</h1>
+            <p className="text-sm text-gray-400 font-mono mb-6">{accessDenied || 'Your account is not authorized to open this panel.'}</p>
+            <div className="flex items-center justify-center gap-3">
+              <a href="profile.html" className="px-5 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">Go to profile</a>
+              <a href="login.html" className="px-5 py-2 rounded-lg bg-neonViolet text-black font-bold hover:opacity-90 transition-opacity">Sign in</a>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="min-h-screen bg-darkBg text-white relative overflow-hidden">
@@ -80,7 +178,7 @@ function AdminApp() {
               {/* Course Form */}
               <div className="lg:col-span-2">
                 <CourseForm 
-                  adminKey="lively_admin_sk_7x9k2m0pq5r8v1w3y6z"
+                  accessToken={session?.access_token || ''}
                   onSuccess={handleCourseCreated}
                 />
               </div>

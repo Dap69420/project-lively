@@ -1,17 +1,17 @@
 const { query } = require('../lib/db');
+const { requireAdminUser } = require('../lib/adminAuth');
 
 module.exports = async (req, res) => {
   res.setHeader('Content-Type', 'application/json');
 
   try {
     const { method } = req;
-    const { userId, adminKey } = req.query;
+    const authResult = await requireAdminUser(req);
 
-    // Simple admin check (in production, verify against Supabase roles)
-    if (adminKey !== process.env.ADMIN_SECRET_KEY) {
-      return res.status(403).json({
+    if (!authResult.ok) {
+      return res.status(authResult.status).json({
         success: false,
-        error: 'Unauthorized - Invalid admin key',
+        error: authResult.error,
       });
     }
 
