@@ -1,10 +1,10 @@
 const { createClient } = require('@supabase/supabase-js');
 const { pickEnv } = require('../_shared');
+const adminAllowlist = require('../admin/allowlist');
 
 function getAdminAllowlist() {
-  return String(process.env.ADMIN_ALLOWED_EMAILS || '')
-    .split(',')
-    .map((value) => value.trim().toLowerCase())
+  return adminAllowlist
+    .map((value) => String(value).trim().toLowerCase())
     .filter(Boolean);
 }
 

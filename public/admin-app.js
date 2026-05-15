@@ -37,16 +37,6 @@ function AdminApp() {
     const [authLoading, setAuthLoading] = React.useState(true);
     const [accessDenied, setAccessDenied] = React.useState('');
 
-    const adminAllowlist = React.useMemo(() => {
-      return (window.__APP_CONFIG__?.ADMIN_ALLOWED_EMAILS || []).map((value) => String(value).toLowerCase());
-    }, []);
-
-    const isAdminUser = React.useMemo(() => {
-      const email = String(session?.user?.email || '').toLowerCase();
-      const metadataAdmin = session?.user?.user_metadata?.isAdmin === true || session?.user?.app_metadata?.isAdmin === true;
-      return metadataAdmin || (adminAllowlist.length > 0 && adminAllowlist.includes(email));
-    }, [session, adminAllowlist]);
-
     React.useEffect(() => {
       let mounted = true;
 
@@ -62,13 +52,6 @@ function AdminApp() {
         setAuthLoading(false);
         if (!session) {
           setAccessDenied('Please sign in to access the admin panel.');
-          return;
-        }
-
-        const email = String(session.user?.email || '').toLowerCase();
-        const metadataAdmin = session.user?.user_metadata?.isAdmin === true || session.user?.app_metadata?.isAdmin === true;
-        if (!metadataAdmin && !(adminAllowlist.length > 0 && adminAllowlist.includes(email))) {
-          setAccessDenied('Your account is not authorized to access the admin panel.');
         }
       });
 
@@ -99,7 +82,7 @@ function AdminApp() {
     };
 
     React.useEffect(() => {
-      if (!isAdminUser || !session?.access_token) {
+      if (!session?.access_token) {
         setLoadingCourses(false);
         return;
       }
@@ -117,10 +100,10 @@ function AdminApp() {
         })
         .catch((err) => {
           console.error('Failed to load courses:', err);
-          setAccessDenied(err.message || 'Failed to load courses');
+          setAccessDenied(err.status === 403 ? 'Your account is not authorized to access the admin panel.' : (err.message || 'Failed to load courses'));
         })
         .finally(() => setLoadingCourses(false));
-    }, [isAdminUser, session]);
+    }, [session]);
 
     const handleCourseCreated = (newCourse) => {
       setAllCourses((currentCourses) => [newCourse, ...currentCourses]);
@@ -134,7 +117,7 @@ function AdminApp() {
       );
     }
 
-    if (!isAdminUser) {
+    if (!session) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-darkBg text-white p-6">
           <div className="glass-panel max-w-md p-8 text-center">
