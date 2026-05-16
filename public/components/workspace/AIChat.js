@@ -144,6 +144,7 @@ ${displayMathLines.join('\n')}
     const selectedCourseId = progress.selectedCourse;
     const selectedCourse = window.LivelyProgress.getSelectedCourse();
     const selectedCourseState = progress.courseProgress?.[selectedCourseId] || { questions: 0, completed: false };
+    const isCourseCompleted = Boolean(selectedCourseState.completed);
     const adminEmails = Array.isArray(window.__APP_CONFIG__?.ADMIN_ALLOWED_EMAILS) ? window.__APP_CONFIG__.ADMIN_ALLOWED_EMAILS : [];
     const isAdminViewer = adminEmails.some((email) => String(email).toLowerCase() === String(progress.userEmail || '').toLowerCase());
     const courseContext = {
@@ -169,11 +170,20 @@ ${displayMathLines.join('\n')}
     // Load messages from progression when course changes
     React.useEffect(() => {
       let cancelled = false;
+      const completedMessage = {
+        role: 'ai',
+        text: `Course completed: ${selectedCourse.name}. You can reopen this course anytime to review your chat and sketch, but new work is locked for this completed path.`,
+        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+        metadata: { type: 'course_completed' }
+      };
 
       const loadMessages = async () => {
         const savedMessages = window.LivelyProgress.getChatMessages(selectedCourseId);
         if (savedMessages && savedMessages.length > 0) {
-          if (!cancelled) setMessages(savedMessages);
+          if (!cancelled) {
+            const hasCompletionMessage = savedMessages.some((message) => message.metadata?.type === 'course_completed');
+            setMessages(isCourseCompleted && !hasCompletionMessage ? [...savedMessages, completedMessage] : savedMessages);
+          }
           return;
         }
 
@@ -182,16 +192,17 @@ ${displayMathLines.join('\n')}
           if (cancelled) return;
 
           if (hydratedMessages && hydratedMessages.length > 0) {
-            setMessages(hydratedMessages);
+            const hasCompletionMessage = hydratedMessages.some((message) => message.metadata?.type === 'course_completed');
+            setMessages(isCourseCompleted && !hasCompletionMessage ? [...hydratedMessages, completedMessage] : hydratedMessages);
           } else {
             setMessages([
-              { role: 'ai', text: `Hey! Ready to tackle ${selectedCourse.name}? Let's hear what you think.`, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }
+              isCourseCompleted ? completedMessage : { role: 'ai', text: `Hey! Ready to tackle ${selectedCourse.name}? Let's hear what you think.`, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }
             ]);
           }
         } catch (_error) {
           if (cancelled) return;
           setMessages([
-            { role: 'ai', text: `Hey! Ready to tackle ${selectedCourse.name}? Let's hear what you think.`, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }
+            isCourseCompleted ? completedMessage : { role: 'ai', text: `Hey! Ready to tackle ${selectedCourse.name}? Let's hear what you think.`, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }
           ]);
         }
       };
@@ -201,7 +212,7 @@ ${displayMathLines.join('\n')}
       return () => {
         cancelled = true;
       };
-    }, [selectedCourseId, selectedCourse.name]);
+    }, [selectedCourseId, selectedCourse.name, isCourseCompleted]);
 
     const scrollToBottom = () => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -268,7 +279,7 @@ ${displayMathLines.join('\n')}
     }, [selectedCourseId]);
 
     const handleSend = async () => {
-      if (!input.trim() || isTyping) return;
+      if (!input.trim() || isTyping || isCourseCompleted) return;
       
       const userText = input;
       const normalizeForComparison = (value) => String(value || '').toLowerCase().replace(/\s+/g, ' ').replace(/[^a-z0-9 ]/g, '').trim();
@@ -327,6 +338,7 @@ ${displayMathLines.join('\n')}
         const isStruggling = userText.length < 15 || userText.toLowerCase().includes("don't know") || userText.toLowerCase().includes("stuck");
         setMood(isStruggling ? 'orange' : 'green');
 
+        let completionMsg = null;
         if (window.LivelyProgress) {
           const xpReward = Number(aiDecision?.xp_delta ?? (aiResponse ? Math.max(10, Math.min(30, Math.floor(userText.length / 2))) : 0));
           const coinReward = Number(aiDecision?.coins_delta ?? (xpReward > 0 ? Math.max(2, Math.floor(xpReward / 5)) : 0));
@@ -342,6 +354,12 @@ ${displayMathLines.join('\n')}
           const objectiveResult = await window.LivelyProgress.markObjectiveProgress(selectedCourseId, aiDecision || {});
           if (objectiveResult.allComplete && !selectedCourseState.completed) {
             await window.LivelyProgress.completeCourse(selectedCourseId);
+            completionMsg = {
+              role: 'ai',
+              text: `Course completed: ${selectedCourse.name}. Brilliant work. All objectives are checked off, so this course is now locked as completed. You can reopen it anytime from your profile to review, but you cannot continue it.`,
+              time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+              metadata: { type: 'course_completed' }
+            };
           }
         }
 
@@ -351,7 +369,7 @@ ${displayMathLines.join('\n')}
           time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
           metadata: { aiDecision }
         };
-        setMessages(prev => [...prev, aiMsg]);
+        setMessages(prev => completionMsg ? [...prev, aiMsg, completionMsg] : [...prev, aiMsg]);
         // Persist AI message
         window.LivelyProgress.addChatMessage({
           role: aiMsg.role,
@@ -360,6 +378,15 @@ ${displayMathLines.join('\n')}
           courseId: selectedCourseId,
           metadata: aiMsg.metadata
         });
+        if (completionMsg) {
+          window.LivelyProgress.addChatMessage({
+            role: completionMsg.role,
+            text: completionMsg.text,
+            time: completionMsg.time,
+            courseId: selectedCourseId,
+            metadata: completionMsg.metadata
+          });
+        }
 
         if (window.LivelyProgress) {
           window.LivelyProgress.setAlias(progress.alias || 'RECRUIT');
@@ -446,19 +473,26 @@ ${displayMathLines.join('\n')}
 
         {/* "Explain" Input Box */}
         <div className="p-4 bg-discordDarkest border-t border-gray-700/50">
+          {isCourseCompleted ? (
+            <div className="mb-3 rounded-lg border border-mcGreen/40 bg-mcGreen/10 px-3 py-2 text-xs font-mono text-mcGreen">
+              COURSE COMPLETED - chat is read-only for this course.
+            </div>
+          ) : null}
           <div className="bg-discordDark border border-gray-600 rounded-lg p-2 focus-within:border-mcGreen transition-colors flex flex-col">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-              placeholder={`Hey, try explaining [${selectedCourse.name || 'this topic'}] to me like I'm five...`}
+              disabled={isCourseCompleted}
+              placeholder={isCourseCompleted ? 'This completed course is locked for review only.' : `Hey, try explaining [${selectedCourse.name || 'this topic'}] to me like I'm five...`}
               className="w-full bg-transparent text-gray-200 font-sans text-sm resize-none outline-none p-2 min-h-[80px] custom-scrollbar"
             />
             <div className="flex justify-between items-center px-2 pb-1">
-              <span className="text-xs font-mono text-gray-500">Press ENTER to send</span>
+              <span className="text-xs font-mono text-gray-500">{isCourseCompleted ? 'Review only' : 'Press ENTER to send'}</span>
               <button 
                 onClick={handleSend}
-                className="bg-mcGreen text-black font-bold font-pixel px-4 py-1.5 rounded hover:bg-[#44ee44] active:scale-95 transition-all flex items-center gap-2"
+                disabled={isCourseCompleted}
+                className="bg-mcGreen text-black font-bold font-pixel px-4 py-1.5 rounded hover:bg-[#44ee44] active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 SEND <div className="icon-send text-sm"></div>
               </button>

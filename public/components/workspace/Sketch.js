@@ -15,6 +15,10 @@ function Sketch({ user }) {
   const [analysis, setAnalysis] = React.useState([]);
   const canvasImageRef = React.useRef(null);
   const objectsRef = React.useRef([]);
+  const progress = window.LivelyProgress.useProgress();
+  const activeCourse = window.LivelyProgress.getSelectedCourse();
+  const activeCourseState = progress.courseProgress?.[activeCourse.id] || {};
+  const isCourseCompleted = Boolean(activeCourseState.completed);
 
   React.useEffect(() => {
     const canvas = canvasRef.current;
@@ -366,6 +370,7 @@ function Sketch({ user }) {
   };
 
   const sendSketch = async () => {
+    if (isCourseCompleted) return;
     const canvas = canvasRef.current;
     const imageBase64 = canvas.toDataURL('image/png').split(',')[1];
     const selectedCourse = window.LivelyProgress.getSelectedCourse();
@@ -472,6 +477,17 @@ function Sketch({ user }) {
         const objectiveResult = await window.LivelyProgress.markObjectiveProgress(selectedCourseId, aiDecision || {});
         if (objectiveResult.allComplete && !selectedCourseState.completed) {
           await window.LivelyProgress.completeCourse(selectedCourseId);
+          const completionText = `Course completed: ${selectedCourse.name}. Brilliant work. All objectives are checked off, so this course is now locked as completed. You can reopen it anytime from your profile to review, but you cannot continue it.`;
+          if (window.LivelyChat && typeof window.LivelyChat.addSystemMessage === 'function') {
+            window.LivelyChat.addSystemMessage(completionText, { type: 'course_completed' });
+          } else {
+            window.LivelyProgress.addChatMessage({
+              role: 'ai',
+              text: completionText,
+              courseId: selectedCourseId,
+              metadata: { type: 'course_completed' }
+            });
+          }
         }
       }
 
@@ -490,6 +506,11 @@ function Sketch({ user }) {
     <div className="flex flex-col h-full w-full gap-3 p-4 bg-discordDarkest">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-mcGreen">✏️ Sketch Board</h2>
+        {isCourseCompleted ? (
+          <span className="rounded border border-mcGreen/40 bg-mcGreen/10 px-3 py-1 text-xs font-mono text-mcGreen">
+            COMPLETED - READ ONLY
+          </span>
+        ) : null}
         <div className="flex gap-2 items-center">
           <label className="flex items-center gap-2 text-sm text-gray-300">
             Size:
@@ -499,6 +520,7 @@ function Sketch({ user }) {
               max="20"
               value={brushSize}
               onChange={(e) => setBrushSize(Number(e.target.value))}
+              disabled={isCourseCompleted}
               className="w-20"
             />
             <span className="text-xs font-mono">{brushSize}</span>
@@ -507,13 +529,14 @@ function Sketch({ user }) {
             type="color"
             value={brushColor}
             onChange={(e) => setBrushColor(e.target.value)}
+            disabled={isCourseCompleted}
             className="w-10 h-8 rounded cursor-pointer"
           />
         </div>
       </div>
 
       {/* Tool Palette */}
-      <div className="flex gap-2 flex-wrap bg-discordDarker p-2 rounded-lg border border-gray-700">
+      <div className={`flex gap-2 flex-wrap bg-discordDarker p-2 rounded-lg border border-gray-700 ${isCourseCompleted ? 'opacity-50 pointer-events-none' : ''}`}>
         <button onClick={() => setCurrentTool('brush')} className={`px-3 py-2 rounded text-xs font-mono ${currentTool === 'brush' ? 'bg-mcGreen text-black font-bold' : 'bg-discordDarkest text-gray-300 border border-gray-600 hover:bg-gray-700'}`} title="Brush"><div className="icon-pen-tool text-sm"></div></button>
         
         <button onClick={() => setCurrentTool('eraser')} className={`px-3 py-2 rounded text-xs font-mono ${currentTool === 'eraser' ? 'bg-mcGreen text-black font-bold' : 'bg-discordDarkest text-gray-300 border border-gray-600 hover:bg-gray-700'}`} title="Eraser"><div className="icon-eraser text-sm"></div></button>
@@ -536,7 +559,7 @@ function Sketch({ user }) {
       </div>
 
       {/* Text Editing Controls */}
-      {selectedObjId && (
+      {selectedObjId && !isCourseCompleted && (
         <div className="bg-discordDarker p-2 rounded border border-yellow-500 flex gap-2 items-center">
           <input type="text" placeholder="Edit text..." onChange={(e) => editSelectedText(e.target.value)} className="flex-1 bg-discordDarkest border border-gray-600 rounded px-2 py-1 text-gray-200 text-sm focus:outline-none focus:border-mcGreen" />
           <button onClick={() => resizeSelectedText(1)} className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white text-xs">A+</button>
@@ -553,7 +576,7 @@ function Sketch({ user }) {
         onPointerCancel={handlePointerCancel}
         onPointerLeave={handlePointerCancel}
         onClick={handleCanvasClick}
-        className="flex-1 border-2 border-gray-700 rounded-lg bg-discordDarker cursor-crosshair shadow-lg touch-none"
+        className={`flex-1 border-2 border-gray-700 rounded-lg bg-discordDarker shadow-lg touch-none ${isCourseCompleted ? 'cursor-not-allowed opacity-80 pointer-events-none' : 'cursor-crosshair'}`}
       />
 
       {/* Text Input Modal */}
@@ -571,8 +594,8 @@ function Sketch({ user }) {
       )}
 
       <div className="flex gap-2 justify-between">
-        <button onClick={clearCanvas} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-mono text-sm transition-colors">CLEAR</button>
-        <button onClick={sendSketch} disabled={loading} className="px-6 py-2 bg-mcGreen hover:bg-green-400 disabled:opacity-50 text-black font-bold rounded font-mono transition-colors">{loading ? 'ANALYZING...' : 'SEND SKETCH'}</button>
+        <button onClick={clearCanvas} disabled={isCourseCompleted} className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded font-mono text-sm transition-colors">CLEAR</button>
+        <button onClick={sendSketch} disabled={loading || isCourseCompleted} className="px-6 py-2 bg-mcGreen hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold rounded font-mono transition-colors">{isCourseCompleted ? 'COURSE LOCKED' : loading ? 'ANALYZING...' : 'SEND SKETCH'}</button>
       </div>
     </div>
   );

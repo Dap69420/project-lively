@@ -29,6 +29,8 @@ function MissionCard() {
     const progress = window.LivelyProgress.useProgress();
     const course = window.LivelyProgress.getSelectedCourse();
     const courseProgress = progress.courseProgress?.[course.id] || {};
+    const [recentlyCompleted, setRecentlyCompleted] = React.useState([]);
+    const previousStatusRef = React.useRef([]);
     const cardStyle = course.cardStyle || {};
     const lessonObjectives = Array.isArray(course.objectives) && course.objectives.length > 0
       ? course.objectives.slice(0, 4)
@@ -58,6 +60,22 @@ function MissionCard() {
     const bannerText = cardStyle.banner_text || mission.episode;
     const cardInk = getReadableTextColor(cardBackground);
     const accentInk = getReadableTextColor(cardAccent);
+
+    React.useEffect(() => {
+      const currentStatus = Array.isArray(courseProgress.objectiveStatus) ? courseProgress.objectiveStatus : [];
+      const previousStatus = previousStatusRef.current || [];
+      const nextCompleted = currentStatus
+        .map((isComplete, index) => isComplete && !previousStatus[index] ? index : null)
+        .filter((index) => index !== null);
+
+      previousStatusRef.current = currentStatus.slice();
+
+      if (nextCompleted.length > 0) {
+        setRecentlyCompleted(nextCompleted);
+        const timeout = setTimeout(() => setRecentlyCompleted([]), 1200);
+        return () => clearTimeout(timeout);
+      }
+    }, [course.id, JSON.stringify(courseProgress.objectiveStatus || [])]);
 
     return (
       <div className="panel flex-1 m-4" data-name="mission-card" data-file="components/workspace/MissionCard.js">
@@ -100,7 +118,7 @@ function MissionCard() {
                 {mission.objectives.map((item, index) => {
                   const isComplete = Boolean(courseProgress.objectiveStatus?.[index] || courseProgress.completed);
                   return (
-                    <li key={item} className="flex gap-2">
+                    <li key={item} className={`flex gap-2 rounded px-1 py-0.5 ${recentlyCompleted.includes(index) ? 'animate-objective-pop' : ''}`}>
                       <span className="font-black">{isComplete ? '[x]' : '[ ]'}</span>
                       <span className={isComplete ? 'line-through opacity-70' : ''}>{item}</span>
                     </li>

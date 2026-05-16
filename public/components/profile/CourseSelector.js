@@ -40,7 +40,16 @@ function CourseSelector() {
       };
     }, [activeTab]);
 
-    const visibleCourses = activeTab === 'all' ? allCourses : courses;
+    const isCourseCompleted = (course) => {
+      const courseState = progress.courseProgress[course.id] || { mastery: 0, completed: false };
+      return Boolean(courseState.completed) || courseState.mastery >= 100;
+    };
+    const completedCourses = courses.filter(isCourseCompleted);
+    const visibleCourses = activeTab === 'all'
+      ? allCourses
+      : activeTab === 'completed'
+        ? completedCourses
+        : courses.filter((course) => !isCourseCompleted(course));
 
     if (progress.catalogStatus === 'loading') {
       return (
@@ -76,7 +85,7 @@ function CourseSelector() {
       );
     }
 
-    if (visibleCourses.length === 0 && activeTab === 'recommended') {
+    if (courses.length === 0 && activeTab === 'recommended') {
       return (
         <div className="glass-panel p-6" data-name="course-selector" data-file="components/profile/CourseSelector.js">
           <div className="flex items-center justify-between mb-6">
@@ -145,12 +154,30 @@ function CourseSelector() {
           </button>
           <button
             type="button"
+            onClick={() => setActiveTab('completed')}
+            className={`flex-1 rounded-lg px-3 py-2 text-xs font-mono uppercase tracking-wider transition-colors ${activeTab === 'completed' ? 'bg-neonViolet text-black' : 'bg-transparent text-gray-400 hover:text-white'}`}
+          >
+            Completed
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab('all')}
             className={`flex-1 rounded-lg px-3 py-2 text-xs font-mono uppercase tracking-wider transition-colors ${activeTab === 'all' ? 'bg-neonViolet text-black' : 'bg-transparent text-gray-400 hover:text-white'}`}
           >
             All Courses
           </button>
         </div>
+
+        {visibleCourses.length === 0 && activeTab === 'completed' ? (
+          <div className="p-4 rounded-xl border border-white/10 bg-black/20 text-sm text-gray-400 font-mono">
+            Completed courses will appear here after every objective is checked off.
+          </div>
+        ) : null}
+        {visibleCourses.length === 0 && activeTab === 'recommended' ? (
+          <div className="p-4 rounded-xl border border-white/10 bg-black/20 text-sm text-gray-400 font-mono">
+            No active courses left here. Check Completed to review finished courses.
+          </div>
+        ) : null}
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {visibleCourses.map((course) => {
@@ -228,7 +255,7 @@ function CourseSelector() {
             href={currentCourse.id ? `workspace.html?courseId=${encodeURIComponent(currentCourse.id)}` : 'workspace.html'}
             className="inline-flex items-center justify-center px-4 py-3 rounded-lg bg-neonViolet text-white font-bold font-mono text-sm uppercase tracking-wider hover:brightness-110 transition-colors"
           >
-            Start Learning
+            {isCourseCompleted(currentCourse) ? 'Review Course' : 'Start Learning'}
           </a>
         </div>
       </div>
