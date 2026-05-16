@@ -165,21 +165,32 @@ function CourseSelector() {
               <button
                 key={course.id}
                 onClick={() => window.LivelyProgress.setSelectedCourse(course.id)}
-                className="text-left p-4 rounded-xl border transition-all duration-200 hover:translate-y-[-1px] overflow-hidden"
+                className="text-left p-4 rounded-xl border transition-all duration-200 hover:translate-y-[-1px] overflow-hidden w-full"
                 style={{ backgroundColor: cardBackground, borderColor: cardBorder, boxShadow: isActive ? '0 0 18px rgba(176, 38, 255, 0.2)' : 'none' }}
               >
                 <div className="flex items-start justify-between gap-3 mb-3 min-w-0">
                   <div className="min-w-0 flex-1">
                     {cardStyle.banner_text ? (
-                      <div className="inline-flex mb-2 max-w-full rounded-full px-2 py-1 text-[10px] font-mono uppercase tracking-[0.18em] truncate" style={{ backgroundColor: cardAccent, color: '#050505' }}>
+                      <div className="inline-flex mb-2 max-w-full rounded-full px-2 py-1 text-[9px] font-mono uppercase tracking-[0.14em] truncate" style={{ backgroundColor: cardAccent, color: '#050505' }}>
                         {cardStyle.banner_text}
                       </div>
                     ) : null}
-                    <div className={`text-2xl mb-1 ${course.tone}`}>
+                    <div className={`text-xl mb-1 ${course.tone}`}>
                       <div className={course.icon}></div>
                     </div>
-                    <div className="font-bold text-white break-words">{course.name}</div>
-                    <div className="text-xs font-mono text-gray-400 mt-1 break-words">{course.focus}</div>
+                    <div className="font-bold text-white text-sm leading-tight truncate" title={course.name}>{course.name}</div>
+                    <div
+                      className="text-xs font-mono text-gray-400 mt-1 leading-snug"
+                      title={course.focus}
+                      style={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      {course.focus}
+                    </div>
                   </div>
                   <div className="shrink-0">
                     {isCompleted ? (

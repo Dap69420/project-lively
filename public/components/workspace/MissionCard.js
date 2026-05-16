@@ -42,16 +42,16 @@ function MissionCard() {
         
         <div className="p-6 h-full flex flex-col justify-center items-center bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9IiMzMTMzMzgiLz48L3N2Zz4=')]">
           
-          <div className="comic-card w-full max-w-md transform hover:rotate-0 transition-transform duration-300" style={{ transform: `rotate(${Number.isFinite(rotation) ? rotation : -2}deg)` }}>
+          <div className="comic-card w-full max-w-md transform hover:rotate-0 transition-transform duration-300 overflow-hidden" style={{ transform: `rotate(${Number.isFinite(rotation) ? rotation : -2}deg)` }}>
             {/* Comic Header */}
-            <div className="p-2 border-b-4 mb-4 -mx-4 -mt-4 font-pixel text-2xl uppercase text-center tracking-widest" style={{ backgroundColor: cardAccent, color: '#050505', borderBottomColor: cardBorder }}>
+            <div className="p-2 border-b-4 mb-4 -mx-4 -mt-4 font-pixel text-xl uppercase text-center tracking-widest truncate" style={{ backgroundColor: cardAccent, color: '#050505', borderBottomColor: cardBorder }}>
               {bannerText}
             </div>
             
-            <h2 className="font-black text-4xl uppercase leading-none mb-2" style={{ color: cardBorder }}>{mission.title}</h2>
+            <h2 className="font-black text-2xl uppercase leading-tight mb-2 break-words" style={{ color: cardBorder }}>{mission.title}</h2>
             <div className="w-16 h-2 mb-4" style={{ backgroundColor: cardAccent }}></div>
             
-            <p className="font-mono text-sm mb-6 leading-relaxed" style={{ color: cardBorder }}>
+            <p className="font-mono text-sm mb-6 leading-relaxed break-words" style={{ color: cardBorder }}>
               {mission.body} <span className="font-bold" style={{ backgroundColor: cardAccent, color: '#050505' }}>{course.name}</span>.
             </p>
             
