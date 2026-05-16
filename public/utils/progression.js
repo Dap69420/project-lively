@@ -1,6 +1,4 @@
 (function () {
-  const STORAGE_KEY = 'lively.progress.v1';
-
   const SUBJECT_DECORATIONS = {
     mathematics: { icon: 'icon-calculator', tone: 'text-blue-400' },
     math: { icon: 'icon-calculator', tone: 'text-blue-400' },
@@ -88,14 +86,6 @@
       .filter(Boolean);
   }
 
-  function safeParse(jsonText) {
-    try {
-      return JSON.parse(jsonText);
-    } catch (_error) {
-      return null;
-    }
-  }
-
   async function apiJson(url, options) {
     const response = await fetch(url, options);
     const text = await response.text();
@@ -145,11 +135,7 @@
   }
 
   function loadState() {
-    if (typeof window === 'undefined' || !window.localStorage) {
-      return normalizeState(createDefaultState());
-    }
-    const stored = safeParse(window.localStorage.getItem(STORAGE_KEY));
-    return normalizeState(stored || createDefaultState());
+    return normalizeState(createDefaultState());
   }
 
   let currentState = loadState();
@@ -157,9 +143,6 @@
 
   function saveState(nextState) {
     currentState = normalizeState(nextState);
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(currentState));
-    }
     listeners.forEach((listener) => listener());
     return currentState;
   }
@@ -615,9 +598,5 @@
       clearChatHistory
     };
 
-    window.addEventListener('storage', () => {
-      currentState = loadState();
-      listeners.forEach((listener) => listener());
-    });
   }
 })();
