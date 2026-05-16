@@ -143,6 +143,18 @@ ${displayMathLines.join('\n')}
     const progress = window.LivelyProgress.useProgress();
     const selectedCourseId = progress.selectedCourse;
     const selectedCourse = window.LivelyProgress.getSelectedCourse();
+    const adminEmails = Array.isArray(window.__APP_CONFIG__?.ADMIN_ALLOWED_EMAILS) ? window.__APP_CONFIG__.ADMIN_ALLOWED_EMAILS : [];
+    const isAdminViewer = adminEmails.some((email) => String(email).toLowerCase() === String(progress.userEmail || '').toLowerCase());
+    const courseContext = {
+      id: selectedCourse.id,
+      title: selectedCourse.name,
+      subject: selectedCourse.subject,
+      grade: selectedCourse.grade,
+      topic: selectedCourse.focus,
+      aiAim: selectedCourse.aiAim,
+      objectives: Array.isArray(selectedCourse.objectives) ? selectedCourse.objectives : [],
+      cardStyle: selectedCourse.cardStyle || {}
+    };
     
     const [messages, setMessages] = React.useState([]);
     const [input, setInput] = React.useState('');
@@ -180,11 +192,12 @@ ${displayMathLines.join('\n')}
 
     React.useEffect(() => {
       window.LivelyChat = {
-        addAssistantMessage: (text) => {
+        addAssistantMessage: (text, metadata = {}) => {
           const msg = {
             role: 'ai',
             text,
-            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            metadata
           };
           setMessages((prev) => {
             const updated = [...prev, msg];
@@ -193,16 +206,18 @@ ${displayMathLines.join('\n')}
               role: msg.role,
               text: msg.text,
               time: msg.time,
-              courseId: selectedCourseId
+              courseId: selectedCourseId,
+              metadata: msg.metadata
             });
             return updated;
           });
         },
-        addSystemMessage: (text) => {
+        addSystemMessage: (text, metadata = {}) => {
           const msg = {
             role: 'ai',
             text,
-            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            metadata
           };
           setMessages((prev) => {
             const updated = [...prev, msg];
@@ -210,7 +225,8 @@ ${displayMathLines.join('\n')}
               role: msg.role,
               text: msg.text,
               time: msg.time,
-              courseId: selectedCourseId
+              courseId: selectedCourseId,
+              metadata: msg.metadata
             });
             return updated;
           });
@@ -244,14 +260,15 @@ ${displayMathLines.join('\n')}
       setIsTyping(true);
       
       try {
-        const systemPrompt = `You are Buddy_AI, an encouraging study partner helping a student study ${selectedCourse.name}. Focus only on the current course topic: ${selectedCourse.focus}. Do not talk about drawings, shapes, unrelated topics, or any other subject. Do not reveal your reasoning, hidden thinking, analysis, or step-by-step process. Only provide the final helpful response for the student.`;
+        const systemPrompt = `You are Buddy_AI, an encouraging study partner helping a student study ${selectedCourse.name}. Focus only on the current course topic: ${selectedCourse.focus}. The current course objectives are: ${(courseContext.objectives || []).join(' | ') || 'none listed'}. Use the objectives to guide the student, and decide whether the response should award XP, reduce XP, or complete the course.`;
 
         let aiResponse = '';
+        let aiDecision = null;
         try {
           const response = await fetch('/api/ai/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ systemPrompt, userText })
+            body: JSON.stringify({ systemPrompt, userText, courseContext, mode: 'chat' })
           });
 
           const data = await response.json().catch(() => ({}));
@@ -260,6 +277,7 @@ ${displayMathLines.join('\n')}
           }
 
           aiResponse = data.text || '';
+          aiDecision = data.decision || null;
         } catch (apiError) {
           console.log('SambaNova call failed, using fallback.', apiError);
         }
@@ -273,23 +291,30 @@ ${displayMathLines.join('\n')}
         const isStruggling = userText.length < 15 || userText.toLowerCase().includes("don't know") || userText.toLowerCase().includes("stuck");
         setMood(isStruggling ? 'orange' : 'green');
 
-        const countedAsCorrect = aiResponse && aiResponse !== "That's a great thought! Inertia is all about objects wanting to keep doing what they're already doing. What do you think happens if you push a stationary rock? 🪨";
-        if (countedAsCorrect && window.LivelyProgress) {
-          const xpReward = Math.max(10, Math.min(30, Math.floor(userText.length / 2)));
-          const coinReward = Math.max(2, Math.floor(xpReward / 5));
+        if (window.LivelyProgress) {
+          const xpReward = Number(aiDecision?.xp_delta ?? (aiResponse ? Math.max(10, Math.min(30, Math.floor(userText.length / 2))) : 0));
+          const coinReward = Number(aiDecision?.coins_delta ?? (xpReward > 0 ? Math.max(2, Math.floor(xpReward / 5)) : 0));
           window.LivelyProgress.awardProgress({
             xp: xpReward,
             coins: coinReward,
-            correct: true,
+            correct: xpReward > 0,
             courseId: selectedCourseId,
-            source: 'ai'
+            source: 'ai',
+            decision: aiDecision
           });
+
+          if (aiDecision?.completed) {
+            window.LivelyProgress.completeCourse(selectedCourseId).catch((error) => {
+              console.error('Course completion sync error:', error);
+            });
+          }
         }
 
         const aiMsg = { 
           role: 'ai', 
           text: sanitizeAssistantText(aiResponse), 
-          time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+          time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+          metadata: { aiDecision }
         };
         setMessages(prev => [...prev, aiMsg]);
         // Persist AI message
@@ -297,7 +322,8 @@ ${displayMathLines.join('\n')}
           role: aiMsg.role,
           text: aiMsg.text,
           time: aiMsg.time,
-          courseId: selectedCourseId
+          courseId: selectedCourseId,
+          metadata: aiMsg.metadata
         });
 
         if (window.LivelyProgress) {
@@ -368,6 +394,15 @@ ${displayMathLines.join('\n')}
                 <div className={`p-3 rounded-lg text-sm leading-relaxed ${msg.role === 'user' ? 'bg-mcPurple text-white rounded-tr-none' : 'bg-discordDarkest text-gray-200 rounded-tl-none border border-gray-700'}`}>
                   {msg.role === 'ai' ? renderFormattedMessage(msg.text) : msg.text}
                 </div>
+                {msg.role === 'ai' && isAdminViewer && msg.metadata?.aiDecision?.internal_response ? (
+                  <div className="mt-2 rounded border border-yellow-400/40 bg-yellow-400/10 px-3 py-2 text-[11px] leading-relaxed text-yellow-100">
+                    <div className="mb-1 font-mono uppercase tracking-[0.2em] text-yellow-300">Admin only</div>
+                    <div>{msg.metadata.aiDecision.internal_response}</div>
+                    {msg.metadata.aiDecision.completion_reason ? (
+                      <div className="mt-1 text-yellow-200/80">{msg.metadata.aiDecision.completion_reason}</div>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </div>
           ))}

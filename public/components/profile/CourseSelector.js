@@ -68,18 +68,24 @@ function CourseSelector() {
             const isActive = course.id === progress.selectedCourse;
             const courseState = progress.courseProgress[course.id] || { xp: 0, mastery: 0, questions: 0, completed: false };
             const isCompleted = Boolean(courseState.completed) || courseState.mastery >= 100;
+            const cardStyle = course.cardStyle || {};
+            const cardBackground = cardStyle.background_color || (isActive ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.20)');
+            const cardBorder = cardStyle.border_color || (isActive ? 'var(--color-neonViolet)' : 'rgba(255,255,255,0.10)');
+            const cardAccent = cardStyle.accent_color || 'var(--color-neonViolet)';
             return (
               <button
                 key={course.id}
                 onClick={() => window.LivelyProgress.setSelectedCourse(course.id)}
-                className={`text-left p-4 rounded-xl border transition-all duration-200 ${
-                  isActive
-                    ? 'bg-white/10 border-neonViolet shadow-[0_0_18px_rgba(176,38,255,0.2)] translate-y-[-1px]'
-                    : 'bg-black/20 border-white/10 hover:border-white/20 hover:bg-white/5'
-                }`}
+                className="text-left p-4 rounded-xl border transition-all duration-200 hover:translate-y-[-1px]"
+                style={{ backgroundColor: cardBackground, borderColor: cardBorder, boxShadow: isActive ? '0 0 18px rgba(176, 38, 255, 0.2)' : 'none' }}
               >
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div>
+                    {cardStyle.banner_text ? (
+                      <div className="inline-flex mb-2 rounded-full px-2 py-1 text-[10px] font-mono uppercase tracking-[0.18em]" style={{ backgroundColor: cardAccent, color: '#050505' }}>
+                        {cardStyle.banner_text}
+                      </div>
+                    ) : null}
                     <div className={`text-2xl mb-1 ${course.tone}`}>
                       <div className={course.icon}></div>
                     </div>

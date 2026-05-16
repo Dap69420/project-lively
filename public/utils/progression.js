@@ -75,6 +75,8 @@
       description: String(course.description || ''),
       aiAim: String(course.ai_aim || ''),
       lessons: Array.isArray(course.lessons) ? course.lessons : [],
+      objectives: Array.isArray(course.objectives) ? course.objectives : [],
+      cardStyle: course.card_style && typeof course.card_style === 'object' ? course.card_style : (course.cardStyle && typeof course.cardStyle === 'object' ? course.cardStyle : {}),
       icon: decoration.icon,
       tone: decoration.tone,
       completionXp: Number(course.completion_xp || 0),
@@ -124,7 +126,7 @@
     merged.availableCourses.forEach((course) => {
       merged.courseProgress[course.id] = Object.assign({ xp: 0, questions: 0, mastery: 0, completed: false, completedAt: '' }, merged.courseProgress[course.id] || {});
       const courseState = merged.courseProgress[course.id];
-      courseState.mastery = Math.max(courseState.mastery || 0, Math.min(100, Math.floor(courseState.xp / 2)));
+      courseState.mastery = Math.max(0, Math.min(100, Math.floor(Number(courseState.xp || 0) / 2)));
       courseState.completed = Boolean(courseState.completed);
     });
     if (merged.availableCourses.length > 0) {
@@ -145,15 +147,42 @@
 
   function applyXpGainWithLevelReset(state, gain) {
     const next = state;
-    const xpGain = Math.max(0, Math.round(Number(gain || 0)));
-    const requiredXp = getRequiredXpForLevel(next.level);
-    const nextXp = (next.xp || 0) + xpGain;
+    let xpDelta = Math.round(Number(gain || 0));
 
-    if (nextXp >= requiredXp) {
-      next.level += 1;
-      next.xp = 0;
-    } else {
-      next.xp = nextXp;
+    while (xpDelta > 0) {
+      const requiredXp = getRequiredXpForLevel(next.level);
+      const remainingToLevel = Math.max(1, requiredXp - next.xp);
+
+      if (xpDelta >= remainingToLevel) {
+        xpDelta -= remainingToLevel;
+        next.level += 1;
+        next.xp = 0;
+      } else {
+        next.xp += xpDelta;
+        xpDelta = 0;
+      }
+    }
+
+    while (xpDelta < 0) {
+      const loss = Math.abs(xpDelta);
+
+      if (loss <= next.xp) {
+        next.xp -= loss;
+        xpDelta = 0;
+        break;
+      }
+
+      xpDelta = loss - next.xp;
+
+      if (next.level === 1) {
+        next.xp = 0;
+        xpDelta = 0;
+        break;
+      }
+
+      next.level -= 1;
+      next.xp = getRequiredXpForLevel(next.level);
+      xpDelta = -xpDelta;
     }
 
     return next;
@@ -206,7 +235,7 @@
     const course = state.courseProgress[courseId] || { xp: 0, questions: 0, mastery: 0, completed: false, completedAt: '' };
     course.xp += xpAmount;
     course.questions += 1;
-    course.mastery = Math.min(100, Math.floor(course.xp / 2));
+    course.mastery = Math.max(0, Math.min(100, Math.floor(course.xp / 2)));
     state.courseProgress[courseId] = course;
     return state;
   }
@@ -331,7 +360,7 @@
     next.totalQuestions += 1;
     applyXpGainWithLevelReset(next, award.xp);
     next.coins += Math.max(0, Math.round(award.coins));
-    updateMastery(next, award.courseId, Math.max(0, Math.round(award.xp)));
+    updateMastery(next, award.courseId, Math.round(Number(award.xp || 0)));
 
     if (!next.lastStudyDate) {
       next.streak = 1;
@@ -349,14 +378,6 @@
       syncProgressToServer(next).catch((error) => {
         console.error('Progress sync error:', error);
       });
-      const course = getCourseById(award.courseId);
-      const courseState = next.courseProgress[award.courseId];
-      const completionTarget = Number(course?.completionXp || 0) || 250;
-      if (course && courseState && !courseState.completed && courseState.xp >= completionTarget) {
-        completeCourse(award.courseId).catch((error) => {
-          console.error('Completion sync error:', error);
-        });
-      }
     }
 
     return next;

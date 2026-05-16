@@ -1,8 +1,9 @@
 module.exports = (req, res) => {
+  const adminAllowedEmails = require('./admin/allowlist');
   const config = {
     SUPABASE_URL: process.env.SUPABASE_URL || process.env.MAIN_SUPABASE_URL || process.env.MAIN_MAINSUPABASE_URL || '',
     SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || process.env.MAIN_SUPABASE_ANON_KEY || process.env.MAIN_MAINSUPABASE_ANON_KEY || '',
-    ADMIN_ALLOWED_EMAILS: String(process.env.ADMIN_ALLOWED_EMAILS || '')
+    ADMIN_ALLOWED_EMAILS: Array.isArray(adminAllowedEmails) ? adminAllowedEmails : String(process.env.ADMIN_ALLOWED_EMAILS || '')
       .split(',')
       .map((value) => value.trim())
       .filter(Boolean)

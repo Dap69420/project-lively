@@ -370,6 +370,16 @@ function Sketch({ user }) {
     const imageBase64 = canvas.toDataURL('image/png').split(',')[1];
     const selectedCourse = window.LivelyProgress.getSelectedCourse();
     const selectedCourseId = selectedCourse.id;
+    const courseContext = {
+      id: selectedCourse.id,
+      title: selectedCourse.name,
+      subject: selectedCourse.subject,
+      grade: selectedCourse.grade,
+      topic: selectedCourse.focus,
+      aiAim: selectedCourse.aiAim,
+      objectives: Array.isArray(selectedCourse.objectives) ? selectedCourse.objectives : [],
+      cardStyle: selectedCourse.cardStyle || {}
+    };
 
     setLoading(true);
     
@@ -395,17 +405,20 @@ function Sketch({ user }) {
         sketchSummary = 'Sketch analyzed successfully.';
       }
 
-      const chatPrompt = `The student is studying ${selectedCourse.name}. Here is what the sketch looks like: ${sketchSummary}. Reply naturally with one helpful message that stays focused on ${selectedCourse.focus}. Do not mention drawings, shapes, or your internal reasoning. Give only the final response the student should see.`;
+      const chatPrompt = `The student is studying ${selectedCourse.name}. Here is what the sketch looks like: ${sketchSummary}. Reply naturally with one helpful message that stays focused on ${selectedCourse.focus}. The current objectives are: ${(courseContext.objectives || []).join(' | ') || 'none listed'}. Give the student-safe response and decide whether the sketch should award, reduce, or complete progress.`;
 
       let finalChatResponse = '';
+      let aiDecision = null;
       
       try {
         const chatResponse = await fetch('/api/ai/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            systemPrompt: `You are Buddy_AI helping with ${selectedCourse.name}. Keep it natural and friendly, like a friend studying together.`,
-            userText: chatPrompt
+            systemPrompt: `You are Buddy_AI helping with ${selectedCourse.name}. Keep it natural and friendly, like a friend studying together. Use the course objectives to guide your scoring.`,
+            userText: chatPrompt,
+            courseContext,
+            mode: 'sketch'
           })
         });
         
@@ -414,6 +427,7 @@ function Sketch({ user }) {
             const chatData = await chatResponse.json();
             if (chatData && chatData.text) {
               finalChatResponse = chatData.text;
+              aiDecision = chatData.decision || null;
             }
           } catch (parseError) {
             // Continue
@@ -427,25 +441,33 @@ function Sketch({ user }) {
       const combinedMsg = followUpMsg;
       
       if (window.LivelyChat && typeof window.LivelyChat.addAssistantMessage === 'function') {
-        window.LivelyChat.addAssistantMessage(combinedMsg);
+        window.LivelyChat.addAssistantMessage(combinedMsg, { aiDecision });
+      } else {
+        window.LivelyProgress.addChatMessage({
+          role: 'ai',
+          text: combinedMsg,
+          courseId: selectedCourseId,
+          metadata: { aiDecision }
+        });
       }
-      
-      window.LivelyProgress.addChatMessage({
-        role: 'ai',
-        text: combinedMsg,
-        courseId: selectedCourseId
-      });
 
       if (window.LivelyProgress) {
-        const xpReward = 20;
-        const coinReward = 4;
+        const xpReward = Number(aiDecision?.xp_delta ?? 20);
+        const coinReward = Number(aiDecision?.coins_delta ?? (xpReward > 0 ? 4 : 0));
         window.LivelyProgress.awardProgress({
           xp: xpReward,
           coins: coinReward,
-          correct: true,
+          correct: xpReward > 0,
           courseId: selectedCourseId,
-          source: 'sketch'
+          source: 'sketch',
+          decision: aiDecision
         });
+
+        if (aiDecision?.completed) {
+          window.LivelyProgress.completeCourse(selectedCourseId).catch((error) => {
+            console.error('Course completion sync error:', error);
+          });
+        }
       }
 
       if (window.LivelyWorkspace && typeof window.LivelyWorkspace.switchToChat === 'function') {

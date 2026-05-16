@@ -1,6 +1,22 @@
 const { query } = require('../lib/db');
 const { requireAdminUser } = require('../lib/adminAuth');
 
+function parseJsonField(value, fallback) {
+  if (value === undefined || value === null || value === '') {
+    return fallback;
+  }
+
+  if (Array.isArray(value) || typeof value === 'object') {
+    return value;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch (_error) {
+    return fallback;
+  }
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Content-Type', 'application/json');
 
@@ -46,6 +62,8 @@ module.exports = async (req, res) => {
         completion_xp,
         completion_coins,
         thumbnail_url,
+        objectives,
+        card_style,
       } = req.body;
 
       // Validation
@@ -67,8 +85,8 @@ module.exports = async (req, res) => {
         `INSERT INTO courses (
           title, description, subject, grade, topic, difficulty,
           ai_prompt, ai_aim, completion_xp, completion_coins,
-          thumbnail_url
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          thumbnail_url, objectives, card_style
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
         RETURNING *`,
         [
           title,
@@ -82,6 +100,8 @@ module.exports = async (req, res) => {
           completion_xp || 250,
           completion_coins || 50,
           thumbnail_url,
+          JSON.stringify(parseJsonField(objectives, [])),
+          JSON.stringify(parseJsonField(card_style, {})),
         ]
       );
 

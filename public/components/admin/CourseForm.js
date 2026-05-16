@@ -12,6 +12,12 @@ function CourseForm({ accessToken, onSuccess }) {
       completion_xp: 250,
       completion_coins: 50,
       thumbnail_url: '',
+      objectivesText: '',
+      cardBannerText: '',
+      cardAccentColor: '#55ff55',
+      cardBackgroundColor: '#121826',
+      cardBorderColor: '#2dd4bf',
+      cardRotation: 0,
     });
 
     const [loading, setLoading] = React.useState(false);
@@ -26,8 +32,27 @@ function CourseForm({ accessToken, onSuccess }) {
       const { name, value } = e.target;
       setFormData(prev => ({
         ...prev,
-        [name]: ['completion_xp', 'completion_coins'].includes(name) ? parseInt(value) : value
+        [name]: ['completion_xp', 'completion_coins', 'cardRotation'].includes(name) ? parseInt(value || '0', 10) : value
       }));
+    };
+
+    const buildCoursePayload = () => {
+      const objectives = String(formData.objectivesText || '')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      return {
+        ...formData,
+        objectives,
+        card_style: {
+          banner_text: String(formData.cardBannerText || '').trim(),
+          accent_color: String(formData.cardAccentColor || '').trim(),
+          background_color: String(formData.cardBackgroundColor || '').trim(),
+          border_color: String(formData.cardBorderColor || '').trim(),
+          rotation: Number.isFinite(Number(formData.cardRotation)) ? Number(formData.cardRotation) : 0,
+        },
+      };
     };
 
     const handleSubmit = async (e) => {
@@ -62,13 +87,14 @@ function CourseForm({ accessToken, onSuccess }) {
       }
 
       try {
+        const payload = buildCoursePayload();
         const response = await fetch('/api/admin/courses', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${accessToken}`,
           },
-          body: JSON.stringify(formData)
+          body: JSON.stringify(payload)
         });
 
         const responseText = await response.text();
@@ -103,6 +129,12 @@ function CourseForm({ accessToken, onSuccess }) {
           completion_xp: 250,
           completion_coins: 50,
           thumbnail_url: '',
+          objectivesText: '',
+          cardBannerText: '',
+          cardAccentColor: '#55ff55',
+          cardBackgroundColor: '#121826',
+          cardBorderColor: '#2dd4bf',
+          cardRotation: 0,
         });
 
         if (onSuccess) onSuccess(result.data);
@@ -152,6 +184,94 @@ function CourseForm({ accessToken, onSuccess }) {
                 type="text"
                 name="title"
                 value={formData.title}
+
+            {/* Card Presentation */}
+            <div className="space-y-4 rounded-xl border border-white/10 bg-black/20 p-4">
+              <div>
+                <label className="block text-sm font-mono font-bold text-gray-300 uppercase tracking-wider mb-2">
+                  Card Banner Text
+                </label>
+                <input
+                  type="text"
+                  name="cardBannerText"
+                  value={formData.cardBannerText}
+                  onChange={handleChange}
+                  placeholder="e.g., Puzzle Path"
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-neonViolet focus:outline-none transition-colors"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-mono font-bold text-gray-300 uppercase tracking-wider mb-2">
+                    Accent Color
+                  </label>
+                  <input
+                    type="color"
+                    name="cardAccentColor"
+                    value={formData.cardAccentColor}
+                    onChange={handleChange}
+                    className="h-12 w-full cursor-pointer rounded-lg border border-white/10 bg-transparent p-1"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-mono font-bold text-gray-300 uppercase tracking-wider mb-2">
+                    Card Background
+                  </label>
+                  <input
+                    type="color"
+                    name="cardBackgroundColor"
+                    value={formData.cardBackgroundColor}
+                    onChange={handleChange}
+                    className="h-12 w-full cursor-pointer rounded-lg border border-white/10 bg-transparent p-1"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-mono font-bold text-gray-300 uppercase tracking-wider mb-2">
+                    Card Border
+                  </label>
+                  <input
+                    type="color"
+                    name="cardBorderColor"
+                    value={formData.cardBorderColor}
+                    onChange={handleChange}
+                    className="h-12 w-full cursor-pointer rounded-lg border border-white/10 bg-transparent p-1"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-mono font-bold text-gray-300 uppercase tracking-wider mb-2">
+                    Card Rotation
+                  </label>
+                  <input
+                    type="number"
+                    name="cardRotation"
+                    value={formData.cardRotation}
+                    onChange={handleChange}
+                    min="-8"
+                    max="8"
+                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-neonViolet focus:outline-none transition-colors"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Objectives */}
+            <div>
+              <label className="block text-sm font-mono font-bold text-gray-300 uppercase tracking-wider mb-2">
+                Objectives
+              </label>
+              <textarea
+                name="objectivesText"
+                value={formData.objectivesText}
+                onChange={handleChange}
+                placeholder="Write one objective per line.\nExamples:\nSolve one-step equations\nUse balance models to check answers\nExplain the result in words"
+                rows="5"
+                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-neonViolet focus:outline-none transition-colors resize-none font-mono text-xs"
+              />
+            </div>
                 onChange={handleChange}
                 placeholder="e.g., Algebra Fundamentals"
                 className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-neonViolet focus:outline-none transition-colors"

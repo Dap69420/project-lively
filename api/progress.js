@@ -8,6 +8,50 @@ function requiredXpForLevel(level) {
   return Math.floor(LEVEL_BASE_XP * Math.pow(LEVEL_GROWTH_FACTOR, normalizedLevel - 1));
 }
 
+function applyXpDelta(level, xp, delta) {
+  let nextLevel = Math.max(1, Number(level || 1));
+  let nextXp = Math.max(0, Number(xp || 0));
+  let xpDelta = Math.round(Number(delta || 0));
+
+  while (xpDelta > 0) {
+    const requiredXp = requiredXpForLevel(nextLevel);
+    const remainingToLevel = Math.max(1, requiredXp - nextXp);
+
+    if (xpDelta >= remainingToLevel) {
+      xpDelta -= remainingToLevel;
+      nextLevel += 1;
+      nextXp = 0;
+    } else {
+      nextXp += xpDelta;
+      xpDelta = 0;
+    }
+  }
+
+  while (xpDelta < 0) {
+    const loss = Math.abs(xpDelta);
+
+    if (loss <= nextXp) {
+      nextXp -= loss;
+      xpDelta = 0;
+      break;
+    }
+
+    xpDelta = loss - nextXp;
+
+    if (nextLevel === 1) {
+      nextXp = 0;
+      xpDelta = 0;
+      break;
+    }
+
+    nextLevel -= 1;
+    nextXp = requiredXpForLevel(nextLevel);
+    xpDelta = -xpDelta;
+  }
+
+  return { level: nextLevel, xp: nextXp };
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Content-Type', 'application/json');
 
@@ -119,6 +163,8 @@ module.exports = async (req, res) => {
     // POST /api/progress - Award XP/coins to user
     if (method === 'POST') {
       const { xp = 0, coins = 0 } = req.body;
+      const gainedCoins = Math.round(Number(coins || 0));
+      const xpDelta = Math.round(Number(xp || 0));
 
       // Get current progression
       let result = await query(
@@ -127,30 +173,19 @@ module.exports = async (req, res) => {
       );
 
       if (result.rows.length === 0) {
-        const gainedXp = Math.max(0, Number(xp || 0));
-        const gainedCoins = Math.max(0, Number(coins || 0));
-        const baseLevel = 1;
-        const leveledUp = gainedXp >= requiredXpForLevel(baseLevel);
-        const savedLevel = leveledUp ? baseLevel + 1 : baseLevel;
-        const savedXp = leveledUp ? 0 : gainedXp;
+        const baseState = applyXpDelta(1, 0, xpDelta);
 
         result = await query(
           `INSERT INTO user_progression (user_id, total_xp, total_coins, global_level)
            VALUES ($1, $2, $3, $4)
            RETURNING *`,
-          [userId, savedXp, gainedCoins, savedLevel]
+          [userId, baseState.xp, gainedCoins, baseState.level]
         );
       } else {
         const current = result.rows[0];
         const currentLevel = Math.max(1, Number(current.global_level || 1));
-        const gainedXp = Math.max(0, Number(xp || 0));
-        const gainedCoins = Math.max(0, Number(coins || 0));
         const xpBefore = Math.max(0, Number(current.total_xp || 0));
-        const xpAfterGain = xpBefore + gainedXp;
-        const requiredXp = requiredXpForLevel(currentLevel);
-        const leveledUp = xpAfterGain >= requiredXp;
-        const newLevel = leveledUp ? currentLevel + 1 : currentLevel;
-        const newXp = leveledUp ? 0 : xpAfterGain;
+        const newState = applyXpDelta(currentLevel, xpBefore, xpDelta);
         const newCoins = Math.max(0, Number(current.total_coins || 0)) + gainedCoins;
 
         result = await query(
@@ -162,7 +197,7 @@ module.exports = async (req, res) => {
                updated_at = CURRENT_TIMESTAMP
            WHERE user_id = $4
            RETURNING *`,
-          [newXp, newCoins, newLevel, userId]
+          [newState.xp, newCoins, newState.level, userId]
         );
       }
 
