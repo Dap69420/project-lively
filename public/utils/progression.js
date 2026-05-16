@@ -182,10 +182,22 @@
     merged.achievements = Array.isArray(merged.achievements) ? merged.achievements : [];
     merged.courseProgress = Object.assign({}, createDefaultCourseProgress(), merged.courseProgress || {});
     merged.availableCourses.forEach((course) => {
-      merged.courseProgress[course.id] = Object.assign({ xp: 0, questions: 0, mastery: 0, completed: false, completedAt: '' }, merged.courseProgress[course.id] || {});
+      merged.courseProgress[course.id] = Object.assign({ xp: 0, questions: 0, mastery: 0, completed: false, completedAt: '', objectiveStatus: [], stats: {} }, merged.courseProgress[course.id] || {});
       const courseState = merged.courseProgress[course.id];
-      courseState.mastery = Math.max(0, Math.min(100, Math.floor(Number(courseState.xp || 0) / 2)));
+      const objectives = Array.isArray(course.objectives) ? course.objectives : [];
+      const storedObjectiveStatus = Array.isArray(courseState.objectiveStatus)
+        ? courseState.objectiveStatus
+        : Array.isArray(courseState.stats?.objectiveStatus)
+          ? courseState.stats.objectiveStatus
+          : [];
       courseState.completed = Boolean(courseState.completed);
+      courseState.objectiveStatus = objectives.map((_objective, index) => Boolean(storedObjectiveStatus[index]));
+      const objectiveMastery = objectives.length ? Math.round((courseState.objectiveStatus.filter(Boolean).length / objectives.length) * 100) : 0;
+      courseState.mastery = Math.max(0, Math.min(100, Math.max(Math.floor(Number(courseState.xp || 0) / 2), Number(courseState.progress_percentage || 0), objectiveMastery)));
+      courseState.stats = Object.assign({}, courseState.stats || {}, {
+        objectiveStatus: courseState.objectiveStatus,
+        questionsAnswered: Number(courseState.stats?.questionsAnswered || courseState.questions || 0)
+      });
     });
     if (merged.availableCourses.length > 0) {
       const hasSelectedCourse = merged.availableCourses.some((course) => course.id === merged.selectedCourse);
@@ -291,10 +303,14 @@
     if (!courseId) {
       return state;
     }
-    const course = state.courseProgress[courseId] || { xp: 0, questions: 0, mastery: 0, completed: false, completedAt: '' };
+    const course = state.courseProgress[courseId] || { xp: 0, questions: 0, mastery: 0, completed: false, completedAt: '', objectiveStatus: [], stats: {} };
     course.xp += xpAmount;
     course.questions += 1;
     course.mastery = Math.max(0, Math.min(100, Math.floor(course.xp / 2)));
+    course.stats = Object.assign({}, course.stats || {}, {
+      questionsAnswered: course.questions,
+      objectiveStatus: Array.isArray(course.objectiveStatus) ? course.objectiveStatus : []
+    });
     state.courseProgress[courseId] = course;
     return state;
   }
@@ -362,10 +378,16 @@
     }
 
     const next = normalizeState(currentState);
+    const completedObjectiveStatus = Array.isArray(course.objectives) ? course.objectives.map(() => true) : [];
     next.courseProgress[courseId] = Object.assign({}, currentCourseState, {
       completed: true,
       completedAt: new Date().toISOString(),
-      mastery: 100
+      mastery: 100,
+      objectiveStatus: completedObjectiveStatus,
+      stats: Object.assign({}, currentCourseState.stats || {}, {
+        objectiveStatus: completedObjectiveStatus,
+        questionsAnswered: currentCourseState.questions || 0
+      })
     });
 
     applyXpGainWithLevelReset(next, course.completionXp || 0);
@@ -387,7 +409,8 @@
             questionsAnswered: next.courseProgress[courseId].questions || 0,
             correctAnswers: 0,
             sketchesAnalyzed: 0,
-            totalTimeSpent: 0
+            totalTimeSpent: 0,
+            objectiveStatus: completedObjectiveStatus
           }
         });
 
@@ -406,6 +429,89 @@
     }
 
     return next;
+  }
+
+  async function markObjectiveProgress(courseId, decision) {
+    const course = getCourseById(courseId);
+    if (!course || currentState.courseProgress[courseId]?.completed) {
+      return { state: currentState, indexes: [], newlyCompleted: [], allComplete: Boolean(currentState.courseProgress[courseId]?.completed) };
+    }
+
+    const objectives = Array.isArray(course.objectives) ? course.objectives : [];
+    if (objectives.length === 0) {
+      return { state: currentState, indexes: [], newlyCompleted: [], allComplete: Boolean(decision?.completed) };
+    }
+
+    const currentCourseState = currentState.courseProgress[courseId] || {};
+    const existingStatus = Array.isArray(currentCourseState.objectiveStatus) ? currentCourseState.objectiveStatus : [];
+    const nextStatus = objectives.map((_objective, index) => Boolean(existingStatus[index]));
+    const indexes = [];
+    const rawIndexes = Array.isArray(decision?.completed_objective_indexes)
+      ? decision.completed_objective_indexes
+      : Array.isArray(decision?.completedObjectiveIndexes)
+        ? decision.completedObjectiveIndexes
+        : [];
+
+    rawIndexes.forEach((index) => indexes.push(Number(index)));
+
+    if (Number.isFinite(Number(decision?.objective_index))) {
+      indexes.push(Number(decision.objective_index));
+    }
+
+    if ((decision?.objective_completed || decision?.completed) && indexes.length === 0) {
+      const firstIncomplete = nextStatus.findIndex((complete) => !complete);
+      if (firstIncomplete >= 0) indexes.push(firstIncomplete);
+    }
+
+    const uniqueIndexes = Array.from(new Set(indexes))
+      .map((index) => Math.floor(index))
+      .filter((index) => index >= 0 && index < objectives.length);
+    const newlyCompleted = uniqueIndexes.filter((index) => !nextStatus[index]);
+
+    newlyCompleted.forEach((index) => {
+      nextStatus[index] = true;
+    });
+
+    if (newlyCompleted.length === 0) {
+      return {
+        state: currentState,
+        indexes: uniqueIndexes,
+        newlyCompleted,
+        allComplete: nextStatus.every(Boolean)
+      };
+    }
+
+    const next = normalizeState(currentState);
+    const percent = Math.round((nextStatus.filter(Boolean).length / objectives.length) * 100);
+    next.courseProgress[courseId] = Object.assign({}, next.courseProgress[courseId] || {}, {
+      objectiveStatus: nextStatus,
+      mastery: Math.max(Number(next.courseProgress[courseId]?.mastery || 0), percent),
+      progress_percentage: percent,
+      stats: Object.assign({}, next.courseProgress[courseId]?.stats || {}, {
+        objectiveStatus: nextStatus,
+        questionsAnswered: next.courseProgress[courseId]?.questions || 0
+      })
+    });
+
+    saveState(next);
+
+    if (currentState.userId) {
+      syncCourseToServer(courseId, {
+        progress_percentage: percent,
+        xp_in_course: next.courseProgress[courseId].xp || 0,
+        coins_earned: next.courseProgress[courseId].coins || 0,
+        stats: next.courseProgress[courseId].stats
+      }).catch((error) => {
+        console.error('Objective progress sync error:', error);
+      });
+    }
+
+    return {
+      state: next,
+      indexes: uniqueIndexes,
+      newlyCompleted,
+      allComplete: nextStatus.every(Boolean)
+    };
   }
 
   function awardProgress(payload) {
@@ -587,7 +693,9 @@
           completedAt: row.completed_at || '',
           progress_percentage: Number(row.progress_percentage || 0),
           coins: Number(row.coins_earned || 0),
-          userCourseId: row.id
+          userCourseId: row.id,
+          objectiveStatus: Array.isArray(row.stats?.objectiveStatus) ? row.stats.objectiveStatus : [],
+          stats: row.stats || {}
         };
       });
 
@@ -736,6 +844,7 @@
       subscribe,
       useProgress,
       awardProgress,
+      markObjectiveProgress,
       completeCourse,
       setSelectedCourse,
       setAvailableCourses,

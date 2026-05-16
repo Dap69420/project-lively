@@ -154,6 +154,7 @@ ${displayMathLines.join('\n')}
       topic: selectedCourse.focus,
       aiAim: selectedCourse.aiAim,
       objectives: Array.isArray(selectedCourse.objectives) ? selectedCourse.objectives : [],
+      objectiveStatus: Array.isArray(selectedCourseState.objectiveStatus) ? selectedCourseState.objectiveStatus : [],
       cardStyle: selectedCourse.cardStyle || {},
       completed: Boolean(selectedCourseState.completed),
       attemptCount: Number(selectedCourseState.questions || 0)
@@ -338,12 +339,9 @@ ${displayMathLines.join('\n')}
             decision: aiDecision
           });
 
-          const completionThreshold = Math.max(3, (courseContext.objectives || []).length + 1);
-          const canComplete = aiDecision?.completed && !selectedCourseState.completed && runtimeCourseContext.attemptCount >= completionThreshold;
-          if (canComplete) {
-            window.LivelyProgress.completeCourse(selectedCourseId).catch((error) => {
-              console.error('Course completion sync error:', error);
-            });
+          const objectiveResult = await window.LivelyProgress.markObjectiveProgress(selectedCourseId, aiDecision || {});
+          if (objectiveResult.allComplete && !selectedCourseState.completed) {
+            await window.LivelyProgress.completeCourse(selectedCourseId);
           }
         }
 

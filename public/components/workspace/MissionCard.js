@@ -28,6 +28,7 @@ function MissionCard() {
 
     const progress = window.LivelyProgress.useProgress();
     const course = window.LivelyProgress.getSelectedCourse();
+    const courseProgress = progress.courseProgress?.[course.id] || {};
     const cardStyle = course.cardStyle || {};
     const lessonObjectives = Array.isArray(course.objectives) && course.objectives.length > 0
       ? course.objectives.slice(0, 4)
@@ -95,8 +96,16 @@ function MissionCard() {
             
             <div className="mission-objectives p-3 rounded border-2 border-dashed">
               <p className="font-sans font-bold text-sm">Objective:</p>
-              <ul className="list-disc pl-5 font-mono text-xs mt-1 space-y-1">
-                {mission.objectives.map((item) => <li key={item}>{item}</li>)}
+              <ul className="font-mono text-xs mt-2 space-y-2">
+                {mission.objectives.map((item, index) => {
+                  const isComplete = Boolean(courseProgress.objectiveStatus?.[index] || courseProgress.completed);
+                  return (
+                    <li key={item} className="flex gap-2">
+                      <span className="font-black">{isComplete ? '[x]' : '[ ]'}</span>
+                      <span className={isComplete ? 'line-through opacity-70' : ''}>{item}</span>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
             

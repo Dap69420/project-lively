@@ -36,12 +36,16 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
   const cleanText = String(userText || '').trim();
   const lowerText = cleanText.toLowerCase();
   const objectives = Array.isArray(courseContext.objectives) ? courseContext.objectives.filter(Boolean) : [];
+  const objectiveStatus = Array.isArray(courseContext.objectiveStatus) ? courseContext.objectiveStatus : [];
   const courseAlreadyCompleted = Boolean(courseContext.completed);
   const repeatedInput = Boolean(courseContext.repeatedInput);
   const attemptCount = Math.max(0, Number(courseContext.attemptCount || 0));
   const isOffTopic = /\b(joke|meme|music|game|random|ignore|skip|off topic)\b/.test(lowerText);
   const isStruggling = cleanText.length < 20 || /\b(don't know|dont know|stuck|help|confused|hard|lost)\b/.test(lowerText);
-  const mentionedObjective = objectives.some((objective) => lowerText.includes(String(objective).toLowerCase().slice(0, 18)));
+  const mentionedObjectiveIndex = objectives.findIndex((objective) => lowerText.includes(String(objective).toLowerCase().slice(0, 18)));
+  const firstIncompleteIndex = objectives.findIndex((_objective, index) => !objectiveStatus[index]);
+  const objectiveIndex = mentionedObjectiveIndex >= 0 ? mentionedObjectiveIndex : firstIncompleteIndex;
+  const mentionedObjective = objectiveIndex >= 0 && (mentionedObjectiveIndex >= 0 || cleanText.length > 120);
   let xpDelta = isOffTopic ? -8 : isStruggling ? 4 : 10;
 
   if (repeatedInput) {
@@ -62,20 +66,25 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
 
   xpDelta = Math.max(-20, Math.min(40, xpDelta));
   const coinsDelta = xpDelta > 0 ? Math.max(0, Math.floor(xpDelta / 5)) : 0;
-  const completed = !courseAlreadyCompleted
+  const objectiveCompleted = !courseAlreadyCompleted
     && !repeatedInput
     && !isOffTopic
     && !isStruggling
     && attemptCount >= 2
+    && objectiveIndex >= 0
     && (mentionedObjective || cleanText.length > 120 || /\b(done|finished|mastered|understand|solved|complete)\b/.test(lowerText));
+  const completedObjectiveIndexes = objectiveCompleted ? [objectiveIndex] : [];
+  const completed = objectives.length > 0
+    ? objectiveCompleted && objectives.every((_objective, index) => index === objectiveIndex || Boolean(objectiveStatus[index]))
+    : objectiveCompleted;
 
   let visibleResponse = '';
   if (isOffTopic) {
     visibleResponse = getFallbackAiResponse(cleanText);
   } else if (repeatedInput) {
     visibleResponse = `Nice consistency. You explained that clearly. Add one new example tied to ${objectives[0] || courseContext.aiAim || courseContext.topic || 'this topic'} so we can push to the next checkpoint.`;
-  } else if (completed) {
-    visibleResponse = `Strong explanation. You connected your idea to ${objectives[0] || courseContext.aiAim || 'the core objective'} clearly. Let's mark this checkpoint complete and move to the next challenge.`;
+  } else if (objectiveCompleted) {
+    visibleResponse = `Strong explanation. You connected your idea to ${objectives[objectiveIndex] || courseContext.aiAim || 'the core objective'} clearly. I'll mark that objective complete and move you to the next checkpoint.`;
   } else if (isStruggling) {
     visibleResponse = `You are close. Start with one short line about ${objectives[0] || courseContext.topic || 'the concept'}, then I will help you refine it.`;
   } else {
@@ -87,8 +96,11 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
     internal_response: `Scored ${xpDelta} XP in ${mode} mode. objective_match=${mentionedObjective ? 'yes' : 'no'}, repeated_input=${repeatedInput ? 'yes' : 'no'}, checkpoint_completed=${completed ? 'yes' : 'no'}.`,
     xp_delta: xpDelta,
     coins_delta: coinsDelta,
+    objective_completed: objectiveCompleted,
+    objective_index: objectiveCompleted ? objectiveIndex : null,
+    completed_objective_indexes: completedObjectiveIndexes,
     completed,
-    completion_reason: completed ? 'The student demonstrated enough evidence to finish the course checkpoint.' : '',
+    completion_reason: objectiveCompleted ? 'The student demonstrated enough evidence to complete the current objective.' : '',
     level_delta: 0,
     provider: 'fallback'
   };
@@ -102,6 +114,24 @@ function normalizeDecision(decision, fallbackDecision, courseContext = {}) {
   let xpDelta = Number.isFinite(Number(source.xp_delta)) ? Math.round(Number(source.xp_delta)) : base.xp_delta;
   const coinsDelta = Number.isFinite(Number(source.coins_delta)) ? Math.round(Number(source.coins_delta)) : base.coins_delta;
   let completed = typeof source.completed === 'boolean' ? source.completed : base.completed;
+  const rawCompletedIndexes = Array.isArray(source.completed_objective_indexes)
+    ? source.completed_objective_indexes
+    : Array.isArray(source.completedObjectiveIndexes)
+      ? source.completedObjectiveIndexes
+      : base.completed_objective_indexes || [];
+  const completedObjectiveIndexes = rawCompletedIndexes
+    .map((index) => Number(index))
+    .filter((index) => Number.isInteger(index) && index >= 0);
+  const objectiveIndex = Number.isInteger(Number(source.objective_index))
+    ? Number(source.objective_index)
+    : Number.isInteger(Number(base.objective_index))
+      ? Number(base.objective_index)
+      : null;
+  const objectiveCompleted = typeof source.objective_completed === 'boolean'
+    ? source.objective_completed
+    : typeof source.completedObjective === 'boolean'
+      ? source.completedObjective
+      : Boolean(base.objective_completed);
 
   if (Boolean(courseContext.completed) || Boolean(courseContext.repeatedInput)) {
     completed = false;
@@ -116,6 +146,9 @@ function normalizeDecision(decision, fallbackDecision, courseContext = {}) {
     internal_response: internalResponse,
     xp_delta: Math.max(-50, Math.min(50, xpDelta)),
     coins_delta: Math.max(0, Math.min(100, coinsDelta)),
+    objective_completed: objectiveCompleted,
+    objective_index: objectiveIndex,
+    completed_objective_indexes: completedObjectiveIndexes,
     completed,
     completion_reason: String(source.completion_reason || base.completion_reason || '').trim(),
     level_delta: Number.isFinite(Number(source.level_delta)) ? Math.round(Number(source.level_delta)) : 0,
@@ -156,18 +189,22 @@ module.exports = async (req, res) => {
           courseContext.topic ? `Topic: ${courseContext.topic}` : '',
           courseContext.aiAim ? `Aim: ${courseContext.aiAim}` : '',
           Array.isArray(courseContext.objectives) && courseContext.objectives.length ? `Objectives:\n- ${courseContext.objectives.join('\n- ')}` : '',
+          Array.isArray(courseContext.objectiveStatus) && courseContext.objectiveStatus.length ? `Objective completion status: ${courseContext.objectiveStatus.map((done, index) => `${index}:${done ? 'complete' : 'incomplete'}`).join(', ')}` : '',
           courseContext.cardStyle && typeof courseContext.cardStyle === 'object' ? `Card style: ${JSON.stringify(courseContext.cardStyle)}` : ''
         ].filter(Boolean).join('\n')
       : '';
 
     const structuredSystemPrompt = [
       systemPrompt,
-      'Return valid JSON only with these keys: visible_response, internal_response, xp_delta, coins_delta, completed, completion_reason, level_delta.',
+      'Return valid JSON only with these keys: visible_response, internal_response, xp_delta, coins_delta, objective_completed, objective_index, completed_objective_indexes, completed, completion_reason, level_delta.',
       'visible_response must be student-safe and should not mention hidden scoring.',
       'visible_response should respond directly to the student answer, not a generic template.',
       'internal_response is for admins only and should explain the scoring decision in one short sentence.',
       'xp_delta may be negative, zero, or positive. coins_delta may be zero or positive.',
-      'completed should be true only when the current course objective is sufficiently demonstrated.',
+      'objective_completed should be true only when one listed incomplete objective is sufficiently demonstrated.',
+      'objective_index must be the zero-based index of the completed objective, or null when no objective is completed.',
+      'completed_objective_indexes should list all zero-based objective indexes completed by this answer.',
+      'completed should be true only when this answer completes the final remaining objective in the course.',
       'Never mark completed if the student is repeating the same answer with no new evidence, or if the course is already completed.',
       courseContextText ? `Course context:\n${courseContextText}` : ''
     ].filter(Boolean).join('\n\n');

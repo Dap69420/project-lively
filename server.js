@@ -86,6 +86,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.all('/api/notes', require('./api/notes'));
+app.all('/api/ai/chat', require('./api/ai/chat'));
 
 app.post('/api/ai/chat', async (req, res) => {
   const { systemPrompt = '', userText = '' } = req.body || {};
