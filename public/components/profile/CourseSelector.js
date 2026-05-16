@@ -168,19 +168,32 @@ function CourseSelector() {
                 className="text-left p-4 rounded-xl border transition-all duration-200 hover:translate-y-[-1px] overflow-hidden w-full"
                 style={{ backgroundColor: cardBackground, borderColor: cardBorder, boxShadow: isActive ? '0 0 18px rgba(176, 38, 255, 0.2)' : 'none' }}
               >
-                <div className="flex items-start justify-between gap-3 mb-3 min-w-0">
-                  <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2 mb-3 min-w-0">
+                  <div className="min-w-0 flex-1 pr-1">
                     {cardStyle.banner_text ? (
                       <div className="inline-flex mb-2 max-w-full rounded-full px-2 py-1 text-[9px] font-mono uppercase tracking-[0.14em] truncate" style={{ backgroundColor: cardAccent, color: '#050505' }}>
                         {cardStyle.banner_text}
                       </div>
                     ) : null}
+                  </div>
+                  <div className="shrink-0">
+                    {isCompleted ? (
+                      <span className="text-[10px] font-mono px-2 py-1 rounded-full bg-green-500/20 text-green-300 border border-green-500/30">COMPLETED</span>
+                    ) : isActive ? (
+                      <span className="text-[10px] font-mono px-2 py-1 rounded-full bg-neonViolet/20 text-neonViolet border border-neonViolet/30">LIVE</span>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="min-w-0">
                     <div className={`text-xl mb-1 ${course.tone}`}>
                       <div className={course.icon}></div>
                     </div>
-                    <div className="font-bold text-white text-sm leading-tight truncate" title={course.name}>{course.name}</div>
+                    <div className="font-bold text-white text-sm leading-snug whitespace-normal break-normal" title={course.name}>
+                      {course.name}
+                    </div>
                     <div
-                      className="text-xs font-mono text-gray-400 mt-1 leading-snug"
+                      className="text-xs font-mono text-gray-400 mt-1 leading-snug whitespace-normal break-normal"
                       title={course.focus}
                       style={{
                         display: '-webkit-box',
@@ -191,14 +204,6 @@ function CourseSelector() {
                     >
                       {course.focus}
                     </div>
-                  </div>
-                  <div className="shrink-0">
-                    {isCompleted ? (
-                      <span className="text-[10px] font-mono px-2 py-1 rounded-full bg-green-500/20 text-green-300 border border-green-500/30">COMPLETED</span>
-                    ) : isActive ? (
-                      <span className="text-[10px] font-mono px-2 py-1 rounded-full bg-neonViolet/20 text-neonViolet border border-neonViolet/30">LIVE</span>
-                    ) : null}
-                  </div>
                 </div>
 
                 <div className="flex items-center justify-between text-xs font-mono text-gray-400 mb-2">

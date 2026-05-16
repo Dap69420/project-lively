@@ -53,6 +53,64 @@
     };
   }
 
+  const SESSION_STORAGE_KEY = 'lively_progress_state_v1';
+
+  function readSessionSnapshot() {
+    if (typeof window === 'undefined' || !window.sessionStorage) {
+      return null;
+    }
+
+    try {
+      const raw = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+      if (!raw) {
+        return null;
+      }
+
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') {
+        return null;
+      }
+
+      return parsed;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function writeSessionSnapshot(state) {
+    if (typeof window === 'undefined' || !window.sessionStorage) {
+      return;
+    }
+
+    try {
+      const snapshot = {
+        alias: state.alias,
+        selectedCourse: state.selectedCourse,
+        level: state.level,
+        xp: state.xp,
+        coins: state.coins,
+        streak: state.streak,
+        longestStreak: state.longestStreak,
+        totalQuestions: state.totalQuestions,
+        correctAnswers: state.correctAnswers,
+        lastStudyDate: state.lastStudyDate,
+        achievements: state.achievements,
+        availableCourses: state.availableCourses,
+        catalogStatus: state.catalogStatus,
+        catalogError: state.catalogError,
+        userId: state.userId,
+        userEmail: state.userEmail,
+        userGrade: state.userGrade,
+        courseProgress: state.courseProgress,
+        chatHistory: state.chatHistory
+      };
+
+      window.sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(snapshot));
+    } catch (_error) {
+      // Ignore storage failures and keep operating in-memory.
+    }
+  }
+
   function subjectDecoration(subject) {
     const key = String(subject || '').trim().toLowerCase();
     return SUBJECT_DECORATIONS[key] || SUBJECT_DECORATIONS.default;
@@ -189,7 +247,7 @@
   }
 
   function loadState() {
-    return normalizeState(createDefaultState());
+    return normalizeState(Object.assign({}, createDefaultState(), readSessionSnapshot() || {}));
   }
 
   let currentState = loadState();
@@ -197,6 +255,7 @@
 
   function saveState(nextState) {
     currentState = normalizeState(nextState);
+    writeSessionSnapshot(currentState);
     listeners.forEach((listener) => listener());
     return currentState;
   }
