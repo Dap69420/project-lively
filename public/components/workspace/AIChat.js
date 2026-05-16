@@ -231,6 +231,25 @@ ${displayMathLines.join('\n')}
 
     React.useEffect(() => {
       window.LivelyChat = {
+        addUserSketch: (imageUrl, metadata = {}) => {
+          const msg = {
+            role: 'user',
+            text: 'Sketch submitted',
+            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            metadata: Object.assign({}, metadata, { type: 'sketch', imageUrl })
+          };
+          setMessages((prev) => {
+            const updated = [...prev, msg];
+            window.LivelyProgress.addChatMessage({
+              role: msg.role,
+              text: msg.text,
+              time: msg.time,
+              courseId: selectedCourseId,
+              metadata: msg.metadata
+            });
+            return updated;
+          });
+        },
         addAssistantMessage: (text, metadata = {}) => {
           const msg = {
             role: 'ai',
@@ -454,7 +473,12 @@ ${displayMathLines.join('\n')}
                   <span className="text-[10px] font-mono text-gray-500">{msg.time}</span>
                 </div>
                 <div className={`p-3 rounded-lg text-sm leading-relaxed ${msg.role === 'user' ? 'bg-mcPurple text-white rounded-tr-none' : 'bg-discordDarkest text-gray-200 rounded-tl-none border border-gray-700'}`}>
-                  {msg.role === 'ai' ? renderFormattedMessage(msg.text) : msg.text}
+                  {msg.metadata?.type === 'sketch' && msg.metadata?.imageUrl ? (
+                    <div className="space-y-2">
+                      <div className="font-mono text-xs uppercase tracking-wider opacity-80">{msg.text || 'Sketch submitted'}</div>
+                      <img src={msg.metadata.imageUrl} alt="Submitted sketch" className="max-h-56 max-w-full rounded border border-white/20 bg-discordDarkest object-contain" />
+                    </div>
+                  ) : msg.role === 'ai' ? renderFormattedMessage(msg.text) : msg.text}
                 </div>
                 {msg.role === 'ai' && isAdminViewer && msg.metadata?.aiDecision?.internal_response ? (
                   <div className="mt-2 rounded border border-yellow-400/40 bg-yellow-400/10 px-3 py-2 text-[11px] leading-relaxed text-yellow-100">

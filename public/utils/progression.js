@@ -757,7 +757,8 @@
       role: message.role,
       text: message.text,
       time: message.time,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      metadata: message.metadata || {}
     });
     saveState(next);
 

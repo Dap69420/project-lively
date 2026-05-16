@@ -372,7 +372,8 @@ function Sketch({ user }) {
   const sendSketch = async () => {
     if (isCourseCompleted) return;
     const canvas = canvasRef.current;
-    const imageBase64 = canvas.toDataURL('image/png').split(',')[1];
+    const sketchDataUrl = canvas.toDataURL('image/png');
+    const imageBase64 = sketchDataUrl.split(',')[1];
     const selectedCourse = window.LivelyProgress.getSelectedCourse();
     const selectedCourseId = selectedCourse.id;
     const progressSnapshot = window.LivelyProgress.getState();
@@ -395,6 +396,24 @@ function Sketch({ user }) {
     setLoading(true);
     
     try {
+      if (window.LivelyChat && typeof window.LivelyChat.addUserSketch === 'function') {
+        window.LivelyChat.addUserSketch(sketchDataUrl, {
+          source: 'sketch',
+          courseId: selectedCourseId
+        });
+      } else {
+        window.LivelyProgress.addChatMessage({
+          role: 'user',
+          text: 'Sketch submitted',
+          courseId: selectedCourseId,
+          metadata: {
+            type: 'sketch',
+            imageUrl: sketchDataUrl,
+            source: 'sketch'
+          }
+        });
+      }
+
       const visionResponse = await fetch('/api/ai/vision', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
