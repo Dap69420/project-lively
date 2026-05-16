@@ -31,11 +31,13 @@ class ErrorBoundary extends React.Component {
 function AdminApp() {
   try {
     const supabaseClient = window.supabaseClient || null;
+    const adminAllowlist = Array.isArray(window.__APP_CONFIG__?.ADMIN_ALLOWED_EMAILS) ? window.__APP_CONFIG__.ADMIN_ALLOWED_EMAILS : [];
     const [allCourses, setAllCourses] = React.useState([]);
     const [loadingCourses, setLoadingCourses] = React.useState(true);
     const [session, setSession] = React.useState(null);
     const [authLoading, setAuthLoading] = React.useState(true);
     const [accessDenied, setAccessDenied] = React.useState('');
+    const [designMode, setDesignMode] = React.useState('glass');
 
     React.useEffect(() => {
       let mounted = true;
@@ -87,6 +89,14 @@ function AdminApp() {
         return;
       }
 
+      const sessionEmail = String(session?.user?.email || '').toLowerCase();
+      const allowlist = adminAllowlist.map((email) => String(email).toLowerCase());
+      if (allowlist.length > 0 && (!sessionEmail || !allowlist.includes(sessionEmail))) {
+        setAccessDenied('Your account is not authorized to access this page.');
+        setLoadingCourses(false);
+        return;
+      }
+
       // Load all courses
       fetchJson('/api/admin/courses', {
         headers: {
@@ -132,8 +142,24 @@ function AdminApp() {
       );
     }
 
+    const sessionEmail = String(session?.user?.email || '').toLowerCase();
+    const normalizedAllowlist = adminAllowlist.map((email) => String(email).toLowerCase());
+    const isAdmin = normalizedAllowlist.length === 0 ? true : normalizedAllowlist.includes(sessionEmail);
+
+    if (!isAdmin) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-darkBg text-white p-6">
+          <div className="glass-panel max-w-md p-8 text-center">
+            <h1 className="text-3xl font-black mb-3 text-red-400">Admin access required</h1>
+            <p className="text-sm text-gray-400 font-mono mb-6">{accessDenied || 'This page is restricted to admins only.'}</p>
+            <a href="profile.html" className="inline-flex px-5 py-2 rounded-lg bg-neonViolet text-black font-bold hover:opacity-90 transition-opacity">Back to profile</a>
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div className="min-h-screen bg-darkBg text-white relative overflow-hidden">
+      <div className={`min-h-screen bg-darkBg text-white relative overflow-hidden theme-${designMode}`}>
         {/* Animated background glow */}
         <div className="fixed top-0 left-0 w-[500px] h-[500px] bg-neonViolet rounded-full mix-blend-screen filter blur-3xl opacity-10 pointer-events-none animate-pulse"></div>
         <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-blue-600 rounded-full mix-blend-screen filter blur-3xl opacity-5 pointer-events-none animate-pulse" style={{animationDelay: '2s'}}></div>
@@ -143,7 +169,8 @@ function AdminApp() {
             
             {/* Header */}
             <div className="mb-12">
-              <div className="flex items-center gap-4 mb-4">
+              <div className="flex items-center justify-between gap-4 mb-4">
+                <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-neonViolet rounded-lg flex items-center justify-center shadow-[0_0_20px_rgba(176,38,255,0.4)]">
                   <span className="text-black font-black text-xl">⚙</span>
                 </div>
@@ -153,6 +180,23 @@ function AdminApp() {
                     <span className="text-neonViolet"> PANEL</span>
                   </h1>
                   <p className="text-gray-400 font-mono text-sm mt-1">Manage courses and learning paths</p>
+                </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDesignMode('glass')}
+                    className={`px-3 py-2 text-xs font-mono uppercase tracking-wider rounded border transition-colors ${designMode === 'glass' ? 'bg-neonViolet text-black border-neonViolet' : 'bg-black/30 text-gray-300 border-white/20'}`}
+                  >
+                    Glass
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDesignMode('brutal')}
+                    className={`px-3 py-2 text-xs font-mono uppercase tracking-wider rounded border transition-colors ${designMode === 'brutal' ? 'bg-neonViolet text-black border-neonViolet' : 'bg-black/30 text-gray-300 border-white/20'}`}
+                  >
+                    Brutal
+                  </button>
                 </div>
               </div>
             </div>
