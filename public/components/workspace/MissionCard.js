@@ -1,5 +1,31 @@
 function MissionCard() {
   try {
+    const normalizeHexColor = (color, fallback) => {
+      const normalized = String(color || '').trim();
+      const hex = normalized.match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
+      if (!hex) return fallback;
+
+      const value = hex[1].length === 3
+        ? hex[1].split('').map((part) => part + part).join('')
+        : hex[1];
+
+      return `#${value}`;
+    };
+
+    const getReadableTextColor = (color, fallback = '#111111') => {
+      const normalized = normalizeHexColor(color, '');
+      const hex = normalized.match(/^#([0-9a-f]{6})$/i);
+      if (!hex) return fallback;
+
+      const value = hex[1];
+      const red = parseInt(value.slice(0, 2), 16);
+      const green = parseInt(value.slice(2, 4), 16);
+      const blue = parseInt(value.slice(4, 6), 16);
+      const luminance = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
+
+      return luminance > 0.58 ? '#050505' : '#ffffff';
+    };
+
     const progress = window.LivelyProgress.useProgress();
     const course = window.LivelyProgress.getSelectedCourse();
     const cardStyle = course.cardStyle || {};
@@ -25,10 +51,12 @@ function MissionCard() {
     };
 
     const rotation = Number(cardStyle.rotation || 0);
-    const cardBackground = cardStyle.background_color || '#f8f7f2';
-    const cardAccent = cardStyle.accent_color || '#55ff55';
-    const cardBorder = cardStyle.border_color || '#111111';
+    const cardBackground = normalizeHexColor(cardStyle.background_color, '#f8f7f2');
+    const cardAccent = normalizeHexColor(cardStyle.accent_color, '#55ff55');
+    const cardBorder = normalizeHexColor(cardStyle.border_color, '#111111');
     const bannerText = cardStyle.banner_text || mission.episode;
+    const cardInk = getReadableTextColor(cardBackground);
+    const accentInk = getReadableTextColor(cardAccent);
 
     return (
       <div className="panel flex-1 m-4" data-name="mission-card" data-file="components/workspace/MissionCard.js">
@@ -42,20 +70,30 @@ function MissionCard() {
         
         <div className="p-6 h-full flex flex-col justify-center items-center bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9IiMzMTMzMzgiLz48L3N2Zz4=')]">
           
-          <div className="comic-card w-full max-w-md transform hover:rotate-0 transition-transform duration-300 overflow-hidden" style={{ transform: `rotate(${Number.isFinite(rotation) ? rotation : -2}deg)` }}>
+          <div
+            className="comic-card mission-comic-card w-full max-w-md transform hover:rotate-0 transition-transform duration-300 overflow-hidden"
+            style={{
+              transform: `rotate(${Number.isFinite(rotation) ? rotation : -2}deg)`,
+              '--mission-card-bg': cardBackground,
+              '--mission-card-ink': cardInk,
+              '--mission-card-border': cardBorder,
+              '--mission-accent-bg': cardAccent,
+              '--mission-accent-ink': accentInk
+            }}
+          >
             {/* Comic Header */}
-            <div className="p-2 border-b-4 mb-4 -mx-4 -mt-4 font-pixel text-xl uppercase text-center tracking-widest truncate" style={{ backgroundColor: cardAccent, color: '#050505', borderBottomColor: cardBorder }}>
+            <div className="mission-banner p-2 border-b-4 mb-4 -mx-4 -mt-4 font-pixel text-xl uppercase text-center tracking-widest truncate">
               {bannerText}
             </div>
             
-            <h2 className="font-black text-2xl uppercase leading-tight mb-2 break-words" style={{ color: cardBorder }}>{mission.title}</h2>
-            <div className="w-16 h-2 mb-4" style={{ backgroundColor: cardAccent }}></div>
+            <h2 className="mission-ink font-black text-2xl uppercase leading-tight mb-2 break-words">{mission.title}</h2>
+            <div className="mission-accent-bar w-16 h-2 mb-4"></div>
             
-            <p className="font-mono text-sm mb-6 leading-relaxed break-words" style={{ color: cardBorder }}>
-              {mission.body} <span className="font-bold" style={{ backgroundColor: cardAccent, color: '#050505' }}>{course.name}</span>.
+            <p className="mission-ink font-mono text-sm mb-6 leading-relaxed break-words">
+              {mission.body} <span className="mission-highlight font-bold">{course.name}</span>.
             </p>
             
-            <div className="p-3 rounded border-2 border-dashed" style={{ backgroundColor: cardBackground, borderColor: cardBorder }}>
+            <div className="mission-objectives p-3 rounded border-2 border-dashed">
               <p className="font-sans font-bold text-sm">Objective:</p>
               <ul className="list-disc pl-5 font-mono text-xs mt-1 space-y-1">
                 {mission.objectives.map((item) => <li key={item}>{item}</li>)}

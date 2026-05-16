@@ -92,6 +92,36 @@
             @apply bg-white text-black rounded-lg border-4 border-black p-4 relative overflow-hidden;
             box-shadow: 4px 4px 0px 0px rgba(0,0,0,1);
         }
+        .mission-comic-card {
+            background: var(--mission-card-bg) !important;
+            color: var(--mission-card-ink) !important;
+            border-color: var(--mission-card-border) !important;
+        }
+        body.theme-glass .comic-card.mission-comic-card,
+        body.theme-brutal .comic-card.mission-comic-card {
+            background: var(--mission-card-bg) !important;
+            color: var(--mission-card-ink) !important;
+            border-color: var(--mission-card-border) !important;
+        }
+        .mission-ink {
+            color: var(--mission-card-ink) !important;
+        }
+        .mission-banner,
+        .mission-highlight {
+            background: var(--mission-accent-bg) !important;
+            color: var(--mission-accent-ink) !important;
+        }
+        .mission-banner {
+            border-bottom-color: var(--mission-card-border) !important;
+        }
+        .mission-accent-bar {
+            background: var(--mission-accent-bg) !important;
+        }
+        .mission-objectives {
+            background: color-mix(in srgb, var(--mission-card-bg) 88%, var(--mission-card-ink) 12%) !important;
+            border-color: var(--mission-card-border) !important;
+            color: var(--mission-card-ink) !important;
+        }
         .custom-scrollbar::-webkit-scrollbar {
             width: 8px;
         }
