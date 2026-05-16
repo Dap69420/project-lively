@@ -1,4 +1,4 @@
-function CourseForm({ accessToken, onSuccess }) {
+function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
   try {
     const initialState = {
       title: '',
@@ -24,10 +24,67 @@ function CourseForm({ accessToken, onSuccess }) {
     const [loading, setLoading] = React.useState(false);
     const [success, setSuccess] = React.useState('');
     const [error, setError] = React.useState('');
+    const isEditing = Boolean(editingCourse?.id);
 
     const subjects = ['Mathematics', 'Science', 'English', 'History', 'Physics', 'Chemistry', 'Biology'];
     const grades = ['6', '7', '8', '9'];
     const difficulties = ['beginner', 'intermediate', 'advanced'];
+
+    const normalizeJsonArray = (value) => {
+      if (Array.isArray(value)) return value;
+      if (!value) return [];
+      try {
+        const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (_error) {
+        return [];
+      }
+    };
+
+    const normalizeJsonObject = (value) => {
+      if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+      if (!value) return {};
+      try {
+        const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+      } catch (_error) {
+        return {};
+      }
+    };
+
+    React.useEffect(() => {
+      if (!editingCourse) {
+        setFormData(initialState);
+        setSuccess('');
+        setError('');
+        return;
+      }
+
+      const objectives = normalizeJsonArray(editingCourse.objectives);
+      const cardStyle = normalizeJsonObject(editingCourse.card_style);
+
+      setFormData({
+        title: editingCourse.title || '',
+        description: editingCourse.description || '',
+        subject: editingCourse.subject || 'Mathematics',
+        grade: String(editingCourse.grade || '9'),
+        topic: editingCourse.topic || '',
+        difficulty: editingCourse.difficulty || 'intermediate',
+        ai_prompt: editingCourse.ai_prompt || '',
+        ai_aim: editingCourse.ai_aim || '',
+        completion_xp: Number(editingCourse.completion_xp || 250),
+        completion_coins: Number(editingCourse.completion_coins || 50),
+        thumbnail_url: editingCourse.thumbnail_url || '',
+        objectivesText: objectives.join('\n'),
+        cardBannerText: cardStyle.banner_text || '',
+        cardAccentColor: cardStyle.accent_color || '#55ff55',
+        cardBackgroundColor: cardStyle.background_color || '#121826',
+        cardBorderColor: cardStyle.border_color || '#2dd4bf',
+        cardRotation: Number(cardStyle.rotation || 0)
+      });
+      setSuccess('');
+      setError('');
+    }, [editingCourse?.id]);
 
     const handleChange = (e) => {
       const { name, value } = e.target;
@@ -73,7 +130,7 @@ function CourseForm({ accessToken, onSuccess }) {
       setSuccess('');
 
       if (!accessToken) {
-        setError('You must be signed in as an authorized admin to create courses.');
+        setError('You must be signed in as an authorized admin to manage courses.');
         setLoading(false);
         return;
       }
@@ -97,13 +154,15 @@ function CourseForm({ accessToken, onSuccess }) {
       }
 
       try {
+        const payload = buildCoursePayload();
+        const requestBody = isEditing ? Object.assign({ courseId: editingCourse.id }, payload) : payload;
         const response = await fetch('/api/admin/courses', {
-          method: 'POST',
+          method: isEditing ? 'PATCH' : 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${accessToken}`
           },
-          body: JSON.stringify(buildCoursePayload())
+          body: JSON.stringify(requestBody)
         });
 
         const responseText = await response.text();
@@ -119,13 +178,15 @@ function CourseForm({ accessToken, onSuccess }) {
           throw new Error(result?.error || `Request failed with status ${response.status}`);
         }
 
-        setSuccess(`Course "${formData.title}" created successfully.`);
-        setFormData(initialState);
+        setSuccess(`Course "${formData.title}" ${isEditing ? 'updated' : 'created'} successfully.`);
+        if (!isEditing) {
+          setFormData(initialState);
+        }
         if (onSuccess) onSuccess(result.data);
         setTimeout(() => setSuccess(''), 3000);
       } catch (submitError) {
-        console.error('Course creation error:', submitError);
-        setError(submitError?.message || 'An error occurred while creating the course');
+        console.error('Course save error:', submitError);
+        setError(submitError?.message || 'An error occurred while saving the course');
       } finally {
         setLoading(false);
       }
@@ -135,8 +196,21 @@ function CourseForm({ accessToken, onSuccess }) {
       <div className="w-full max-w-2xl mx-auto p-6" data-name="course-form" data-file="components/admin/CourseForm.js">
         <div className="glass-panel p-8">
           <div className="mb-8">
-            <h2 className="text-3xl font-bold tracking-tight mb-2">Create New Course</h2>
-            <p className="text-gray-400 font-mono text-sm">Add a course to the learning platform</p>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-3xl font-bold tracking-tight mb-2">{isEditing ? 'Edit Course' : 'Create New Course'}</h2>
+                <p className="text-gray-400 font-mono text-sm">{isEditing ? 'Update this learning path' : 'Add a course to the learning platform'}</p>
+              </div>
+              {isEditing ? (
+                <button
+                  type="button"
+                  onClick={onCancelEdit}
+                  className="px-3 py-2 rounded-lg bg-white/10 border border-white/10 text-gray-300 font-mono text-xs uppercase tracking-wider hover:bg-white/20 transition-colors"
+                >
+                  Cancel
+                </button>
+              ) : null}
+            </div>
           </div>
 
           {error ? (
@@ -353,7 +427,7 @@ function CourseForm({ accessToken, onSuccess }) {
               disabled={loading}
               className="w-full py-3 rounded-lg bg-neonViolet text-black font-mono font-bold uppercase tracking-wider transition-all hover:shadow-[0_0_15px_rgba(176,38,255,0.4)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating Course...' : 'Create Course'}
+              {loading ? (isEditing ? 'Saving Course...' : 'Creating Course...') : (isEditing ? 'Save Changes' : 'Create Course')}
             </button>
           </form>
 

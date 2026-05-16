@@ -38,6 +38,9 @@ function AdminApp() {
     const [authLoading, setAuthLoading] = React.useState(true);
     const [accessDenied, setAccessDenied] = React.useState('');
     const [designMode, setDesignMode] = React.useState('glass');
+    const [editingCourse, setEditingCourse] = React.useState(null);
+    const [deletingCourseId, setDeletingCourseId] = React.useState('');
+    const [courseActionError, setCourseActionError] = React.useState('');
 
     React.useEffect(() => {
       let mounted = true;
@@ -116,7 +119,53 @@ function AdminApp() {
     }, [session]);
 
     const handleCourseCreated = (newCourse) => {
-      setAllCourses((currentCourses) => [newCourse, ...currentCourses]);
+      if (!newCourse) return;
+      setAllCourses((currentCourses) => {
+        const exists = currentCourses.some((course) => course.id === newCourse.id);
+        if (exists) {
+          return currentCourses.map((course) => course.id === newCourse.id ? newCourse : course);
+        }
+        return [newCourse, ...currentCourses];
+      });
+      setEditingCourse(null);
+      setCourseActionError('');
+    };
+
+    const handleEditCourse = (course) => {
+      setEditingCourse(course);
+      setCourseActionError('');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleDeleteCourse = async (course) => {
+      if (!course?.id || !session?.access_token) return;
+
+      const confirmed = window.confirm(`Delete "${course.title}" from active courses? Students will no longer see it.`);
+      if (!confirmed) return;
+
+      setDeletingCourseId(course.id);
+      setCourseActionError('');
+
+      try {
+        await fetchJson('/api/admin/courses', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ courseId: course.id }),
+        });
+
+        setAllCourses((currentCourses) => currentCourses.filter((item) => item.id !== course.id));
+        if (editingCourse?.id === course.id) {
+          setEditingCourse(null);
+        }
+      } catch (error) {
+        console.error('Failed to delete course:', error);
+        setCourseActionError(error?.message || 'Failed to delete course');
+      } finally {
+        setDeletingCourseId('');
+      }
     };
 
     if (authLoading) {
@@ -207,6 +256,8 @@ function AdminApp() {
               <div className="lg:col-span-2">
                 <CourseForm 
                   accessToken={session?.access_token || ''}
+                  editingCourse={editingCourse}
+                  onCancelEdit={() => setEditingCourse(null)}
                   onSuccess={handleCourseCreated}
                 />
               </div>
@@ -218,6 +269,12 @@ function AdminApp() {
                     <span className="text-neonViolet">📚</span> Active Courses
                   </h2>
                   
+                  {courseActionError ? (
+                    <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono">
+                      {courseActionError}
+                    </div>
+                  ) : null}
+
                   {loadingCourses ? (
                     <div className="space-y-3">
                       {[1, 2, 3].map(i => (
@@ -237,6 +294,23 @@ function AdminApp() {
                             {course.subject} • Grade {course.grade}
                           </div>
                           <div className="font-semibold text-sm truncate">{course.title}</div>
+                          <div className="mt-3 grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleEditCourse(course)}
+                              className="px-3 py-2 rounded-lg bg-white/10 border border-white/10 text-gray-200 font-mono text-[11px] uppercase tracking-wider hover:bg-white/20 transition-colors"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCourse(course)}
+                              disabled={deletingCourseId === course.id}
+                              className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 font-mono text-[11px] uppercase tracking-wider hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {deletingCourseId === course.id ? 'Deleting' : 'Delete'}
+                            </button>
+                          </div>
                           <div className="text-xs text-gray-400 mt-2 flex gap-2">
                             <span>🎯 {course.completion_xp} XP</span>
                             <span>💰 {course.completion_coins} Coins</span>

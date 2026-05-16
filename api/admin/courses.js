@@ -38,6 +38,7 @@ module.exports = async (req, res) => {
                 (SELECT COUNT(*) FROM user_courses WHERE course_id = c.id) as total_enrollments,
                 (SELECT COUNT(*) FROM user_courses WHERE course_id = c.id AND completed = true) as total_completions
          FROM courses c
+         WHERE c.is_active = true
          ORDER BY c.created_at DESC`
       );
 
@@ -127,11 +128,31 @@ module.exports = async (req, res) => {
       const params = [];
       let paramCount = 1;
 
-      // Dynamically build update query
+      const allowedFields = new Set([
+        'title',
+        'description',
+        'subject',
+        'grade',
+        'topic',
+        'difficulty',
+        'ai_prompt',
+        'ai_aim',
+        'completion_xp',
+        'completion_coins',
+        'thumbnail_url',
+        'objectives',
+        'card_style',
+        'is_active',
+      ]);
+
       Object.entries(updateData).forEach(([key, value]) => {
+        if (!allowedFields.has(key)) {
+          return;
+        }
+
         if (value !== undefined && value !== null) {
           updates.push(`${key} = $${paramCount++}`);
-          params.push(value);
+          params.push(['objectives', 'card_style'].includes(key) ? JSON.stringify(parseJsonField(value, key === 'objectives' ? [] : {})) : value);
         }
       });
 
@@ -168,7 +189,7 @@ module.exports = async (req, res) => {
 
     // DELETE /api/admin/courses - Delete course
     if (method === 'DELETE') {
-      const { courseId } = req.body;
+      const { courseId } = req.body || {};
 
       if (!courseId) {
         return res.status(400).json({
@@ -192,6 +213,7 @@ module.exports = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: 'Course deactivated successfully',
+        data: result.rows[0],
       });
     }
 
