@@ -117,7 +117,7 @@ function WorkspaceApp() {
           <Header user={user} />
           
           <main className="flex-1 flex overflow-hidden">
-            <Sidebar />
+            <Sidebar user={user} />
             
             <div className="flex-1 flex flex-col" style={{ minWidth: 0 }}>
               {/* Tab Navigation */}

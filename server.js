@@ -85,6 +85,8 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
+app.all('/api/notes', require('./api/notes'));
+
 app.post('/api/ai/chat', async (req, res) => {
   const { systemPrompt = '', userText = '' } = req.body || {};
   const sambaNovaConfig = getSambaNovaConfig();

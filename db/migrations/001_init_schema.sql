@@ -75,6 +75,18 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Course notes (one notes document per user per course)
+CREATE TABLE IF NOT EXISTS course_notes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  user_course_id UUID REFERENCES user_courses(id) ON DELETE SET NULL,
+  content TEXT DEFAULT '',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, course_id)
+);
+
 -- User Progression (global stats)
 CREATE TABLE IF NOT EXISTS user_progression (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -103,5 +115,7 @@ CREATE INDEX IF NOT EXISTS idx_user_courses_user_id ON user_courses(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_courses_course_id ON user_courses(course_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_user_id ON chat_messages(user_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_course_id ON chat_messages(course_id);
+CREATE INDEX IF NOT EXISTS idx_course_notes_user_id ON course_notes(user_id);
+CREATE INDEX IF NOT EXISTS idx_course_notes_course_id ON course_notes(course_id);
 CREATE INDEX IF NOT EXISTS idx_courses_subject_grade ON courses(subject, grade);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at DESC);
