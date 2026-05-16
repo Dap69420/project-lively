@@ -35,6 +35,11 @@ function extractJsonObject(text) {
 function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}, mode = 'chat' }) {
   const cleanText = String(userText || '').trim();
   const lowerText = cleanText.toLowerCase();
+  const recentEvidence = Array.isArray(courseContext.recentStudentEvidence)
+    ? courseContext.recentStudentEvidence.map((item) => String(item || '').trim()).filter(Boolean)
+    : [];
+  const cumulativeText = [...recentEvidence, cleanText].join('\n').trim() || cleanText;
+  const lowerCumulativeText = cumulativeText.toLowerCase();
   const objectives = Array.isArray(courseContext.objectives) ? courseContext.objectives.filter(Boolean) : [];
   const objectiveStatus = Array.isArray(courseContext.objectiveStatus) ? courseContext.objectiveStatus : [];
   const courseAlreadyCompleted = Boolean(courseContext.completed);
@@ -42,10 +47,10 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
   const attemptCount = Math.max(0, Number(courseContext.attemptCount || 0));
   const isOffTopic = /\b(joke|meme|music|game|random|ignore|skip|off topic)\b/.test(lowerText);
   const isStruggling = cleanText.length < 20 || /\b(don't know|dont know|stuck|help|confused|hard|lost)\b/.test(lowerText);
-  const mentionedObjectiveIndex = objectives.findIndex((objective) => lowerText.includes(String(objective).toLowerCase().slice(0, 18)));
+  const mentionedObjectiveIndex = objectives.findIndex((objective) => lowerCumulativeText.includes(String(objective).toLowerCase().slice(0, 18)));
   const firstIncompleteIndex = objectives.findIndex((_objective, index) => !objectiveStatus[index]);
   const objectiveIndex = mentionedObjectiveIndex >= 0 ? mentionedObjectiveIndex : firstIncompleteIndex;
-  const mentionedObjective = objectiveIndex >= 0 && (mentionedObjectiveIndex >= 0 || cleanText.length > 120);
+  const mentionedObjective = objectiveIndex >= 0 && (mentionedObjectiveIndex >= 0 || cumulativeText.length > 120);
   let xpDelta = isOffTopic ? -8 : isStruggling ? 4 : 10;
 
   if (repeatedInput) {
@@ -72,7 +77,7 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
     && !isStruggling
     && attemptCount >= 2
     && objectiveIndex >= 0
-    && (mentionedObjective || cleanText.length > 120 || /\b(done|finished|mastered|understand|solved|complete)\b/.test(lowerText));
+    && (mentionedObjective || cumulativeText.length > 120 || /\b(done|finished|mastered|understand|solved|complete)\b/.test(lowerCumulativeText));
   const completedObjectiveIndexes = objectiveCompleted ? [objectiveIndex] : [];
   const completed = objectives.length > 0
     ? objectiveCompleted && objectives.every((_objective, index) => index === objectiveIndex || Boolean(objectiveStatus[index]))
@@ -190,6 +195,7 @@ module.exports = async (req, res) => {
           courseContext.aiAim ? `Aim: ${courseContext.aiAim}` : '',
           Array.isArray(courseContext.objectives) && courseContext.objectives.length ? `Objectives:\n- ${courseContext.objectives.join('\n- ')}` : '',
           Array.isArray(courseContext.objectiveStatus) && courseContext.objectiveStatus.length ? `Objective completion status: ${courseContext.objectiveStatus.map((done, index) => `${index}:${done ? 'complete' : 'incomplete'}`).join(', ')}` : '',
+          Array.isArray(courseContext.recentStudentEvidence) && courseContext.recentStudentEvidence.length ? `Recent student evidence, oldest to newest:\n- ${courseContext.recentStudentEvidence.join('\n- ')}` : '',
           courseContext.cardStyle && typeof courseContext.cardStyle === 'object' ? `Card style: ${JSON.stringify(courseContext.cardStyle)}` : ''
         ].filter(Boolean).join('\n')
       : '';
@@ -201,6 +207,8 @@ module.exports = async (req, res) => {
       'visible_response should respond directly to the student answer, not a generic template.',
       'internal_response is for admins only and should explain the scoring decision in one short sentence.',
       'xp_delta may be negative, zero, or positive. coins_delta may be zero or positive.',
+      'Evaluate objective completion using the full recent student evidence, not only the latest message.',
+      'If earlier messages already covered part of an objective, do not ask the student to repeat that part; ask only for the missing part.',
       'objective_completed should be true only when one listed incomplete objective is sufficiently demonstrated.',
       'objective_index must be the zero-based index of the completed objective, or null when no objective is completed.',
       'completed_objective_indexes should list all zero-based objective indexes completed by this answer.',

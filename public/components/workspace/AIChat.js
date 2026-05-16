@@ -321,12 +321,18 @@ ${displayMathLines.join('\n')}
       setIsTyping(true);
       
       try {
+        const recentStudentEvidence = [...messages, userMsg]
+          .filter((msg) => msg.role === 'user')
+          .slice(-8)
+          .map((msg) => msg.text)
+          .filter(Boolean);
         const runtimeCourseContext = Object.assign({}, courseContext, {
           repeatedInput,
-          attemptCount: Number(selectedCourseState.questions || 0) + 1
+          attemptCount: Number(selectedCourseState.questions || 0) + 1,
+          recentStudentEvidence
         });
 
-        const systemPrompt = `You are Buddy_AI, an encouraging study partner helping a student study ${selectedCourse.name}. Focus only on the current course topic: ${selectedCourse.focus}. The current course objectives are: ${(courseContext.objectives || []).join(' | ') || 'none listed'}. Use the objectives to guide the student, and decide whether the response should award XP, reduce XP, or complete the course. If the student repeats the same answer, do not mark completion unless new evidence appears.`;
+        const systemPrompt = `You are Buddy_AI, an encouraging study partner helping a student study ${selectedCourse.name}. Focus only on the current course topic: ${selectedCourse.focus}. The current course objectives are: ${(courseContext.objectives || []).join(' | ') || 'none listed'}. Score objectives from cumulative recent student evidence, not only the newest message. If the student explained part of an objective earlier and adds another part now, keep the earlier evidence and guide them to only the missing pieces. If the student repeats the same answer, do not mark completion unless new evidence appears.`;
 
         let aiResponse = '';
         let aiDecision = null;
