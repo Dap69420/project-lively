@@ -1,5 +1,13 @@
 const { query } = require('./lib/db');
 
+const LEVEL_BASE_XP = 100;
+const LEVEL_GROWTH_FACTOR = 1.4;
+
+function requiredXpForLevel(level) {
+  const normalizedLevel = Math.max(1, Number(level || 1));
+  return Math.floor(LEVEL_BASE_XP * Math.pow(LEVEL_GROWTH_FACTOR, normalizedLevel - 1));
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Content-Type', 'application/json');
 
@@ -119,19 +127,31 @@ module.exports = async (req, res) => {
       );
 
       if (result.rows.length === 0) {
+        const gainedXp = Math.max(0, Number(xp || 0));
+        const gainedCoins = Math.max(0, Number(coins || 0));
+        const baseLevel = 1;
+        const leveledUp = gainedXp >= requiredXpForLevel(baseLevel);
+        const savedLevel = leveledUp ? baseLevel + 1 : baseLevel;
+        const savedXp = leveledUp ? 0 : gainedXp;
+
         result = await query(
-          `INSERT INTO user_progression (user_id, total_xp, total_coins)
-           VALUES ($1, $2, $3)
+          `INSERT INTO user_progression (user_id, total_xp, total_coins, global_level)
+           VALUES ($1, $2, $3, $4)
            RETURNING *`,
-          [userId, xp, coins]
+          [userId, savedXp, gainedCoins, savedLevel]
         );
       } else {
         const current = result.rows[0];
-        const newXp = current.total_xp + xp;
-        const newCoins = current.total_coins + coins;
-
-        // Calculate level based on XP (1000 XP per level)
-        const newLevel = Math.floor(newXp / 1000) + 1;
+        const currentLevel = Math.max(1, Number(current.global_level || 1));
+        const gainedXp = Math.max(0, Number(xp || 0));
+        const gainedCoins = Math.max(0, Number(coins || 0));
+        const xpBefore = Math.max(0, Number(current.total_xp || 0));
+        const xpAfterGain = xpBefore + gainedXp;
+        const requiredXp = requiredXpForLevel(currentLevel);
+        const leveledUp = xpAfterGain >= requiredXp;
+        const newLevel = leveledUp ? currentLevel + 1 : currentLevel;
+        const newXp = leveledUp ? 0 : xpAfterGain;
+        const newCoins = Math.max(0, Number(current.total_coins || 0)) + gainedCoins;
 
         result = await query(
           `UPDATE user_progression

@@ -1,4 +1,7 @@
 (function () {
+  const LEVEL_BASE_XP = 100;
+  const LEVEL_GROWTH_FACTOR = 1.4;
+
   const SUBJECT_DECORATIONS = {
     mathematics: { icon: 'icon-calculator', tone: 'text-blue-400' },
     math: { icon: 'icon-calculator', tone: 'text-blue-400' },
@@ -130,8 +133,30 @@
     } else {
       merged.selectedCourse = '';
     }
-    merged.level = Math.max(1, Math.floor((merged.xp || 0) / 100) + 1);
+    merged.level = Math.max(1, Number(merged.level || 1));
+    merged.xp = Math.max(0, Number(merged.xp || 0));
     return merged;
+  }
+
+  function getRequiredXpForLevel(level) {
+    const normalizedLevel = Math.max(1, Number(level || 1));
+    return Math.floor(LEVEL_BASE_XP * Math.pow(LEVEL_GROWTH_FACTOR, normalizedLevel - 1));
+  }
+
+  function applyXpGainWithLevelReset(state, gain) {
+    const next = state;
+    const xpGain = Math.max(0, Math.round(Number(gain || 0)));
+    const requiredXp = getRequiredXpForLevel(next.level);
+    const nextXp = (next.xp || 0) + xpGain;
+
+    if (nextXp >= requiredXp) {
+      next.level += 1;
+      next.xp = 0;
+    } else {
+      next.xp = nextXp;
+    }
+
+    return next;
   }
 
   function loadState() {
@@ -255,13 +280,10 @@
       mastery: 100
     });
 
-    if (course.completionXp) {
-      next.xp += course.completionXp;
-    }
+    applyXpGainWithLevelReset(next, course.completionXp || 0);
     if (course.completionCoins) {
       next.coins += course.completionCoins;
     }
-    next.level = Math.max(1, Math.floor(next.xp / 100) + 1);
 
     saveState(next);
 
@@ -307,7 +329,7 @@
       next.correctAnswers += 1;
     }
     next.totalQuestions += 1;
-    next.xp += Math.max(0, Math.round(award.xp));
+    applyXpGainWithLevelReset(next, award.xp);
     next.coins += Math.max(0, Math.round(award.coins));
     updateMastery(next, award.courseId, Math.max(0, Math.round(award.xp)));
 
@@ -320,7 +342,6 @@
     }
     next.longestStreak = Math.max(next.longestStreak || 0, next.streak || 0);
     next.lastStudyDate = today;
-    next.level = Math.max(1, Math.floor(next.xp / 100) + 1);
     unlockAchievements(next);
     saveState(next);
 
@@ -559,12 +580,12 @@
 
   function getNextLevelXp(state) {
     const snapshot = normalizeState(state || currentState);
-    const nextLevel = snapshot.level * 100;
+    const nextLevel = getRequiredXpForLevel(snapshot.level);
     return {
       currentLevel: snapshot.level,
       currentXp: snapshot.xp,
       nextLevelXp: nextLevel,
-      progressInLevel: snapshot.xp - ((snapshot.level - 1) * 100),
+      progressInLevel: snapshot.xp,
       remaining: Math.max(0, nextLevel - snapshot.xp)
     };
   }
