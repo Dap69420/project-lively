@@ -468,7 +468,7 @@ function Sketch({ user }) {
           decision: aiDecision
         });
 
-        const completionThreshold = Math.max(2, (courseContext.objectives || []).length || 0);
+        const completionThreshold = Math.max(3, (courseContext.objectives || []).length + 1);
         const canComplete = aiDecision?.completed && !selectedCourseState.completed && Number(courseContext.attemptCount || 0) >= completionThreshold;
         if (canComplete) {
           window.LivelyProgress.completeCourse(selectedCourseId).catch((error) => {

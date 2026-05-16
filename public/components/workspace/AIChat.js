@@ -167,15 +167,39 @@ ${displayMathLines.join('\n')}
 
     // Load messages from progression when course changes
     React.useEffect(() => {
-      const savedMessages = window.LivelyProgress.getChatMessages(selectedCourseId);
-      if (savedMessages && savedMessages.length > 0) {
-        setMessages(savedMessages);
-      } else {
-        // Show greeting only for new courses
-        setMessages([
-          { role: 'ai', text: `Hey! Ready to tackle ${selectedCourse.name}? Let's hear what you think.`, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }
-        ]);
-      }
+      let cancelled = false;
+
+      const loadMessages = async () => {
+        const savedMessages = window.LivelyProgress.getChatMessages(selectedCourseId);
+        if (savedMessages && savedMessages.length > 0) {
+          if (!cancelled) setMessages(savedMessages);
+          return;
+        }
+
+        try {
+          const hydratedMessages = await window.LivelyProgress.loadChatHistory(selectedCourseId);
+          if (cancelled) return;
+
+          if (hydratedMessages && hydratedMessages.length > 0) {
+            setMessages(hydratedMessages);
+          } else {
+            setMessages([
+              { role: 'ai', text: `Hey! Ready to tackle ${selectedCourse.name}? Let's hear what you think.`, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }
+            ]);
+          }
+        } catch (_error) {
+          if (cancelled) return;
+          setMessages([
+            { role: 'ai', text: `Hey! Ready to tackle ${selectedCourse.name}? Let's hear what you think.`, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }
+          ]);
+        }
+      };
+
+      loadMessages();
+
+      return () => {
+        cancelled = true;
+      };
     }, [selectedCourseId, selectedCourse.name]);
 
     const scrollToBottom = () => {
@@ -314,7 +338,7 @@ ${displayMathLines.join('\n')}
             decision: aiDecision
           });
 
-          const completionThreshold = Math.max(2, (courseContext.objectives || []).length || 0);
+          const completionThreshold = Math.max(3, (courseContext.objectives || []).length + 1);
           const canComplete = aiDecision?.completed && !selectedCourseState.completed && runtimeCourseContext.attemptCount >= completionThreshold;
           if (canComplete) {
             window.LivelyProgress.completeCourse(selectedCourseId).catch((error) => {

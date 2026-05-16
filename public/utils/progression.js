@@ -434,6 +434,29 @@
     }
   }
 
+  async function loadAllCourses() {
+    try {
+      const response = await fetch('/api/courses');
+      const text = await response.text();
+      let payload;
+
+      try {
+        payload = text ? JSON.parse(text) : {};
+      } catch (_error) {
+        throw new Error(text || `Request failed with status ${response.status}`);
+      }
+
+      if (!response.ok) {
+        throw new Error(payload?.error || `Request failed with status ${response.status}`);
+      }
+
+      const allCourses = normalizeCourseList(payload?.data || []);
+      return allCourses;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   function setAvailableCourses(courses) {
     const next = normalizeState(Object.assign({}, currentState, {
       availableCourses: normalizeCourseList(courses),
@@ -591,6 +614,31 @@
     return (currentState.chatHistory && currentState.chatHistory[course]) || [];
   }
 
+  async function loadChatHistory(courseId) {
+    if (!currentState.userId || !courseId) {
+      return getChatMessages(courseId);
+    }
+
+    const existing = getChatMessages(courseId);
+    if (existing.length > 0) {
+      return existing;
+    }
+
+    const response = await apiJson(`/api/chat/messages?userId=${encodeURIComponent(currentState.userId)}&courseId=${encodeURIComponent(courseId)}`);
+    const messages = Array.isArray(response?.data) ? response.data.map((item) => ({
+      role: item.role === 'assistant' ? 'ai' : item.role,
+      text: item.text,
+      time: item.created_at ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+      metadata: item.metadata || {}
+    })) : [];
+
+    const next = normalizeState(currentState);
+    if (!next.chatHistory) next.chatHistory = {};
+    next.chatHistory[courseId] = messages;
+    saveState(next);
+    return messages;
+  }
+
   function clearChatHistory(courseId) {
     const next = normalizeState(currentState);
     if (!next.chatHistory) next.chatHistory = {};
@@ -625,6 +673,7 @@
       },
       achievements: ACHIEVEMENT_RULES,
       getSnapshot,
+      getState: getSnapshot,
       subscribe,
       useProgress,
       awardProgress,
@@ -632,12 +681,14 @@
       setSelectedCourse,
       setAvailableCourses,
       loadCoursesForGrade,
+      loadAllCourses,
       setUserContext,
       setAlias,
       getSelectedCourse,
       getNextLevelXp,
       addChatMessage,
       getChatMessages,
+      loadChatHistory,
       clearChatHistory
     };
 

@@ -9,43 +9,36 @@ function CourseSelector() {
     const [allCoursesError, setAllCoursesError] = React.useState('');
 
     React.useEffect(() => {
-      if (activeTab !== 'all' || allCoursesStatus === 'loading' || allCourses.length > 0) {
+      if (activeTab !== 'all') {
         return;
       }
 
       let cancelled = false;
-      setAllCoursesStatus('loading');
-      setAllCoursesError('');
 
-      fetch('/api/courses')
-        .then((response) => response.text().then((text) => ({ response, text })))
-        .then(({ response, text }) => {
+      const loadAllCourses = async () => {
+        setAllCoursesStatus('loading');
+        setAllCoursesError('');
+
+        try {
+          const loadedCourses = await window.LivelyProgress.loadAllCourses();
           if (cancelled) return;
-
-          let payload = {};
-          try {
-            payload = text ? JSON.parse(text) : {};
-          } catch (_error) {
-            throw new Error(text || `Request failed with status ${response.status}`);
-          }
-
-          if (!response.ok) {
-            throw new Error(payload?.error || `Request failed with status ${response.status}`);
-          }
-
-          setAllCourses(Array.isArray(payload?.data) ? payload.data : []);
+          setAllCourses(Array.isArray(loadedCourses) ? loadedCourses : []);
           setAllCoursesStatus('ready');
-        })
-        .catch((error) => {
+        } catch (error) {
           if (cancelled) return;
           setAllCoursesStatus('error');
           setAllCoursesError(error?.message || 'Failed to load all courses');
-        });
+        }
+      };
+
+      if (allCourses.length === 0 || allCoursesStatus !== 'ready') {
+        loadAllCourses();
+      }
 
       return () => {
         cancelled = true;
       };
-    }, [activeTab, allCourses.length, allCoursesStatus]);
+    }, [activeTab]);
 
     const visibleCourses = activeTab === 'all' ? allCourses : courses;
 
@@ -172,27 +165,29 @@ function CourseSelector() {
               <button
                 key={course.id}
                 onClick={() => window.LivelyProgress.setSelectedCourse(course.id)}
-                className="text-left p-4 rounded-xl border transition-all duration-200 hover:translate-y-[-1px]"
+                className="text-left p-4 rounded-xl border transition-all duration-200 hover:translate-y-[-1px] overflow-hidden"
                 style={{ backgroundColor: cardBackground, borderColor: cardBorder, boxShadow: isActive ? '0 0 18px rgba(176, 38, 255, 0.2)' : 'none' }}
               >
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div>
+                <div className="flex items-start justify-between gap-3 mb-3 min-w-0">
+                  <div className="min-w-0 flex-1">
                     {cardStyle.banner_text ? (
-                      <div className="inline-flex mb-2 rounded-full px-2 py-1 text-[10px] font-mono uppercase tracking-[0.18em]" style={{ backgroundColor: cardAccent, color: '#050505' }}>
+                      <div className="inline-flex mb-2 max-w-full rounded-full px-2 py-1 text-[10px] font-mono uppercase tracking-[0.18em] truncate" style={{ backgroundColor: cardAccent, color: '#050505' }}>
                         {cardStyle.banner_text}
                       </div>
                     ) : null}
                     <div className={`text-2xl mb-1 ${course.tone}`}>
                       <div className={course.icon}></div>
                     </div>
-                    <div className="font-bold text-white">{course.name}</div>
-                    <div className="text-xs font-mono text-gray-400 mt-1">{course.focus}</div>
+                    <div className="font-bold text-white break-words">{course.name}</div>
+                    <div className="text-xs font-mono text-gray-400 mt-1 break-words">{course.focus}</div>
                   </div>
-                  {isCompleted ? (
-                    <span className="text-[10px] font-mono px-2 py-1 rounded-full bg-green-500/20 text-green-300 border border-green-500/30">COMPLETED</span>
-                  ) : isActive ? (
-                    <span className="text-[10px] font-mono px-2 py-1 rounded-full bg-neonViolet/20 text-neonViolet border border-neonViolet/30">LIVE</span>
-                  ) : null}
+                  <div className="shrink-0">
+                    {isCompleted ? (
+                      <span className="text-[10px] font-mono px-2 py-1 rounded-full bg-green-500/20 text-green-300 border border-green-500/30">COMPLETED</span>
+                    ) : isActive ? (
+                      <span className="text-[10px] font-mono px-2 py-1 rounded-full bg-neonViolet/20 text-neonViolet border border-neonViolet/30">LIVE</span>
+                    ) : null}
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between text-xs font-mono text-gray-400 mb-2">
