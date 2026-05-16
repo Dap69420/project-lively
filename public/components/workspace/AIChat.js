@@ -143,6 +143,7 @@ ${displayMathLines.join('\n')}
     const progress = window.LivelyProgress.useProgress();
     const selectedCourseId = progress.selectedCourse;
     const selectedCourse = window.LivelyProgress.getSelectedCourse();
+    const selectedCourseState = progress.courseProgress?.[selectedCourseId] || { questions: 0, completed: false };
     const adminEmails = Array.isArray(window.__APP_CONFIG__?.ADMIN_ALLOWED_EMAILS) ? window.__APP_CONFIG__.ADMIN_ALLOWED_EMAILS : [];
     const isAdminViewer = adminEmails.some((email) => String(email).toLowerCase() === String(progress.userEmail || '').toLowerCase());
     const courseContext = {
@@ -153,7 +154,9 @@ ${displayMathLines.join('\n')}
       topic: selectedCourse.focus,
       aiAim: selectedCourse.aiAim,
       objectives: Array.isArray(selectedCourse.objectives) ? selectedCourse.objectives : [],
-      cardStyle: selectedCourse.cardStyle || {}
+      cardStyle: selectedCourse.cardStyle || {},
+      completed: Boolean(selectedCourseState.completed),
+      attemptCount: Number(selectedCourseState.questions || 0)
     };
     
     const [messages, setMessages] = React.useState([]);
@@ -243,6 +246,9 @@ ${displayMathLines.join('\n')}
       if (!input.trim() || isTyping) return;
       
       const userText = input;
+      const normalizeForComparison = (value) => String(value || '').toLowerCase().replace(/\s+/g, ' ').replace(/[^a-z0-9 ]/g, '').trim();
+      const lastUserMessage = [...messages].reverse().find((msg) => msg.role === 'user');
+      const repeatedInput = Boolean(lastUserMessage) && normalizeForComparison(lastUserMessage.text) !== '' && normalizeForComparison(lastUserMessage.text) === normalizeForComparison(userText);
       const timeNow = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
       const userMsg = { role: 'user', text: userText, time: timeNow };
       const newMsgs = [...messages, userMsg];
@@ -260,7 +266,12 @@ ${displayMathLines.join('\n')}
       setIsTyping(true);
       
       try {
-        const systemPrompt = `You are Buddy_AI, an encouraging study partner helping a student study ${selectedCourse.name}. Focus only on the current course topic: ${selectedCourse.focus}. The current course objectives are: ${(courseContext.objectives || []).join(' | ') || 'none listed'}. Use the objectives to guide the student, and decide whether the response should award XP, reduce XP, or complete the course.`;
+        const runtimeCourseContext = Object.assign({}, courseContext, {
+          repeatedInput,
+          attemptCount: Number(selectedCourseState.questions || 0) + 1
+        });
+
+        const systemPrompt = `You are Buddy_AI, an encouraging study partner helping a student study ${selectedCourse.name}. Focus only on the current course topic: ${selectedCourse.focus}. The current course objectives are: ${(courseContext.objectives || []).join(' | ') || 'none listed'}. Use the objectives to guide the student, and decide whether the response should award XP, reduce XP, or complete the course. If the student repeats the same answer, do not mark completion unless new evidence appears.`;
 
         let aiResponse = '';
         let aiDecision = null;
@@ -268,7 +279,7 @@ ${displayMathLines.join('\n')}
           const response = await fetch('/api/ai/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ systemPrompt, userText, courseContext, mode: 'chat' })
+            body: JSON.stringify({ systemPrompt, userText, courseContext: runtimeCourseContext, mode: 'chat' })
           });
 
           const data = await response.json().catch(() => ({}));
@@ -303,7 +314,9 @@ ${displayMathLines.join('\n')}
             decision: aiDecision
           });
 
-          if (aiDecision?.completed) {
+          const completionThreshold = Math.max(2, (courseContext.objectives || []).length || 0);
+          const canComplete = aiDecision?.completed && !selectedCourseState.completed && runtimeCourseContext.attemptCount >= completionThreshold;
+          if (canComplete) {
             window.LivelyProgress.completeCourse(selectedCourseId).catch((error) => {
               console.error('Course completion sync error:', error);
             });

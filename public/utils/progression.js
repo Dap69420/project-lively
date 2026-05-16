@@ -562,6 +562,7 @@
     const courseId = message.courseId || currentState.selectedCourse;
     if (!next.chatHistory) next.chatHistory = {};
     if (!next.chatHistory[courseId]) next.chatHistory[courseId] = [];
+    const normalizedRole = message.role === 'ai' ? 'assistant' : String(message.role || 'user');
     next.chatHistory[courseId].push({
       role: message.role,
       text: message.text,
@@ -572,7 +573,7 @@
 
     if (currentState.userId) {
       syncChatMessageToServer({
-        role: message.role,
+        role: normalizedRole,
         text: message.text,
         courseId,
         metadata: message.metadata || {},

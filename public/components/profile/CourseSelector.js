@@ -3,6 +3,51 @@ function CourseSelector() {
     const progress = window.LivelyProgress.useProgress();
     const currentCourse = window.LivelyProgress.getSelectedCourse();
     const courses = progress.availableCourses || [];
+    const [activeTab, setActiveTab] = React.useState('recommended');
+    const [allCourses, setAllCourses] = React.useState([]);
+    const [allCoursesStatus, setAllCoursesStatus] = React.useState('idle');
+    const [allCoursesError, setAllCoursesError] = React.useState('');
+
+    React.useEffect(() => {
+      if (activeTab !== 'all' || allCoursesStatus === 'loading' || allCourses.length > 0) {
+        return;
+      }
+
+      let cancelled = false;
+      setAllCoursesStatus('loading');
+      setAllCoursesError('');
+
+      fetch('/api/courses')
+        .then((response) => response.text().then((text) => ({ response, text })))
+        .then(({ response, text }) => {
+          if (cancelled) return;
+
+          let payload = {};
+          try {
+            payload = text ? JSON.parse(text) : {};
+          } catch (_error) {
+            throw new Error(text || `Request failed with status ${response.status}`);
+          }
+
+          if (!response.ok) {
+            throw new Error(payload?.error || `Request failed with status ${response.status}`);
+          }
+
+          setAllCourses(Array.isArray(payload?.data) ? payload.data : []);
+          setAllCoursesStatus('ready');
+        })
+        .catch((error) => {
+          if (cancelled) return;
+          setAllCoursesStatus('error');
+          setAllCoursesError(error?.message || 'Failed to load all courses');
+        });
+
+      return () => {
+        cancelled = true;
+      };
+    }, [activeTab, allCourses.length, allCoursesStatus]);
+
+    const visibleCourses = activeTab === 'all' ? allCourses : courses;
 
     if (progress.catalogStatus === 'loading') {
       return (
@@ -38,7 +83,7 @@ function CourseSelector() {
       );
     }
 
-    if (courses.length === 0) {
+    if (visibleCourses.length === 0 && activeTab === 'recommended') {
       return (
         <div className="glass-panel p-6" data-name="course-selector" data-file="components/profile/CourseSelector.js">
           <div className="flex items-center justify-between mb-6">
@@ -54,6 +99,40 @@ function CourseSelector() {
       );
     }
 
+    if (visibleCourses.length === 0 && activeTab === 'all' && allCoursesStatus === 'loading') {
+      return (
+        <div className="glass-panel p-6" data-name="course-selector" data-file="components/profile/CourseSelector.js">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-mono text-sm uppercase tracking-widest text-gray-400 flex items-center gap-2">
+              <div className="icon-sparkles"></div> ACTIVE COURSES
+            </h3>
+            <span className="font-mono text-xs text-gray-500 uppercase">Loading all courses...</span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-32 rounded-xl bg-black/20 border border-white/10 animate-pulse"></div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (visibleCourses.length === 0 && activeTab === 'all' && allCoursesStatus === 'error') {
+      return (
+        <div className="glass-panel p-6" data-name="course-selector" data-file="components/profile/CourseSelector.js">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-mono text-sm uppercase tracking-widest text-gray-400 flex items-center gap-2">
+              <div className="icon-sparkles"></div> ACTIVE COURSES
+            </h3>
+            <span className="font-mono text-xs text-red-400 uppercase">Load failed</span>
+          </div>
+          <div className="p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-sm text-red-300 font-mono">
+            {allCoursesError || 'Unable to load all courses.'}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="glass-panel p-6" data-name="course-selector" data-file="components/profile/CourseSelector.js">
         <div className="flex items-center justify-between mb-6">
@@ -63,8 +142,25 @@ function CourseSelector() {
           <span className="font-mono text-xs text-gray-500 uppercase">Grade-based</span>
         </div>
 
+        <div className="mb-5 flex gap-2 rounded-xl border border-white/10 bg-black/20 p-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab('recommended')}
+            className={`flex-1 rounded-lg px-3 py-2 text-xs font-mono uppercase tracking-wider transition-colors ${activeTab === 'recommended' ? 'bg-neonViolet text-black' : 'bg-transparent text-gray-400 hover:text-white'}`}
+          >
+            Recommended
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('all')}
+            className={`flex-1 rounded-lg px-3 py-2 text-xs font-mono uppercase tracking-wider transition-colors ${activeTab === 'all' ? 'bg-neonViolet text-black' : 'bg-transparent text-gray-400 hover:text-white'}`}
+          >
+            All Courses
+          </button>
+        </div>
+
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {courses.map((course) => {
+          {visibleCourses.map((course) => {
             const isActive = course.id === progress.selectedCourse;
             const courseState = progress.courseProgress[course.id] || { xp: 0, mastery: 0, questions: 0, completed: false };
             const isCompleted = Boolean(courseState.completed) || courseState.mastery >= 100;

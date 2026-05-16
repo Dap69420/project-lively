@@ -370,6 +370,8 @@ function Sketch({ user }) {
     const imageBase64 = canvas.toDataURL('image/png').split(',')[1];
     const selectedCourse = window.LivelyProgress.getSelectedCourse();
     const selectedCourseId = selectedCourse.id;
+    const progressSnapshot = window.LivelyProgress.getState();
+    const selectedCourseState = progressSnapshot?.courseProgress?.[selectedCourseId] || { questions: 0, completed: false };
     const courseContext = {
       id: selectedCourse.id,
       title: selectedCourse.name,
@@ -378,7 +380,10 @@ function Sketch({ user }) {
       topic: selectedCourse.focus,
       aiAim: selectedCourse.aiAim,
       objectives: Array.isArray(selectedCourse.objectives) ? selectedCourse.objectives : [],
-      cardStyle: selectedCourse.cardStyle || {}
+      cardStyle: selectedCourse.cardStyle || {},
+      completed: Boolean(selectedCourseState.completed),
+      attemptCount: Number(selectedCourseState.questions || 0) + 1,
+      repeatedInput: false
     };
 
     setLoading(true);
@@ -463,7 +468,9 @@ function Sketch({ user }) {
           decision: aiDecision
         });
 
-        if (aiDecision?.completed) {
+        const completionThreshold = Math.max(2, (courseContext.objectives || []).length || 0);
+        const canComplete = aiDecision?.completed && !selectedCourseState.completed && Number(courseContext.attemptCount || 0) >= completionThreshold;
+        if (canComplete) {
           window.LivelyProgress.completeCourse(selectedCourseId).catch((error) => {
             console.error('Course completion sync error:', error);
           });

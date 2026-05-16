@@ -36,10 +36,17 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
   const cleanText = String(userText || '').trim();
   const lowerText = cleanText.toLowerCase();
   const objectives = Array.isArray(courseContext.objectives) ? courseContext.objectives.filter(Boolean) : [];
+  const courseAlreadyCompleted = Boolean(courseContext.completed);
+  const repeatedInput = Boolean(courseContext.repeatedInput);
+  const attemptCount = Math.max(0, Number(courseContext.attemptCount || 0));
   const isOffTopic = /\b(joke|meme|music|game|random|ignore|skip|off topic)\b/.test(lowerText);
   const isStruggling = cleanText.length < 20 || /\b(don't know|dont know|stuck|help|confused|hard|lost)\b/.test(lowerText);
   const mentionedObjective = objectives.some((objective) => lowerText.includes(String(objective).toLowerCase().slice(0, 18)));
   let xpDelta = isOffTopic ? -8 : isStruggling ? 4 : 10;
+
+  if (repeatedInput) {
+    xpDelta = Math.min(2, xpDelta);
+  }
 
   if (mentionedObjective) {
     xpDelta += 6;
@@ -55,13 +62,29 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
 
   xpDelta = Math.max(-20, Math.min(40, xpDelta));
   const coinsDelta = xpDelta > 0 ? Math.max(0, Math.floor(xpDelta / 5)) : 0;
-  const completed = !isOffTopic && !isStruggling && (cleanText.length > 90 || /\b(done|finished|mastered|understand|solved|complete)\b/.test(lowerText));
+  const completed = !courseAlreadyCompleted
+    && !repeatedInput
+    && !isOffTopic
+    && !isStruggling
+    && attemptCount >= 2
+    && (mentionedObjective || cleanText.length > 120 || /\b(done|finished|mastered|understand|solved|complete)\b/.test(lowerText));
+
+  let visibleResponse = '';
+  if (isOffTopic) {
+    visibleResponse = getFallbackAiResponse(cleanText);
+  } else if (repeatedInput) {
+    visibleResponse = `Nice consistency. You explained that clearly. Add one new example tied to ${objectives[0] || courseContext.aiAim || courseContext.topic || 'this topic'} so we can push to the next checkpoint.`;
+  } else if (completed) {
+    visibleResponse = `Strong explanation. You connected your idea to ${objectives[0] || courseContext.aiAim || 'the core objective'} clearly. Let's mark this checkpoint complete and move to the next challenge.`;
+  } else if (isStruggling) {
+    visibleResponse = `You are close. Start with one short line about ${objectives[0] || courseContext.topic || 'the concept'}, then I will help you refine it.`;
+  } else {
+    visibleResponse = `Good direction. Now tighten it with one concrete example focused on ${objectives[0] || courseContext.aiAim || 'the objective'}.`;
+  }
 
   return {
-    visible_response: isOffTopic
-      ? getFallbackAiResponse(cleanText)
-      : `I looked at the ${courseContext.title || 'course'} objectives and will keep you moving toward ${objectives[0] || courseContext.aiAim || 'the next step'}.`,
-    internal_response: `mode=${mode}; objective_match=${mentionedObjective ? 'yes' : 'no'}; off_topic=${isOffTopic ? 'yes' : 'no'}; struggling=${isStruggling ? 'yes' : 'no'}; xp_delta=${xpDelta}; completed=${completed ? 'yes' : 'no'}`,
+    visible_response: visibleResponse,
+    internal_response: `Scored ${xpDelta} XP in ${mode} mode. objective_match=${mentionedObjective ? 'yes' : 'no'}, repeated_input=${repeatedInput ? 'yes' : 'no'}, checkpoint_completed=${completed ? 'yes' : 'no'}.`,
     xp_delta: xpDelta,
     coins_delta: coinsDelta,
     completed,
@@ -71,14 +94,22 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
   };
 }
 
-function normalizeDecision(decision, fallbackDecision) {
+function normalizeDecision(decision, fallbackDecision, courseContext = {}) {
   const base = fallbackDecision || buildFallbackDecision({ userText: '' });
   const source = decision && typeof decision === 'object' ? decision : {};
   const visibleResponse = String(source.visible_response || source.text || base.visible_response || '').trim() || base.visible_response;
   const internalResponse = String(source.internal_response || source.admin_response || source.secret_response || base.internal_response || '').trim() || base.internal_response;
-  const xpDelta = Number.isFinite(Number(source.xp_delta)) ? Math.round(Number(source.xp_delta)) : base.xp_delta;
+  let xpDelta = Number.isFinite(Number(source.xp_delta)) ? Math.round(Number(source.xp_delta)) : base.xp_delta;
   const coinsDelta = Number.isFinite(Number(source.coins_delta)) ? Math.round(Number(source.coins_delta)) : base.coins_delta;
-  const completed = typeof source.completed === 'boolean' ? source.completed : base.completed;
+  let completed = typeof source.completed === 'boolean' ? source.completed : base.completed;
+
+  if (Boolean(courseContext.completed) || Boolean(courseContext.repeatedInput)) {
+    completed = false;
+  }
+
+  if (completed && xpDelta <= 0) {
+    xpDelta = 8;
+  }
 
   return {
     visible_response: visibleResponse,
@@ -133,9 +164,11 @@ module.exports = async (req, res) => {
       systemPrompt,
       'Return valid JSON only with these keys: visible_response, internal_response, xp_delta, coins_delta, completed, completion_reason, level_delta.',
       'visible_response must be student-safe and should not mention hidden scoring.',
+      'visible_response should respond directly to the student answer, not a generic template.',
       'internal_response is for admins only and should explain the scoring decision in one short sentence.',
       'xp_delta may be negative, zero, or positive. coins_delta may be zero or positive.',
       'completed should be true only when the current course objective is sufficiently demonstrated.',
+      'Never mark completed if the student is repeating the same answer with no new evidence, or if the course is already completed.',
       courseContextText ? `Course context:\n${courseContextText}` : ''
     ].filter(Boolean).join('\n\n');
 
@@ -174,7 +207,7 @@ module.exports = async (req, res) => {
       return;
     }
 
-    const parsedDecision = normalizeDecision(extractJsonObject(text) || { visible_response: text }, fallbackDecision);
+    const parsedDecision = normalizeDecision(extractJsonObject(text) || { visible_response: text }, fallbackDecision, courseContext);
     sendJson(res, 200, {
       text: parsedDecision.visible_response,
       provider: 'sambanova',
