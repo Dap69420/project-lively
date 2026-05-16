@@ -39,6 +39,10 @@ function WorkspaceApp() {
     const [user, setUser] = React.useState(null);
     const [loading, setLoading] = React.useState(true);
     const [activeTab, setActiveTab] = React.useState('chat');
+    const requestedCourseId = React.useMemo(() => {
+      const params = new URLSearchParams(window.location.search || '');
+      return params.get('courseId') || '';
+    }, []);
 
     React.useEffect(() => {
       if (!supabaseClient) {
@@ -65,7 +69,28 @@ function WorkspaceApp() {
 
     React.useEffect(() => {
       if (user && window.LivelyProgress?.setUserContext) {
-        window.LivelyProgress.setUserContext(user).catch((error) => {
+        window.LivelyProgress.setUserContext(user).then(async () => {
+          if (requestedCourseId && window.LivelyProgress?.setSelectedCourse) {
+            const snapshot = window.LivelyProgress.getSnapshot ? window.LivelyProgress.getSnapshot() : null;
+            const hasCourse = Array.isArray(snapshot?.availableCourses) && snapshot.availableCourses.some((course) => course.id === requestedCourseId);
+
+            if (!hasCourse) {
+              try {
+                const response = await fetch(`/api/courses?id=${encodeURIComponent(requestedCourseId)}`);
+                const text = await response.text();
+                const payload = text ? JSON.parse(text) : {};
+
+                if (response.ok && payload?.success && payload?.data) {
+                  window.LivelyProgress.setAvailableCourses([payload.data]);
+                }
+              } catch (error) {
+                console.error('Failed to load requested course:', error);
+              }
+            }
+
+            window.LivelyProgress.setSelectedCourse(requestedCourseId);
+          }
+        }).catch((error) => {
           console.error('Failed to hydrate workspace state:', error);
         });
       }
@@ -78,7 +103,7 @@ function WorkspaceApp() {
           delete window.LivelyWorkspace;
         }
       };
-    }, []);
+    }, [user, requestedCourseId]);
 
     if (loading) return <div className="h-screen flex items-center justify-center bg-discordDarkest text-white font-mono">LOADING WORKSPACE...</div>;
 

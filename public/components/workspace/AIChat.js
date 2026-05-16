@@ -381,7 +381,7 @@ ${displayMathLines.join('\n')}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-              placeholder="Hey, try explaining [The Laws of Motion] to me like I'm five..."
+              placeholder={`Hey, try explaining [${selectedCourse.name || 'this topic'}] to me like I'm five...`}
               className="w-full bg-transparent text-gray-200 font-sans text-sm resize-none outline-none p-2 min-h-[80px] custom-scrollbar"
             />
             <div className="flex justify-between items-center px-2 pb-1">

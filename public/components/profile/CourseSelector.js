@@ -112,7 +112,7 @@ function CourseSelector() {
             <div className="text-sm text-gray-400">{currentCourse.focus}</div>
           </div>
           <a
-            href="workspace.html"
+            href={currentCourse.id ? `workspace.html?courseId=${encodeURIComponent(currentCourse.id)}` : 'workspace.html'}
             className="inline-flex items-center justify-center px-4 py-3 rounded-lg bg-neonViolet text-white font-bold font-mono text-sm uppercase tracking-wider hover:brightness-110 transition-colors"
           >
             Start Learning
