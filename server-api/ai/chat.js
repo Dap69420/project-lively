@@ -88,9 +88,13 @@ function hasMetaQuizOptions(quiz) {
 }
 
 function getMissingNewtonLawPrompt(courseContext = {}) {
-  const objectives = Array.isArray(courseContext.objectives) ? courseContext.objectives.join(' ').toLowerCase() : '';
-  const topicText = `${objectives} ${courseContext.topic || ''} ${courseContext.aiAim || ''}`.toLowerCase();
-  if (!/3 laws|three laws|newton/.test(topicText)) {
+  const objectives = Array.isArray(courseContext.objectives) ? courseContext.objectives : [];
+  const objectiveStatus = Array.isArray(courseContext.objectiveStatus) ? courseContext.objectiveStatus : [];
+  const firstIncompleteIndex = objectives.findIndex((_objective, index) => !objectiveStatus[index]);
+  const currentObjective = firstIncompleteIndex >= 0 ? objectives[firstIncompleteIndex] : objectives.join(' ');
+  const objectiveText = String(currentObjective || '').toLowerCase();
+
+  if (!/\b(3 laws|three laws|newton|laws of motion|first law|second law|third law)\b/.test(objectiveText)) {
     return '';
   }
 
@@ -196,7 +200,7 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
     && !repeatedInput
     && !isOffTopic
     && !isStruggling
-    && attemptCount >= 3
+    && attemptCount >= 2
     && objectiveIndex >= 0
     && mentionedObjective
     && enoughObjectiveEvidence;
@@ -237,7 +241,7 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
 
   return {
     visible_response: visibleResponse,
-    internal_response: `Scored ${xpDelta} XP in ${mode} mode. objective_match=${mentionedObjective ? 'yes' : 'no'}, repeated_input=${repeatedInput ? 'yes' : 'no'}, checkpoint_completed=${completed ? 'yes' : 'no'}.`,
+    internal_response: `Scored ${xpDelta} XP in ${mode} mode. objective_match=${mentionedObjective ? 'yes' : 'no'}, repeated_input=${repeatedInput ? 'yes' : 'no'}, checkpoint_completed=${objectiveCompleted ? 'yes' : 'no'}.`,
     xp_delta: xpDelta,
     coins_delta: coinsDelta,
     mood: isStruggling ? 'supportive' : objectiveCompleted ? 'excited' : shouldQuiz ? 'curious' : 'focused',
@@ -256,7 +260,7 @@ function normalizeDecision(decision, fallbackDecision, courseContext = {}) {
   const base = fallbackDecision || buildFallbackDecision({ userText: '' });
   const source = decision && typeof decision === 'object' ? decision : {};
   let visibleResponse = String(source.visible_response || source.text || base.visible_response || '').trim() || base.visible_response;
-  const internalResponse = String(source.internal_response || source.admin_response || source.secret_response || base.internal_response || '').trim() || base.internal_response;
+  let internalResponse = String(source.internal_response || source.admin_response || source.secret_response || base.internal_response || '').trim() || base.internal_response;
   let xpDelta = Number.isFinite(Number(source.xp_delta)) ? Math.round(Number(source.xp_delta)) : base.xp_delta;
   const coinsDelta = Number.isFinite(Number(source.coins_delta)) ? Math.round(Number(source.coins_delta)) : base.coins_delta;
   let completed = typeof source.completed === 'boolean' ? source.completed : base.completed;
@@ -314,6 +318,16 @@ function normalizeDecision(decision, fallbackDecision, courseContext = {}) {
     cumulativeText: evidenceText,
     objectiveText
   });
+
+  if (!objectiveCompleted && Boolean(base.objective_completed) && hasCompletionEvidence) {
+    objectiveCompleted = true;
+    completed = base.completed;
+    if (completedObjectiveIndexes.length === 0 && Number.isInteger(Number(base.objective_index))) {
+      completedObjectiveIndexes.push(Number(base.objective_index));
+    }
+    visibleResponse = `Strong explanation. You gave enough reasoning and concrete detail for this checkpoint, so I will mark it complete and move you to the next one.`;
+    internalResponse = `Checkpoint completed by evidence gate. objective_index=${Number(base.objective_index)}.`;
+  }
 
   if (objectiveCompleted && !hasCompletionEvidence) {
     objectiveCompleted = false;

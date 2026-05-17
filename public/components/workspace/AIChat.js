@@ -187,6 +187,7 @@ ${displayMathLines.join('\n')}
     const [activeQuizPrompt, setActiveQuizPrompt] = React.useState(null);
     const [activeFinalTest, setActiveFinalTest] = React.useState(null);
     const [finalTestLoading, setFinalTestLoading] = React.useState(false);
+    const [courseCompletionPending, setCourseCompletionPending] = React.useState(false);
     const moodConfig = {
       green: { label: 'Focused', tone: 'bg-mcGreen shadow-[0_0_10px_#55FF55]', text: 'text-mcGreen' },
       supportive: { label: 'Supportive', tone: 'bg-mcOrange shadow-[0_0_10px_#FFAA00]', text: 'text-mcOrange' },
@@ -246,6 +247,7 @@ ${displayMathLines.join('\n')}
       setAnsweredQuizKeys([]);
       setActiveQuizPrompt(null);
       setActiveFinalTest(null);
+      setCourseCompletionPending(false);
       let cancelled = false;
       const completedMessage = {
         role: 'ai',
@@ -567,9 +569,9 @@ ${displayMathLines.join('\n')}
         passed
       });
 
-      setActiveFinalTest(null);
-
       if (passed) {
+        setCourseCompletionPending(true);
+        setActiveFinalTest(null);
         await window.LivelyProgress.completeCourse(selectedCourseId);
         const completionMsg = {
           role: 'ai',
@@ -586,6 +588,7 @@ ${displayMathLines.join('\n')}
           metadata: completionMsg.metadata
         });
       } else {
+        setActiveFinalTest(null);
         startFinalTest(`You scored ${score}/10. Let's run another final test so you can try again.`, { force: true });
       }
     };
@@ -596,10 +599,10 @@ ${displayMathLines.join('\n')}
       const allObjectivesCleared = objectives.length > 0 && objectives.every((_objective, index) => Boolean(objectiveStatus[index]));
       const finalTestPassed = Boolean(selectedCourseState.stats?.finalTest?.passed);
 
-      if (allObjectivesCleared && !isCourseCompleted && !finalTestPassed && !activeFinalTest && !finalTestLoading) {
+      if (allObjectivesCleared && !isCourseCompleted && !finalTestPassed && !activeFinalTest && !finalTestLoading && !courseCompletionPending) {
         startFinalTest(`All objectives are cleared. Final test time: answer 10 questions. You need at least 4/10 to complete ${selectedCourse.name}.`);
       }
-    }, [selectedCourseId, selectedCourseState.objectiveStatus, selectedCourseState.completed]);
+    }, [selectedCourseId, selectedCourseState.objectiveStatus, selectedCourseState.completed, courseCompletionPending]);
 
     const handleSend = async () => {
       if (!input.trim() || isTyping || isCourseCompleted) return;

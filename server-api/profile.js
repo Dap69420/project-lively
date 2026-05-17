@@ -61,8 +61,8 @@ module.exports = async (req, res) => {
         return res.status(400).json({ success: false, error: 'Username must be at least 3 letters/numbers.' });
       }
 
-      if (String(avatarUrl || '').length > 750000) {
-        return res.status(400).json({ success: false, error: 'Profile picture is too large. Try a smaller image.' });
+      if (String(avatarUrl || '').length > 1500000) {
+        return res.status(400).json({ success: false, error: 'Profile picture is too large. Try an image under 1 MB.' });
       }
 
       await ensureProfile(userId, email);

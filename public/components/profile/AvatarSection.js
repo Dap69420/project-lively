@@ -1,5 +1,6 @@
 function AvatarSection({ user }) {
   try {
+    const sanitizeUsername = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 24);
     const progress = window.LivelyProgress.useProgress();
     const [isEditing, setIsEditing] = React.useState(false);
     const [profileForm, setProfileForm] = React.useState({
@@ -32,8 +33,8 @@ function AvatarSection({ user }) {
         setProfileError('Choose an image file.');
         return;
       }
-      if (file.size > 650000) {
-        setProfileError('Image is too large. Use something under 650 KB.');
+      if (file.size > 1000000) {
+        setProfileError('Image is too large. Use something under 1 MB.');
         return;
       }
 
@@ -51,9 +52,16 @@ function AvatarSection({ user }) {
       setProfileError('');
 
       try {
+        const nextUsername = sanitizeUsername(profileForm.username);
+        if (nextUsername.length < 3) {
+          setProfileError('Username must be at least 3 letters, numbers, or underscores.');
+          setSavingProfile(false);
+          return;
+        }
+
         await window.LivelyProgress.updateUserProfile({
-          username: profileForm.username,
-          displayName: profileForm.displayName,
+          username: nextUsername,
+          displayName: profileForm.displayName || nextUsername,
           avatarUrl: profileForm.avatarUrl
         });
         setIsEditing(false);
@@ -174,7 +182,7 @@ function AvatarSection({ user }) {
                 <span className="mb-1 block text-xs font-mono uppercase tracking-wider text-gray-400">Unique username</span>
                 <input
                   value={profileForm.username}
-                  onChange={(event) => setProfileForm((current) => Object.assign({}, current, { username: event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))}
+                  onChange={(event) => setProfileForm((current) => Object.assign({}, current, { username: sanitizeUsername(event.target.value) }))}
                   placeholder="physicsninja"
                   className="w-full rounded border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none focus:border-neonViolet"
                   minLength="3"

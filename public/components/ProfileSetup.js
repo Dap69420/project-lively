@@ -28,7 +28,7 @@ function ProfileSetup({ user, onComplete }) {
           });
 
           if (updateError) {
-            setError('Failed to save profile. Please try again.');
+            setError(updateError.message || 'Failed to save profile. Please try again.');
             console.error('Update error:', updateError);
             setLoading(false);
             return;

@@ -525,14 +525,6 @@
       });
     }
 
-    if (typeof window !== 'undefined' && next.level > previousLevel) {
-      window.setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('livelyLevelUp', {
-          detail: { previousLevel, level: next.level, newLevel: next.level }
-        }));
-      }, 50);
-    }
-
     return next;
   }
 
@@ -550,6 +542,17 @@
     const currentCourseState = currentState.courseProgress[courseId] || {};
     const existingStatus = Array.isArray(currentCourseState.objectiveStatus) ? currentCourseState.objectiveStatus : [];
     const nextStatus = objectives.map((_objective, index) => Boolean(existingStatus[index]));
+    const completionRequested = Boolean(decision?.objective_completed || decision?.completed);
+
+    if (!completionRequested) {
+      return {
+        state: currentState,
+        indexes: [],
+        newlyCompleted: [],
+        allComplete: nextStatus.every(Boolean)
+      };
+    }
+
     const indexes = [];
     const rawIndexes = Array.isArray(decision?.completed_objective_indexes)
       ? decision.completed_objective_indexes
@@ -563,7 +566,7 @@
       indexes.push(Number(decision.objective_index));
     }
 
-    if ((decision?.objective_completed || decision?.completed) && indexes.length === 0) {
+    if (indexes.length === 0) {
       const firstIncomplete = nextStatus.findIndex((complete) => !complete);
       if (firstIncomplete >= 0) indexes.push(firstIncomplete);
     }
