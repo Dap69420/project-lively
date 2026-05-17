@@ -65,6 +65,7 @@ module.exports = async (req, res) => {
         thumbnail_url,
         objectives,
         card_style,
+        ai_settings,
       } = req.body;
 
       // Validation
@@ -86,8 +87,8 @@ module.exports = async (req, res) => {
         `INSERT INTO courses (
           title, description, subject, grade, topic, difficulty,
           ai_prompt, ai_aim, completion_xp, completion_coins,
-          thumbnail_url, objectives, card_style
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          thumbnail_url, objectives, card_style, ai_settings
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         RETURNING *`,
         [
           title,
@@ -103,6 +104,7 @@ module.exports = async (req, res) => {
           thumbnail_url,
           JSON.stringify(parseJsonField(objectives, [])),
           JSON.stringify(parseJsonField(card_style, {})),
+          JSON.stringify(parseJsonField(ai_settings, {})),
         ]
       );
 
@@ -142,6 +144,7 @@ module.exports = async (req, res) => {
         'thumbnail_url',
         'objectives',
         'card_style',
+        'ai_settings',
         'is_active',
       ]);
 
@@ -152,7 +155,7 @@ module.exports = async (req, res) => {
 
         if (value !== undefined && value !== null) {
           updates.push(`${key} = $${paramCount++}`);
-          params.push(['objectives', 'card_style'].includes(key) ? JSON.stringify(parseJsonField(value, key === 'objectives' ? [] : {})) : value);
+          params.push(['objectives', 'card_style', 'ai_settings'].includes(key) ? JSON.stringify(parseJsonField(value, key === 'objectives' ? [] : {})) : value);
         }
       });
 

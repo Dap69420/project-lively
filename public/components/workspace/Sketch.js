@@ -388,6 +388,7 @@ function Sketch({ user }) {
       objectives: Array.isArray(selectedCourse.objectives) ? selectedCourse.objectives : [],
       objectiveStatus: Array.isArray(selectedCourseState.objectiveStatus) ? selectedCourseState.objectiveStatus : [],
       cardStyle: selectedCourse.cardStyle || {},
+      aiSettings: selectedCourse.aiSettings || {},
       completed: Boolean(selectedCourseState.completed),
       attemptCount: Number(selectedCourseState.questions || 0) + 1,
       repeatedInput: false

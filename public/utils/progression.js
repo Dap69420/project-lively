@@ -135,6 +135,7 @@
       lessons: Array.isArray(course.lessons) ? course.lessons : [],
       objectives: Array.isArray(course.objectives) ? course.objectives : [],
       cardStyle: course.card_style && typeof course.card_style === 'object' ? course.card_style : (course.cardStyle && typeof course.cardStyle === 'object' ? course.cardStyle : {}),
+      aiSettings: course.ai_settings && typeof course.ai_settings === 'object' ? course.ai_settings : (course.aiSettings && typeof course.aiSettings === 'object' ? course.aiSettings : {}),
       icon: decoration.icon,
       tone: decoration.tone,
       completionXp: Number(course.completion_xp || 0),

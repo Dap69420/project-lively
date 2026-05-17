@@ -17,7 +17,12 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
       cardAccentColor: '#55ff55',
       cardBackgroundColor: '#121826',
       cardBorderColor: '#2dd4bf',
-      cardRotation: 0
+      cardRotation: 0,
+      moodStyle: 'adaptive',
+      quizEnabled: true,
+      quizFrequency: 'after_objective',
+      quizDifficulty: 'mixed',
+      quizStyle: 'mcq'
     };
 
     const [formData, setFormData] = React.useState(initialState);
@@ -29,6 +34,14 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
     const subjects = ['Mathematics', 'Science', 'English', 'History', 'Physics', 'Chemistry', 'Biology'];
     const grades = ['6', '7', '8', '9'];
     const difficulties = ['beginner', 'intermediate', 'advanced'];
+    const moodStyles = ['adaptive', 'friendly', 'focused', 'playful', 'strict'];
+    const quizFrequencies = [
+      { value: 'off', label: 'Never' },
+      { value: 'after_objective', label: 'After objective progress' },
+      { value: 'every_3_messages', label: 'Every 3 student messages' },
+      { value: 'every_5_messages', label: 'Every 5 student messages' }
+    ];
+    const quizDifficulties = ['easy', 'mixed', 'hard'];
 
     const normalizeJsonArray = (value) => {
       if (Array.isArray(value)) return value;
@@ -62,6 +75,7 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
 
       const objectives = normalizeJsonArray(editingCourse.objectives);
       const cardStyle = normalizeJsonObject(editingCourse.card_style);
+      const aiSettings = normalizeJsonObject(editingCourse.ai_settings);
 
       setFormData({
         title: editingCourse.title || '',
@@ -80,7 +94,12 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
         cardAccentColor: cardStyle.accent_color || '#55ff55',
         cardBackgroundColor: cardStyle.background_color || '#121826',
         cardBorderColor: cardStyle.border_color || '#2dd4bf',
-        cardRotation: Number(cardStyle.rotation || 0)
+        cardRotation: Number(cardStyle.rotation || 0),
+        moodStyle: aiSettings.mood_style || 'adaptive',
+        quizEnabled: aiSettings.quiz_enabled !== false && aiSettings.quiz_frequency !== 'off',
+        quizFrequency: aiSettings.quiz_frequency || 'after_objective',
+        quizDifficulty: aiSettings.quiz_difficulty || 'mixed',
+        quizStyle: aiSettings.quiz_style || 'mcq'
       });
       setSuccess('');
       setError('');
@@ -90,7 +109,7 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
       const { name, value } = e.target;
       setFormData((prev) => ({
         ...prev,
-        [name]: ['completion_xp', 'completion_coins', 'cardRotation'].includes(name) ? parseInt(value || '0', 10) : value
+        [name]: e.target.type === 'checkbox' ? e.target.checked : ['completion_xp', 'completion_coins', 'cardRotation'].includes(name) ? parseInt(value || '0', 10) : value
       }));
     };
 
@@ -119,6 +138,13 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
           background_color: String(formData.cardBackgroundColor || '').trim(),
           border_color: String(formData.cardBorderColor || '').trim(),
           rotation: Number.isFinite(Number(formData.cardRotation)) ? Number(formData.cardRotation) : 0
+        },
+        ai_settings: {
+          mood_style: formData.moodStyle || 'adaptive',
+          quiz_enabled: Boolean(formData.quizEnabled) && formData.quizFrequency !== 'off',
+          quiz_frequency: formData.quizEnabled ? formData.quizFrequency : 'off',
+          quiz_difficulty: formData.quizDifficulty || 'mixed',
+          quiz_style: formData.quizStyle || 'mcq'
         }
       };
     };
@@ -330,6 +356,76 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
                 placeholder="e.g., Help students solve linear equations confidently"
                 className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-neonViolet focus:outline-none transition-colors"
               />
+            </div>
+
+            <div className="space-y-4 rounded-xl border border-white/10 bg-black/20 p-4">
+              <div>
+                <h3 className="text-lg font-bold tracking-tight mb-1">Buddy_AI Behavior</h3>
+                <p className="text-xs text-gray-400 font-mono">Tune the chat personality and quiz cadence for this course.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-mono font-bold text-gray-300 uppercase tracking-wider mb-2">Mood Style</label>
+                  <select
+                    name="moodStyle"
+                    value={formData.moodStyle}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:border-neonViolet focus:outline-none transition-colors"
+                  >
+                    {moodStyles.map((style) => (
+                      <option key={style} value={style} className="bg-black text-white">
+                        {style.charAt(0).toUpperCase() + style.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <label className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm font-mono text-gray-300">
+                  <input
+                    type="checkbox"
+                    name="quizEnabled"
+                    checked={formData.quizEnabled}
+                    onChange={handleChange}
+                    className="h-4 w-4 accent-neonViolet"
+                  />
+                  Enable chat quizzes
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-mono font-bold text-gray-300 uppercase tracking-wider mb-2">Quiz Timing</label>
+                  <select
+                    name="quizFrequency"
+                    value={formData.quizFrequency}
+                    onChange={handleChange}
+                    disabled={!formData.quizEnabled}
+                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:border-neonViolet focus:outline-none transition-colors disabled:opacity-50"
+                  >
+                    {quizFrequencies.map((item) => (
+                      <option key={item.value} value={item.value} className="bg-black text-white">{item.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-mono font-bold text-gray-300 uppercase tracking-wider mb-2">Quiz Difficulty</label>
+                  <select
+                    name="quizDifficulty"
+                    value={formData.quizDifficulty}
+                    onChange={handleChange}
+                    disabled={!formData.quizEnabled}
+                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:border-neonViolet focus:outline-none transition-colors disabled:opacity-50"
+                  >
+                    {quizDifficulties.map((difficulty) => (
+                      <option key={difficulty} value={difficulty} className="bg-black text-white">
+                        {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-4 rounded-xl border border-white/10 bg-black/20 p-4">

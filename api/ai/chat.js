@@ -42,6 +42,7 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
   const lowerCumulativeText = cumulativeText.toLowerCase();
   const objectives = Array.isArray(courseContext.objectives) ? courseContext.objectives.filter(Boolean) : [];
   const objectiveStatus = Array.isArray(courseContext.objectiveStatus) ? courseContext.objectiveStatus : [];
+  const aiSettings = courseContext.aiSettings && typeof courseContext.aiSettings === 'object' ? courseContext.aiSettings : {};
   const courseAlreadyCompleted = Boolean(courseContext.completed);
   const repeatedInput = Boolean(courseContext.repeatedInput);
   const attemptCount = Math.max(0, Number(courseContext.attemptCount || 0));
@@ -82,6 +83,30 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
   const completed = objectives.length > 0
     ? objectiveCompleted && objectives.every((_objective, index) => index === objectiveIndex || Boolean(objectiveStatus[index]))
     : objectiveCompleted;
+  const quizFrequency = aiSettings.quiz_frequency || 'after_objective';
+  const shouldQuiz = Boolean(aiSettings.quiz_enabled)
+    && quizFrequency !== 'off'
+    && mode === 'chat'
+    && !isOffTopic
+    && !isStruggling
+    && (
+      (quizFrequency === 'after_objective' && objectiveCompleted)
+      || (quizFrequency === 'every_3_messages' && attemptCount > 0 && attemptCount % 3 === 0)
+      || (quizFrequency === 'every_5_messages' && attemptCount > 0 && attemptCount % 5 === 0)
+    );
+  const quizTopic = objectives[objectiveIndex] || courseContext.topic || courseContext.aiAim || 'this topic';
+  const quiz = shouldQuiz ? {
+    question: `Quick check: which answer best matches ${quizTopic}?`,
+    options: [
+      `A correct explanation of ${quizTopic}`,
+      'A random fact unrelated to the course',
+      'Repeating words without showing understanding',
+      'Skipping the idea entirely'
+    ],
+    correct_index: 0,
+    explanation: `Nice. The best answer is the one that directly explains ${quizTopic}.`,
+    difficulty: aiSettings.quiz_difficulty || 'mixed'
+  } : null;
 
   let visibleResponse = '';
   if (isOffTopic) {
@@ -101,6 +126,8 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
     internal_response: `Scored ${xpDelta} XP in ${mode} mode. objective_match=${mentionedObjective ? 'yes' : 'no'}, repeated_input=${repeatedInput ? 'yes' : 'no'}, checkpoint_completed=${completed ? 'yes' : 'no'}.`,
     xp_delta: xpDelta,
     coins_delta: coinsDelta,
+    mood: isStruggling ? 'supportive' : objectiveCompleted ? 'excited' : shouldQuiz ? 'curious' : 'focused',
+    quiz,
     objective_completed: objectiveCompleted,
     objective_index: objectiveCompleted ? objectiveIndex : null,
     completed_objective_indexes: completedObjectiveIndexes,
@@ -137,6 +164,19 @@ function normalizeDecision(decision, fallbackDecision, courseContext = {}) {
     : typeof source.completedObjective === 'boolean'
       ? source.completedObjective
       : Boolean(base.objective_completed);
+  const mood = ['supportive', 'focused', 'excited', 'curious', 'strict'].includes(String(source.mood || '').toLowerCase())
+    ? String(source.mood).toLowerCase()
+    : base.mood || 'focused';
+  const quizSource = source.quiz && typeof source.quiz === 'object' ? source.quiz : base.quiz;
+  const quiz = quizSource && typeof quizSource === 'object' && Array.isArray(quizSource.options) && quizSource.options.length >= 2
+    ? {
+        question: String(quizSource.question || '').trim(),
+        options: quizSource.options.slice(0, 4).map((option) => String(option || '').trim()).filter(Boolean),
+        correct_index: Math.max(0, Math.min(3, Math.floor(Number(quizSource.correct_index ?? quizSource.correctIndex ?? 0)))),
+        explanation: String(quizSource.explanation || '').trim(),
+        difficulty: String(quizSource.difficulty || 'mixed').trim()
+      }
+    : null;
 
   if (Boolean(courseContext.completed) || Boolean(courseContext.repeatedInput)) {
     completed = false;
@@ -151,6 +191,8 @@ function normalizeDecision(decision, fallbackDecision, courseContext = {}) {
     internal_response: internalResponse,
     xp_delta: Math.max(-50, Math.min(50, xpDelta)),
     coins_delta: Math.max(0, Math.min(100, coinsDelta)),
+    mood,
+    quiz: quiz && quiz.question && quiz.options.length >= 2 ? quiz : null,
     objective_completed: objectiveCompleted,
     objective_index: objectiveIndex,
     completed_objective_indexes: completedObjectiveIndexes,
@@ -196,17 +238,20 @@ module.exports = async (req, res) => {
           Array.isArray(courseContext.objectives) && courseContext.objectives.length ? `Objectives:\n- ${courseContext.objectives.join('\n- ')}` : '',
           Array.isArray(courseContext.objectiveStatus) && courseContext.objectiveStatus.length ? `Objective completion status: ${courseContext.objectiveStatus.map((done, index) => `${index}:${done ? 'complete' : 'incomplete'}`).join(', ')}` : '',
           Array.isArray(courseContext.recentStudentEvidence) && courseContext.recentStudentEvidence.length ? `Recent student evidence, oldest to newest:\n- ${courseContext.recentStudentEvidence.join('\n- ')}` : '',
+          courseContext.aiSettings && typeof courseContext.aiSettings === 'object' ? `AI behavior settings: ${JSON.stringify(courseContext.aiSettings)}` : '',
           courseContext.cardStyle && typeof courseContext.cardStyle === 'object' ? `Card style: ${JSON.stringify(courseContext.cardStyle)}` : ''
         ].filter(Boolean).join('\n')
       : '';
 
     const structuredSystemPrompt = [
       systemPrompt,
-      'Return valid JSON only with these keys: visible_response, internal_response, xp_delta, coins_delta, objective_completed, objective_index, completed_objective_indexes, completed, completion_reason, level_delta.',
+      'Return valid JSON only with these keys: visible_response, internal_response, xp_delta, coins_delta, mood, quiz, objective_completed, objective_index, completed_objective_indexes, completed, completion_reason, level_delta.',
       'visible_response must be student-safe and should not mention hidden scoring.',
       'visible_response should respond directly to the student answer, not a generic template.',
       'internal_response is for admins only and should explain the scoring decision in one short sentence.',
       'xp_delta may be negative, zero, or positive. coins_delta may be zero or positive.',
+      'mood must be one of supportive, focused, excited, curious, strict. Match it to the student state.',
+      'quiz may be null, or an MCQ object with question, options, correct_index, explanation, difficulty. Only include a quiz when the AI behavior settings say quizzes are enabled and the timing fits.',
       'Evaluate objective completion using the full recent student evidence, not only the latest message.',
       'If earlier messages already covered part of an objective, do not ask the student to repeat that part; ask only for the missing part.',
       'objective_completed should be true only when one listed incomplete objective is sufficiently demonstrated.',

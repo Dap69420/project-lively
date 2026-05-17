@@ -67,6 +67,7 @@ module.exports = async (req, res) => {
         lessons,
         objectives,
         card_style,
+        ai_settings,
       } = req.body;
 
       if (!title || !ai_prompt) {
@@ -80,8 +81,8 @@ module.exports = async (req, res) => {
         `INSERT INTO courses (
           title, description, subject, grade, topic, difficulty,
           ai_prompt, ai_aim, completion_xp, completion_coins,
-          thumbnail_url, prerequisites, lessons, objectives, card_style
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+          thumbnail_url, prerequisites, lessons, objectives, card_style, ai_settings
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
         RETURNING *`,
         [
           title,
@@ -99,6 +100,7 @@ module.exports = async (req, res) => {
           JSON.stringify(lessons || []),
           JSON.stringify(objectives || []),
           JSON.stringify(card_style || {}),
+          JSON.stringify(ai_settings || {}),
         ]
       );
 
@@ -122,6 +124,7 @@ module.exports = async (req, res) => {
         lessons,
         objectives,
         card_style,
+        ai_settings,
       } = req.body;
 
       const updates = [];
@@ -171,6 +174,10 @@ module.exports = async (req, res) => {
       if (card_style) {
         updates.push(`card_style = $${paramCount++}`);
         params.push(JSON.stringify(card_style));
+      }
+      if (ai_settings) {
+        updates.push(`ai_settings = $${paramCount++}`);
+        params.push(JSON.stringify(ai_settings));
       }
 
       if (updates.length === 0) {

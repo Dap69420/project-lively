@@ -20,6 +20,9 @@ CREATE TABLE IF NOT EXISTS courses (
   thumbnail_url VARCHAR(500),
   prerequisites JSONB DEFAULT '[]'::jsonb,
   lessons JSONB DEFAULT '[]'::jsonb,
+  objectives JSONB DEFAULT '[]'::jsonb,
+  card_style JSONB DEFAULT '{}'::jsonb,
+  ai_settings JSONB DEFAULT '{}'::jsonb,
   
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

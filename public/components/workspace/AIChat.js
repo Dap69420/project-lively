@@ -157,6 +157,7 @@ ${displayMathLines.join('\n')}
       objectives: Array.isArray(selectedCourse.objectives) ? selectedCourse.objectives : [],
       objectiveStatus: Array.isArray(selectedCourseState.objectiveStatus) ? selectedCourseState.objectiveStatus : [],
       cardStyle: selectedCourse.cardStyle || {},
+      aiSettings: selectedCourse.aiSettings || {},
       completed: Boolean(selectedCourseState.completed),
       attemptCount: Number(selectedCourseState.questions || 0)
     };
@@ -164,11 +165,23 @@ ${displayMathLines.join('\n')}
     const [messages, setMessages] = React.useState([]);
     const [input, setInput] = React.useState('');
     const [mood, setMood] = React.useState('green');
+    const [answeredQuizKeys, setAnsweredQuizKeys] = React.useState([]);
+    const moodConfig = {
+      green: { label: 'Focused', tone: 'bg-mcGreen shadow-[0_0_10px_#55FF55]', text: 'text-mcGreen' },
+      supportive: { label: 'Supportive', tone: 'bg-mcOrange shadow-[0_0_10px_#FFAA00]', text: 'text-mcOrange' },
+      focused: { label: 'Focused', tone: 'bg-mcGreen shadow-[0_0_10px_#55FF55]', text: 'text-mcGreen' },
+      excited: { label: 'Excited', tone: 'bg-lime shadow-[0_0_12px_#ccff00]', text: 'text-lime' },
+      curious: { label: 'Quiz Mode', tone: 'bg-blue-400 shadow-[0_0_12px_#60a5fa]', text: 'text-blue-400' },
+      strict: { label: 'Careful', tone: 'bg-red-400 shadow-[0_0_12px_#f87171]', text: 'text-red-400' },
+      orange: { label: 'Supportive', tone: 'bg-mcOrange shadow-[0_0_10px_#FFAA00]', text: 'text-mcOrange' }
+    };
+    const currentMood = moodConfig[mood] || moodConfig.focused;
     const [isTyping, setIsTyping] = React.useState(false);
     const messagesEndRef = React.useRef(null);
 
     // Load messages from progression when course changes
     React.useEffect(() => {
+      setAnsweredQuizKeys([]);
       let cancelled = false;
       const completedMessage = {
         role: 'ai',
@@ -297,6 +310,54 @@ ${displayMathLines.join('\n')}
       };
     }, [selectedCourseId]);
 
+    const handleQuizAnswer = (quiz, selectedIndex, quizKey) => {
+      if (!quiz || isCourseCompleted || answeredQuizKeys.includes(quizKey)) return;
+      setAnsweredQuizKeys((current) => current.includes(quizKey) ? current : [...current, quizKey]);
+      const correctIndex = Number(quiz.correct_index ?? quiz.correctIndex ?? 0);
+      const isCorrect = selectedIndex === correctIndex;
+      const selectedAnswer = quiz.options?.[selectedIndex] || `Option ${selectedIndex + 1}`;
+      const feedbackText = isCorrect
+        ? `Correct. ${quiz.explanation || 'That answer fits the course idea.'}`
+        : `Not quite. ${quiz.explanation || `The best answer was: ${quiz.options?.[correctIndex] || 'the highlighted option'}.`}`;
+      const timeNow = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      const answerMsg = {
+        role: 'user',
+        text: `Quiz answer: ${selectedAnswer}`,
+        time: timeNow,
+        metadata: { type: 'quiz_answer', selectedIndex, correctIndex, isCorrect }
+      };
+      const feedbackMsg = {
+        role: 'ai',
+        text: feedbackText,
+        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+        metadata: { type: 'quiz_feedback', isCorrect }
+      };
+
+      setMessages((prev) => [...prev, answerMsg, feedbackMsg]);
+      window.LivelyProgress.addChatMessage({
+        role: answerMsg.role,
+        text: answerMsg.text,
+        time: answerMsg.time,
+        courseId: selectedCourseId,
+        metadata: answerMsg.metadata
+      });
+      window.LivelyProgress.addChatMessage({
+        role: feedbackMsg.role,
+        text: feedbackMsg.text,
+        time: feedbackMsg.time,
+        courseId: selectedCourseId,
+        metadata: feedbackMsg.metadata
+      });
+      window.LivelyProgress.awardProgress({
+        xp: isCorrect ? 8 : 2,
+        coins: isCorrect ? 2 : 0,
+        correct: isCorrect,
+        courseId: selectedCourseId,
+        source: 'quiz'
+      });
+      setMood(isCorrect ? 'excited' : 'supportive');
+    };
+
     const handleSend = async () => {
       if (!input.trim() || isTyping || isCourseCompleted) return;
       
@@ -361,7 +422,7 @@ ${displayMathLines.join('\n')}
         }
 
         const isStruggling = userText.length < 15 || userText.toLowerCase().includes("don't know") || userText.toLowerCase().includes("stuck");
-        setMood(isStruggling ? 'orange' : 'green');
+        setMood(aiDecision?.mood || (isStruggling ? 'supportive' : 'focused'));
 
         let completionMsg = null;
         if (window.LivelyProgress) {
@@ -394,7 +455,18 @@ ${displayMathLines.join('\n')}
           time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
           metadata: { aiDecision }
         };
-        setMessages(prev => completionMsg ? [...prev, aiMsg, completionMsg] : [...prev, aiMsg]);
+        const quizMsg = aiDecision?.quiz ? {
+          role: 'ai',
+          text: 'Quick quiz',
+          time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+          metadata: { type: 'quiz', quiz: aiDecision.quiz }
+        } : null;
+        setMessages(prev => {
+          const nextMessages = [...prev, aiMsg];
+          if (quizMsg) nextMessages.push(quizMsg);
+          if (completionMsg) nextMessages.push(completionMsg);
+          return nextMessages;
+        });
         // Persist AI message
         window.LivelyProgress.addChatMessage({
           role: aiMsg.role,
@@ -403,6 +475,15 @@ ${displayMathLines.join('\n')}
           courseId: selectedCourseId,
           metadata: aiMsg.metadata
         });
+        if (quizMsg) {
+          window.LivelyProgress.addChatMessage({
+            role: quizMsg.role,
+            text: quizMsg.text,
+            time: quizMsg.time,
+            courseId: selectedCourseId,
+            metadata: quizMsg.metadata
+          });
+        }
         if (completionMsg) {
           window.LivelyProgress.addChatMessage({
             role: completionMsg.role,
@@ -448,7 +529,7 @@ ${displayMathLines.join('\n')}
               </div>
               {/* Mood Orb */}
               <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-discordDarkest shadow-[0_0_8px_rgba(0,0,0,0.5)] transition-colors duration-500
-                ${mood === 'green' ? 'bg-mcGreen shadow-[0_0_10px_#55FF55]' : 'bg-mcOrange shadow-[0_0_10px_#FFAA00]'}`}>
+                ${currentMood.tone}`}>
               </div>
             </div>
             <div>
@@ -479,7 +560,27 @@ ${displayMathLines.join('\n')}
                   <span className="text-[10px] font-mono text-gray-500">{msg.time}</span>
                 </div>
                 <div className={`p-3 rounded-lg text-sm leading-relaxed ${msg.role === 'user' ? 'bg-mcPurple text-white rounded-tr-none' : 'bg-discordDarkest text-gray-200 rounded-tl-none border border-gray-700'}`}>
-                  {msg.metadata?.type === 'sketch' && msg.metadata?.imageUrl ? (
+                  {msg.metadata?.type === 'quiz' && msg.metadata?.quiz ? (
+                    <div className="space-y-3 min-w-[240px]">
+                      <div>
+                        <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-mcGreen mb-1">Quick Quiz</div>
+                        <div className="font-bold text-sm">{msg.metadata.quiz.question}</div>
+                      </div>
+                      <div className="grid gap-2">
+                        {(msg.metadata.quiz.options || []).map((option, optionIndex) => (
+                          <button
+                            key={`${idx}-${optionIndex}`}
+                            type="button"
+                            onClick={() => handleQuizAnswer(msg.metadata.quiz, optionIndex, `${selectedCourseId}-${idx}`)}
+                            disabled={isCourseCompleted || answeredQuizKeys.includes(`${selectedCourseId}-${idx}`)}
+                            className="text-left rounded border border-gray-600 bg-discordDark px-3 py-2 text-xs hover:border-mcGreen hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <span className="font-mono text-mcGreen mr-2">{String.fromCharCode(65 + optionIndex)}.</span>{option}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : msg.metadata?.type === 'sketch' && msg.metadata?.imageUrl ? (
                     <div className="space-y-2">
                       <div className="font-mono text-xs uppercase tracking-wider opacity-80">{msg.text || 'Sketch submitted'}</div>
                       <img src={msg.metadata.imageUrl} alt="Submitted sketch" className="max-h-56 max-w-full rounded border border-white/20 bg-discordDarkest object-contain" />

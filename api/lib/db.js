@@ -48,6 +48,7 @@ if (!connectionString) {
       lessons JSONB DEFAULT '[]'::jsonb,
       objectives JSONB DEFAULT '[]'::jsonb,
       card_style JSONB DEFAULT '{}'::jsonb,
+      ai_settings JSONB DEFAULT '{}'::jsonb,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       created_by UUID,
@@ -56,6 +57,7 @@ if (!connectionString) {
 
     ALTER TABLE courses ADD COLUMN IF NOT EXISTS objectives JSONB DEFAULT '[]'::jsonb;
     ALTER TABLE courses ADD COLUMN IF NOT EXISTS card_style JSONB DEFAULT '{}'::jsonb;
+    ALTER TABLE courses ADD COLUMN IF NOT EXISTS ai_settings JSONB DEFAULT '{}'::jsonb;
 
     CREATE TABLE IF NOT EXISTS user_courses (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
