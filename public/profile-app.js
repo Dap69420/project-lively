@@ -60,13 +60,6 @@ function ProfileApp() {
       });
     }, [user]);
 
-    React.useEffect(() => {
-      const alias = user?.user_metadata?.alias || user?.email?.split('@')[0] || 'RECRUIT';
-      if (window.LivelyProgress) {
-        window.LivelyProgress.setAlias(alias);
-      }
-    }, [user]);
-
     if (loading) return <div className="min-h-screen flex items-center justify-center bg-darkBg text-white font-mono">LOADING PROFILE...</div>;
 
     return (

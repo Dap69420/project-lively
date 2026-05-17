@@ -118,6 +118,15 @@ if (!connectionString) {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS user_profiles (
+      user_id UUID PRIMARY KEY,
+      username VARCHAR(40) UNIQUE NOT NULL,
+      display_name VARCHAR(80) DEFAULT '',
+      avatar_url TEXT DEFAULT '',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS achievements (
       id VARCHAR(100) PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
@@ -157,6 +166,7 @@ if (!connectionString) {
     CREATE INDEX IF NOT EXISTS idx_course_notes_course_id ON course_notes(course_id);
     CREATE INDEX IF NOT EXISTS idx_courses_subject_grade ON courses(subject, grade);
     CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_user_profiles_username ON user_profiles(username);
     CREATE INDEX IF NOT EXISTS idx_achievements_sort_index ON achievements(sort_index);
     CREATE INDEX IF NOT EXISTS idx_user_achievements_user_id ON user_achievements(user_id);
   `;

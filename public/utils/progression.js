@@ -49,6 +49,9 @@
       userId: '',
       userEmail: '',
       userGrade: '',
+      username: '',
+      displayName: '',
+      avatarUrl: '',
       courseProgress: createDefaultCourseProgress(),
       chatHistory: {}
     };
@@ -103,6 +106,9 @@
         userId: state.userId,
         userEmail: state.userEmail,
         userGrade: state.userGrade,
+        username: state.username,
+        displayName: state.displayName,
+        avatarUrl: state.avatarUrl,
         courseProgress: state.courseProgress,
         chatHistory: state.chatHistory
       };
@@ -182,6 +188,9 @@
     merged.userId = String(merged.userId || '');
     merged.userEmail = String(merged.userEmail || '');
     merged.userGrade = String(merged.userGrade || '');
+    merged.username = String(merged.username || '');
+    merged.displayName = String(merged.displayName || '');
+    merged.avatarUrl = String(merged.avatarUrl || '');
     merged.achievements = Array.isArray(merged.achievements) ? merged.achievements : [];
     merged.achievementCatalog = Array.isArray(merged.achievementCatalog) && merged.achievementCatalog.length ? merged.achievementCatalog : ACHIEVEMENT_RULES;
     merged.courseProgress = Object.assign({}, createDefaultCourseProgress(), merged.courseProgress || {});
@@ -751,6 +760,28 @@
     return next;
   }
 
+  async function updateUserProfile(profile) {
+    if (!currentState.userId) {
+      return currentState;
+    }
+
+    const response = await apiJson(`/api/profile?userId=${encodeURIComponent(currentState.userId)}&email=${encodeURIComponent(currentState.userEmail || '')}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profile || {})
+    });
+    const data = response?.data || {};
+    const next = normalizeState(Object.assign({}, currentState, {
+      username: data.username || currentState.username,
+      displayName: data.display_name || data.displayName || currentState.displayName,
+      avatarUrl: data.avatar_url || data.avatarUrl || currentState.avatarUrl,
+      alias: data.username || currentState.alias
+    }));
+
+    saveState(next);
+    return next;
+  }
+
   function setUserContext(user) {
     const next = normalizeState(Object.assign({}, currentState, {
       userId: user?.id || '',
@@ -779,14 +810,16 @@
       }));
       saveState(next);
 
-      const [progressResult, coursesResult, userCoursesResult, achievementsResult] = await Promise.all([
+      const [progressResult, coursesResult, userCoursesResult, achievementsResult, profileResult] = await Promise.all([
         apiJson(`/api/progress?userId=${encodeURIComponent(userId)}`),
         user?.user_metadata?.grade ? apiJson(`/api/courses?grade=${encodeURIComponent(user.user_metadata.grade)}`) : Promise.resolve({ success: true, data: [] }),
         apiJson(`/api/user/courses?userId=${encodeURIComponent(userId)}`),
-        apiJson(`/api/achievements?userId=${encodeURIComponent(userId)}`).catch(() => ({ success: true, data: [] }))
+        apiJson(`/api/achievements?userId=${encodeURIComponent(userId)}`).catch(() => ({ success: true, data: [] })),
+        apiJson(`/api/profile?userId=${encodeURIComponent(userId)}&email=${encodeURIComponent(user.email || '')}`).catch(() => ({ success: true, data: null }))
       ]);
 
       const availableCourses = normalizeCourseList(coursesResult?.data || []);
+      const profileData = profileResult?.data || {};
       const achievementCatalog = Array.isArray(achievementsResult?.data) && achievementsResult.data.length ? achievementsResult.data : ACHIEVEMENT_RULES;
       const ownedAchievements = achievementCatalog.filter((achievement) => achievement.owned).map((achievement) => achievement.id);
       const userProgressRows = Array.isArray(userCoursesResult?.data) ? userCoursesResult.data : [];
@@ -811,7 +844,10 @@
         userId,
         userEmail: user.email || '',
         userGrade: user?.user_metadata?.grade || '',
-        alias: user?.user_metadata?.alias || currentState.alias,
+        alias: profileData.username || user?.user_metadata?.alias || currentState.alias,
+        username: profileData.username || '',
+        displayName: profileData.display_name || '',
+        avatarUrl: profileData.avatar_url || '',
         availableCourses,
         catalogStatus: 'ready',
         catalogError: '',
@@ -971,7 +1007,8 @@
       addChatMessage,
       getChatMessages,
       loadChatHistory,
-      clearChatHistory
+      clearChatHistory,
+      updateUserProfile
     };
 
   }

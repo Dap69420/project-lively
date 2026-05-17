@@ -89,6 +89,7 @@ app.all('/api/config', require('./server-api/config'));
 app.all('/api/courses', require('./server-api/courses'));
 app.all('/api/user/courses', require('./server-api/user/courses'));
 app.all('/api/progress', require('./server-api/progress'));
+app.all('/api/profile', require('./server-api/profile'));
 app.all('/api/notes', require('./server-api/notes'));
 app.all('/api/chat/messages', require('./server-api/chat/messages'));
 app.all('/api/ai/chat', require('./server-api/ai/chat'));

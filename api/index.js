@@ -3,6 +3,7 @@ const routes = [
   { path: '/api/courses', handler: require('../server-api/courses') },
   { path: '/api/user/courses', handler: require('../server-api/user/courses') },
   { path: '/api/progress', handler: require('../server-api/progress') },
+  { path: '/api/profile', handler: require('../server-api/profile') },
   { path: '/api/notes', handler: require('../server-api/notes') },
   { path: '/api/chat/messages', handler: require('../server-api/chat/messages') },
   { path: '/api/ai/chat', handler: require('../server-api/ai/chat') },

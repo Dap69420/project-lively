@@ -9,7 +9,8 @@ function Header({ user }) {
       }
     };
     
-    const alias = user?.user_metadata?.alias || user?.email?.split('@')[0] || 'RECRUIT';
+    const alias = progress.username || user?.user_metadata?.alias || 'RECRUIT';
+    const avatarUrl = progress.avatarUrl || '';
 
     return (
       <div className="w-full bg-discordDarker flex flex-col" data-name="workspace-header" data-file="components/workspace/Header.js">
@@ -26,7 +27,11 @@ function Header({ user }) {
               <div className="icon-house text-gray-300"></div>
             </a>
             <a href="profile.html" className="flex items-center justify-center w-8 h-8 rounded bg-discordDark hover:bg-gray-600 transition-colors" title="User Evolution Profile">
-              <div className="icon-user text-gray-300"></div>
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={`${alias} profile`} className="h-full w-full rounded object-cover" />
+              ) : (
+                <div className="icon-user text-gray-300"></div>
+              )}
             </a>
             <h1 className="font-pixel text-3xl text-white tracking-wider flex items-center gap-2 ml-2">
               <div className="w-4 h-4 bg-mcGreen"></div> {alias.toUpperCase()}_WORKSPACE
