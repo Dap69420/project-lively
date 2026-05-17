@@ -7,6 +7,10 @@
     "start": "node server.js",
     "dev": "node server.js",
     "preview": "node server.js --port 4173",
+    "cap:sync": "cap sync android",
+    "cap:open": "cap open android",
+    "android:add": "cap add android",
+    "android:build": "cd android && gradlew assembleDebug",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -14,12 +18,15 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@supabase/supabase-js": "^2.49.1",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
-    "pg": "^8.13.1",
-    "@supabase/supabase-js": "^2.49.1"
+    "pg": "^8.13.1"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
     "serve": "^14.2.4"
   }
 }

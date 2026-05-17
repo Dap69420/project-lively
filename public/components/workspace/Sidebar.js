@@ -127,8 +127,8 @@ function Sidebar({ user }) {
     }[status] || '';
 
     return (
-      <div className="w-72 bg-discordDarker border-r border-black/20 flex flex-col h-full" data-name="sidebar" data-file="components/workspace/Sidebar.js">
-        <div className="p-4 flex gap-2 border-b border-black/20">
+      <div className="w-full md:w-72 bg-discordDarker border-r border-black/20 flex flex-col h-full min-h-0" data-name="sidebar" data-file="components/workspace/Sidebar.js">
+        <div className="p-3 md:p-4 flex gap-2 border-b border-black/20">
           <button 
             onClick={() => setActiveTab('notes')}
             className={`flex-1 py-2 rounded-md font-mono text-xs flex items-center justify-center gap-2 ${activeTab === 'notes' ? 'bg-discordDark text-white' : 'text-gray-400 hover:bg-discordDarkest'}`}
@@ -148,7 +148,7 @@ function Sidebar({ user }) {
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 md:p-4">
           <textarea 
             value={notes}
             onChange={(event) => setNotes(event.target.value)}

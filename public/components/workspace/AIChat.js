@@ -940,11 +940,11 @@ ${displayMathLines.join('\n')}
     };
 
     return (
-      <div className="panel relative flex-1 m-4 ml-0 flex flex-col overflow-hidden" data-name="ai-chat" data-file="components/workspace/AIChat.js">
+      <div className="panel relative flex-1 m-2 sm:m-4 lg:ml-0 flex flex-col overflow-hidden min-w-0 min-h-0" data-name="ai-chat" data-file="components/workspace/AIChat.js">
         
         {/* Chat Header */}
-        <div className="bg-discordDarkest p-3 border-b border-gray-700/50 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="bg-discordDarkest p-3 border-b border-gray-700/50 flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-3">
             <div className="relative">
               <div className="w-10 h-10 bg-discordDark rounded-full border-2 border-gray-600 flex items-center justify-center overflow-hidden">
                 <div className="icon-bot text-2xl text-white"></div>
@@ -954,12 +954,12 @@ ${displayMathLines.join('\n')}
                 ${currentMood.tone}`}>
               </div>
             </div>
-            <div>
+            <div className="min-w-0">
               <h3 className="font-bold text-gray-200">Buddy_AI</h3>
-              <p className="text-xs font-mono text-gray-400">{window.LivelyProgress.getSelectedCourse().name} • Online & Listening</p>
+              <p className="truncate text-xs font-mono text-gray-400 max-w-[11rem] sm:max-w-none">{window.LivelyProgress.getSelectedCourse().name} • Online & Listening</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex shrink-0 gap-2">
             <button
               type="button"
               className="w-8 h-8 rounded bg-discordDark hover:bg-gray-600 flex items-center justify-center text-gray-400"
@@ -980,18 +980,18 @@ ${displayMathLines.join('\n')}
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar bg-[#313338]">
+        <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-4 sm:space-y-6 custom-scrollbar bg-[#313338]">
           {messages.map((msg, idx) => (
-            <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${msg.role === 'ai' ? 'bg-discordDark border-gray-600' : 'bg-mcPurple border-mcPurple'}`}>
+            <div key={idx} className={`flex gap-2 sm:gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${msg.role === 'ai' ? 'bg-discordDark border-gray-600' : 'bg-mcPurple border-mcPurple'}`}>
                 {msg.role === 'ai' ? <div className="icon-bot text-white"></div> : <div className="icon-user text-white"></div>}
               </div>
-              <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[80%]`}>
+              <div className={`flex min-w-0 flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[88%] sm:max-w-[80%]`}>
                 <div className="flex items-baseline gap-2 mb-1">
                   <span className="font-bold text-sm text-gray-300">{msg.role === 'ai' ? 'Buddy_AI' : 'You'}</span>
                   <span className="text-[10px] font-mono text-gray-500">{msg.time}</span>
                 </div>
-                <div className={`p-3 rounded-lg text-sm leading-relaxed break-words whitespace-pre-wrap ${msg.role === 'user' ? 'bg-mcPurple text-white rounded-tr-none' : 'bg-discordDarkest text-gray-200 rounded-tl-none border border-gray-700'}`}>
+                <div className={`max-w-full p-3 rounded-lg text-sm leading-relaxed break-words whitespace-pre-wrap ${msg.role === 'user' ? 'bg-mcPurple text-white rounded-tr-none' : 'bg-discordDarkest text-gray-200 rounded-tl-none border border-gray-700'}`}>
                   {msg.metadata?.type === 'quiz' && msg.metadata?.quiz ? (() => {
                     const quiz = msg.metadata.quiz;
                     const quizKey = msg.metadata.quizKey || `${selectedCourseId}-${idx}`;
@@ -1061,7 +1061,7 @@ ${displayMathLines.join('\n')}
         </div>
 
         {/* "Explain" Input Box */}
-        <div className="p-4 bg-discordDarkest border-t border-gray-700/50">
+        <div className="p-2 sm:p-4 bg-discordDarkest border-t border-gray-700/50">
           {isCourseCompleted ? (
             <div className="mb-3 rounded-lg border border-mcGreen/40 bg-mcGreen/10 px-3 py-2 text-xs font-mono text-mcGreen">
               COURSE COMPLETED - chat is read-only for this course.
@@ -1074,7 +1074,7 @@ ${displayMathLines.join('\n')}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
               disabled={isCourseCompleted}
               placeholder={isCourseCompleted ? 'This completed course is locked for review only.' : `Hey, try explaining [${selectedCourse.name || 'this topic'}] to me like I'm five...`}
-              className="w-full bg-transparent text-gray-200 font-sans text-sm resize-none outline-none p-2 min-h-[80px] custom-scrollbar"
+              className="w-full bg-transparent text-gray-200 font-sans text-sm resize-none outline-none p-2 min-h-[64px] sm:min-h-[80px] custom-scrollbar"
             />
             <div className="flex justify-between items-center px-2 pb-1">
               <span className="text-xs font-mono text-gray-500">{isCourseCompleted ? 'Review only' : 'Press ENTER to send'}</span>

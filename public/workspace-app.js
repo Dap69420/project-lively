@@ -105,10 +105,10 @@ function WorkspaceApp() {
       };
     }, [user, requestedCourseId]);
 
-    if (loading) return <div className="h-screen flex items-center justify-center bg-discordDarkest text-white font-mono">LOADING WORKSPACE...</div>;
+    if (loading) return <div className="h-[100dvh] flex items-center justify-center bg-discordDarkest text-white font-mono">LOADING WORKSPACE...</div>;
 
     return (
-      <div className="h-screen w-full flex flex-col bg-discordDarkest relative overflow-hidden" data-name="workspace-app" data-file="workspace-app.js">
+      <div className="h-[100dvh] w-full flex flex-col bg-discordDarkest relative overflow-hidden" data-name="workspace-app" data-file="workspace-app.js">
         {/* Background glow effects */}
         <div className="bg-glow fixed top-[-20%] left-[-10%] w-[50%] h-[50%] bg-neonViolet rounded-full mix-blend-screen filter blur-[120px] opacity-20 pointer-events-none z-0"></div>
         <div className="bg-glow fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-600 rounded-full mix-blend-screen filter blur-[120px] opacity-10 pointer-events-none z-0"></div>
@@ -116,15 +116,27 @@ function WorkspaceApp() {
         <div className="relative z-10 flex flex-col h-full w-full">
           <Header user={user} />
           
-          <main className="flex-1 flex overflow-hidden">
-            <Sidebar user={user} />
+          <main className="flex-1 flex overflow-hidden min-h-0">
+            <div className="hidden md:flex md:h-full">
+              <Sidebar user={user} />
+            </div>
             
             <div className="flex-1 flex flex-col" style={{ minWidth: 0 }}>
               {/* Tab Navigation */}
-              <div className="flex gap-2 p-3 bg-discordDarker border-b border-gray-700 z-20">
+              <div className="flex gap-2 overflow-x-auto p-2 sm:p-3 bg-discordDarker border-b border-gray-700 z-20 custom-scrollbar">
+                <button
+                  onClick={() => setActiveTab('mission')}
+                  className={`md:hidden shrink-0 px-3 py-2 rounded font-mono text-xs sm:text-sm font-bold transition-all ${
+                    activeTab === 'mission'
+                      ? 'bg-mcGreen text-black'
+                      : 'bg-discordDarkest text-gray-300 hover:text-white border border-gray-700'
+                  }`}
+                >
+                  Mission
+                </button>
                 <button
                   onClick={() => setActiveTab('chat')}
-                  className={`px-4 py-2 rounded font-mono text-sm font-bold transition-all ${
+                  className={`shrink-0 px-3 sm:px-4 py-2 rounded font-mono text-xs sm:text-sm font-bold transition-all ${
                     activeTab === 'chat'
                       ? 'bg-mcGreen text-black'
                       : 'bg-discordDarkest text-gray-300 hover:text-white border border-gray-700'
@@ -134,7 +146,7 @@ function WorkspaceApp() {
                 </button>
                 <button
                   onClick={() => setActiveTab('sketch')}
-                  className={`px-4 py-2 rounded font-mono text-sm font-bold transition-all ${
+                  className={`shrink-0 px-3 sm:px-4 py-2 rounded font-mono text-xs sm:text-sm font-bold transition-all ${
                     activeTab === 'sketch'
                       ? 'bg-mcGreen text-black'
                       : 'bg-discordDarkest text-gray-300 hover:text-white border border-gray-700'
@@ -142,18 +154,40 @@ function WorkspaceApp() {
                 >
                   ✏️ Sketch
                 </button>
+                <button
+                  onClick={() => setActiveTab('notes')}
+                  className={`md:hidden shrink-0 px-3 py-2 rounded font-mono text-xs sm:text-sm font-bold transition-all ${
+                    activeTab === 'notes'
+                      ? 'bg-mcGreen text-black'
+                      : 'bg-discordDarkest text-gray-300 hover:text-white border border-gray-700'
+                  }`}
+                >
+                  Notes
+                </button>
               </div>
 
               {/* Tab Content */}
-              <div className="flex-1 flex overflow-hidden">
-                {activeTab === 'chat' && (
-                  <div className="flex-1 flex">
+              <div className="flex-1 flex overflow-hidden min-h-0">
+                {activeTab === 'mission' && (
+                  <div className="flex-1 flex md:hidden">
                     <MissionCard />
+                  </div>
+                )}
+                {activeTab === 'chat' && (
+                  <div className="flex-1 flex min-w-0">
+                    <div className="hidden lg:flex lg:flex-1 lg:min-w-0">
+                      <MissionCard />
+                    </div>
                     <AIChat user={user} />
                   </div>
                 )}
                 {activeTab === 'sketch' && (
                   <Sketch user={user} />
+                )}
+                {activeTab === 'notes' && (
+                  <div className="flex-1 flex md:hidden">
+                    <Sidebar user={user} />
+                  </div>
                 )}
               </div>
             </div>

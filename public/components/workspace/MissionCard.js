@@ -78,7 +78,7 @@ function MissionCard() {
     }, [course.id, JSON.stringify(courseProgress.objectiveStatus || [])]);
 
     return (
-      <div className="panel flex-1 m-4" data-name="mission-card" data-file="components/workspace/MissionCard.js">
+      <div className="panel flex-1 m-2 sm:m-4 min-w-0 min-h-0" data-name="mission-card" data-file="components/workspace/MissionCard.js">
         <div className="bg-discordDarkest p-3 border-b border-gray-700/50 flex items-center justify-between">
           <div className="flex items-center gap-2 text-gray-300">
             <div className="icon-target text-mcPurple"></div>
@@ -87,7 +87,7 @@ function MissionCard() {
           <span className="bg-mcPurple/20 text-mcPurple px-2 py-0.5 rounded text-xs font-mono font-bold">LVL {progress.level}</span>
         </div>
         
-        <div className="p-6 h-full flex flex-col justify-center items-center bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9IiMzMTMzMzgiLz48L3N2Zz4=')]">
+        <div className="p-3 sm:p-6 h-full min-h-0 overflow-y-auto custom-scrollbar flex flex-col justify-center items-center bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9IiMzMTMzMzgiLz48L3N2Zz4=')]">
           
           <div
             className="comic-card mission-comic-card w-full max-w-md transform hover:rotate-0 transition-transform duration-300 overflow-hidden"
@@ -101,20 +101,20 @@ function MissionCard() {
             }}
           >
             {/* Comic Header */}
-            <div className="mission-banner p-2 border-b-4 mb-4 -mx-4 -mt-4 font-pixel text-xl uppercase text-center tracking-widest truncate">
+            <div className="mission-banner p-2 border-b-4 mb-4 -mx-4 -mt-4 font-pixel text-lg sm:text-xl uppercase text-center tracking-widest truncate">
               {bannerText}
             </div>
             
-            <h2 className="mission-ink font-black text-2xl uppercase leading-tight mb-2 break-words">{mission.title}</h2>
+            <h2 className="mission-ink font-black text-xl sm:text-2xl uppercase leading-tight mb-2 break-words">{mission.title}</h2>
             <div className="mission-accent-bar w-16 h-2 mb-4"></div>
             
-            <p className="mission-ink font-mono text-sm mb-6 leading-relaxed break-words">
+            <p className="mission-ink font-mono text-xs sm:text-sm mb-4 sm:mb-6 leading-relaxed break-words">
               {mission.body} <span className="mission-highlight font-bold">{course.name}</span>.
             </p>
             
             <div className="mission-objectives p-3 rounded border-2 border-dashed">
               <p className="font-sans font-bold text-sm">Objective:</p>
-              <ul className="font-mono text-xs mt-2 space-y-2">
+              <ul className="font-mono text-[11px] sm:text-xs mt-2 space-y-2">
                 {mission.objectives.map((item, index) => {
                   const isComplete = Boolean(courseProgress.objectiveStatus?.[index] || courseProgress.completed);
                   return (

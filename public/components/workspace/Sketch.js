@@ -695,15 +695,15 @@ function Sketch({ user }) {
   const selectedObj = objects.find((obj) => obj.id === selectedObjId) || null;
 
   return (
-    <div className="flex flex-col h-full w-full gap-3 p-4 bg-discordDarkest">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-mcGreen">Sketch Board</h2>
+    <div className="flex flex-col h-full min-h-0 w-full gap-2 sm:gap-3 p-2 sm:p-4 bg-discordDarkest">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg sm:text-xl font-bold text-mcGreen">Sketch Board</h2>
         {isCourseCompleted ? (
           <span className="rounded border border-mcGreen/40 bg-mcGreen/10 px-3 py-1 text-xs font-mono text-mcGreen">
             COMPLETED - READ ONLY
           </span>
         ) : null}
-        <div className="flex gap-2 items-center">
+        <div className="flex shrink-0 gap-2 items-center">
           <label className="flex items-center gap-2 text-sm text-gray-300">
             Size:
             <input
@@ -728,7 +728,7 @@ function Sketch({ user }) {
       </div>
 
       {/* Tool Palette */}
-      <div className={`flex gap-2 flex-wrap bg-discordDarker p-2 rounded-lg border border-gray-700 ${isCourseCompleted ? 'opacity-50 pointer-events-none' : ''}`}>
+      <div className={`flex gap-2 overflow-x-auto bg-discordDarker p-2 rounded-lg border border-gray-700 custom-scrollbar ${isCourseCompleted ? 'opacity-50 pointer-events-none' : ''}`}>
         <button onClick={() => setCurrentTool('brush')} className={`px-3 py-2 rounded text-xs font-mono ${currentTool === 'brush' ? 'bg-mcGreen text-black font-bold' : 'bg-discordDarkest text-gray-300 border border-gray-600 hover:bg-gray-700'}`} title="Brush"><div className="icon-pen-tool text-sm"></div></button>
         
         <button onClick={() => setCurrentTool('eraser')} className={`px-3 py-2 rounded text-xs font-mono ${currentTool === 'eraser' ? 'bg-mcGreen text-black font-bold' : 'bg-discordDarkest text-gray-300 border border-gray-600 hover:bg-gray-700'}`} title="Eraser"><div className="icon-eraser text-sm"></div></button>
@@ -739,7 +739,7 @@ function Sketch({ user }) {
         
         <select value={['rectangle', 'circle', 'ellipse', 'triangle', 'diamond', 'arrow'].includes(currentTool) ? currentTool : 'shapes'} onChange={(e) => {
           if (e.target.value !== 'shapes') setCurrentTool(e.target.value);
-        }} className={`px-3 py-2 rounded text-xs font-mono bg-discordDarkest border cursor-pointer ${['rectangle', 'circle', 'ellipse', 'triangle', 'diamond', 'arrow'].includes(currentTool) ? 'bg-mcGreen text-black font-bold border-mcGreen' : 'text-gray-300 border-gray-600 hover:border-gray-500'}`}>
+        }} className={`shrink-0 px-3 py-2 rounded text-xs font-mono bg-discordDarkest border cursor-pointer ${['rectangle', 'circle', 'ellipse', 'triangle', 'diamond', 'arrow'].includes(currentTool) ? 'bg-mcGreen text-black font-bold border-mcGreen' : 'text-gray-300 border-gray-600 hover:border-gray-500'}`}>
           <option value="shapes">Shapes</option>
           <option value="rectangle">Rectangle</option>
           <option value="circle">Circle</option>
@@ -756,12 +756,12 @@ function Sketch({ user }) {
         <select
           value={textFont}
           onChange={(e) => setTextFont(e.target.value)}
-          className="min-w-[130px] rounded border border-gray-600 bg-discordDarkest px-2 py-2 text-xs font-mono text-gray-200"
+          className="min-w-[130px] shrink-0 rounded border border-gray-600 bg-discordDarkest px-2 py-2 text-xs font-mono text-gray-200"
           title="Text font"
         >
           {fontOptions.map((font) => <option key={font} value={font}>{font}</option>)}
         </select>
-        <label className="flex items-center gap-2 rounded border border-gray-600 bg-discordDarkest px-2 py-1 text-xs font-mono text-gray-300">
+        <label className="flex shrink-0 items-center gap-2 rounded border border-gray-600 bg-discordDarkest px-2 py-1 text-xs font-mono text-gray-300">
           Text
           <input
             type="number"
@@ -814,7 +814,7 @@ function Sketch({ user }) {
         onPointerCancel={handlePointerCancel}
         onPointerLeave={handlePointerCancel}
         onClick={(e) => { if (currentTool === 'text') handleCanvasClick(e); }}
-        className={`flex-1 border-2 border-gray-700 rounded-lg bg-discordDarker shadow-lg touch-none ${isCourseCompleted ? 'cursor-not-allowed opacity-80 pointer-events-none' : currentTool === 'select' ? 'cursor-move' : currentTool === 'eraser' ? 'cursor-cell' : 'cursor-crosshair'}`}
+        className={`flex-1 min-h-[280px] border-2 border-gray-700 rounded-lg bg-discordDarker shadow-lg touch-none ${isCourseCompleted ? 'cursor-not-allowed opacity-80 pointer-events-none' : currentTool === 'select' ? 'cursor-move' : currentTool === 'eraser' ? 'cursor-cell' : 'cursor-crosshair'}`}
       />
 
       {/* Text Input Modal */}
