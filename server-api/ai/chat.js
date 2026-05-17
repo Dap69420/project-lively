@@ -144,8 +144,11 @@ function hasEnoughObjectiveEvidence({ cleanText, cumulativeText, objectiveText }
     return Array.from(variants).some((variant) => variant.length > 3 && lowerCumulative.includes(variant));
   });
   const matchedObjectiveWords = new Set(objectiveWordMatches).size;
-  const hasReasoning = /\b(because|so that|therefore|which means|this means|as a result|since|so)\b/.test(lowerCumulative);
-  const hasApplication = /\b(example|for instance|when|if|using|use|solve|solving|equals|formula|calculate|calculation|step|given|therefore|substitute|apply|applying)\b/.test(lowerCumulative);
+  const hasFormulaOrEquation = /[a-z]\s*[=+\-*/^]|\([^)]*[a-z][^)]*\)\s*\^?\d|\d+\s*[=+\-*/^]\s*\d+|=/.test(lowerCumulative);
+  const hasReasoning = /\b(because|so that|therefore|which means|this means|as a result|since|so|true for|works for|shows that|proves|means that)\b/.test(lowerCumulative)
+    || (hasFormulaOrEquation && /\b(true|rule|identity|shortcut|same value|any number|all values)\b/.test(lowerCumulative));
+  const hasApplication = /\b(example|for instance|when|if|using|use|solve|solving|equals|formula|calculate|calculation|step|given|therefore|substitute|apply|applying|like|such as|e\.g)\b/.test(lowerCumulative)
+    || hasFormulaOrEquation;
   const hasSpecificDetail = /\d|=|\+|-|\*|\/|\^|->|→|:|;|\b(low|high|neutral|acidic|basic|velocity|acceleration|force|speed|distance|time|mass|energy|ratio|function|variable|equation|identity|expression|derivative|calculus)\b/.test(lowerCumulative);
   const hasVagueCompletionClaim = /\b(done|finished|complete|understand|mastered)\b/.test(lowerLatest) && latest.length < 90;
   const hasEnoughLength = latest.length >= 75 || cumulative.length >= 150;
@@ -164,7 +167,10 @@ function hasEnoughObjectiveEvidence({ cleanText, cumulativeText, objectiveText }
     && hasEnoughLength
     && hasSpecificDetail
     && objectiveMatchOk
-    && evidenceScore >= 4;
+    && (
+      evidenceScore >= 4
+      || (hasFormulaOrEquation && hasApplication && evidenceScore >= 3)
+    );
 }
 
 function isPromptRequest(text) {
