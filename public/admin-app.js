@@ -41,6 +41,18 @@ function AdminApp() {
     const [editingCourse, setEditingCourse] = React.useState(null);
     const [deletingCourseId, setDeletingCourseId] = React.useState('');
     const [courseActionError, setCourseActionError] = React.useState('');
+    const [activeAdminTab, setActiveAdminTab] = React.useState('courses');
+    const [achievements, setAchievements] = React.useState([]);
+    const [achievementForm, setAchievementForm] = React.useState({
+      name: '',
+      description: '',
+      icon: 'icon-award',
+      color: 'from-purple-500 to-neonViolet',
+      condition_type: 'total_xp',
+      condition_value: 25,
+      sort_index: 100
+    });
+    const [achievementError, setAchievementError] = React.useState('');
 
     React.useEffect(() => {
       let mounted = true;
@@ -116,6 +128,14 @@ function AdminApp() {
           setAccessDenied(err.status === 403 ? 'Your account is not authorized to access the admin panel.' : (err.message || 'Failed to load courses'));
         })
         .finally(() => setLoadingCourses(false));
+
+      fetchJson('/api/admin/achievements', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+        .then((result) => setAchievements(result.data || []))
+        .catch((err) => setAchievementError(err.message || 'Failed to load achievements'));
     }, [session]);
 
     const handleCourseCreated = (newCourse) => {
@@ -165,6 +185,69 @@ function AdminApp() {
         setCourseActionError(error?.message || 'Failed to delete course');
       } finally {
         setDeletingCourseId('');
+      }
+    };
+
+    const conditionLabels = {
+      total_xp: 'Earn total XP',
+      level: 'Reach level',
+      streak: 'Reach streak days',
+      coins: 'Collect coins',
+      correct_answers: 'Get correct answers',
+      courses_completed: 'Complete courses'
+    };
+
+    const describeAchievement = (achievement) => {
+      const label = conditionLabels[achievement.condition_type] || achievement.condition_type;
+      return `${label}: ${achievement.condition_value}`;
+    };
+
+    const handleAchievementSubmit = async (event) => {
+      event.preventDefault();
+      if (!session?.access_token) return;
+
+      setAchievementError('');
+      try {
+        const result = await fetchJson('/api/admin/achievements', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify(achievementForm),
+        });
+        setAchievements((current) => [...current, result.data].sort((a, b) => Number(a.sort_index || 0) - Number(b.sort_index || 0)));
+        setAchievementForm({
+          name: '',
+          description: '',
+          icon: 'icon-award',
+          color: 'from-purple-500 to-neonViolet',
+          condition_type: 'total_xp',
+          condition_value: 25,
+          sort_index: 100
+        });
+      } catch (error) {
+        setAchievementError(error?.message || 'Failed to save achievement');
+      }
+    };
+
+    const handleDeleteAchievement = async (achievement) => {
+      if (!achievement?.id || !session?.access_token) return;
+      const confirmed = window.confirm(`Delete achievement "${achievement.name}"?`);
+      if (!confirmed) return;
+
+      try {
+        await fetchJson('/api/admin/achievements', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ id: achievement.id }),
+        });
+        setAchievements((current) => current.filter((item) => item.id !== achievement.id));
+      } catch (error) {
+        setAchievementError(error?.message || 'Failed to delete achievement');
       }
     };
 
@@ -250,6 +333,24 @@ function AdminApp() {
               </div>
             </div>
 
+            <div className="mb-8 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setActiveAdminTab('courses')}
+                className={`rounded-lg border px-4 py-2 font-mono text-xs uppercase tracking-wider ${activeAdminTab === 'courses' ? 'border-neonViolet bg-neonViolet text-black' : 'border-white/10 bg-white/5 text-gray-300'}`}
+              >
+                Courses
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveAdminTab('achievements')}
+                className={`rounded-lg border px-4 py-2 font-mono text-xs uppercase tracking-wider ${activeAdminTab === 'achievements' ? 'border-neonViolet bg-neonViolet text-black' : 'border-white/10 bg-white/5 text-gray-300'}`}
+              >
+                Achievements
+              </button>
+            </div>
+
+            {activeAdminTab === 'courses' ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               
               {/* Course Form */}
@@ -328,6 +429,106 @@ function AdminApp() {
               </div>
 
             </div>
+            ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-1">
+                <form onSubmit={handleAchievementSubmit} className="glass-panel p-6 space-y-4">
+                  <h2 className="text-xl font-bold">Add Achievement</h2>
+                  {achievementError ? (
+                    <div className="rounded border border-red-500/30 bg-red-500/10 p-3 text-xs font-mono text-red-300">{achievementError}</div>
+                  ) : null}
+                  <input
+                    value={achievementForm.name}
+                    onChange={(event) => setAchievementForm((current) => Object.assign({}, current, { name: event.target.value }))}
+                    placeholder="Achievement name"
+                    className="w-full rounded border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none focus:border-neonViolet"
+                  />
+                  <textarea
+                    value={achievementForm.description}
+                    onChange={(event) => setAchievementForm((current) => Object.assign({}, current, { description: event.target.value }))}
+                    placeholder="How it is achieved"
+                    className="min-h-20 w-full rounded border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none focus:border-neonViolet"
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      value={achievementForm.icon}
+                      onChange={(event) => setAchievementForm((current) => Object.assign({}, current, { icon: event.target.value }))}
+                      placeholder="icon-award"
+                      className="rounded border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none focus:border-neonViolet"
+                    />
+                    <input
+                      value={achievementForm.color}
+                      onChange={(event) => setAchievementForm((current) => Object.assign({}, current, { color: event.target.value }))}
+                      placeholder="from-purple-500 to-neonViolet"
+                      className="rounded border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none focus:border-neonViolet"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <select
+                      value={achievementForm.condition_type}
+                      onChange={(event) => setAchievementForm((current) => Object.assign({}, current, { condition_type: event.target.value }))}
+                      className="rounded border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none focus:border-neonViolet"
+                    >
+                      {Object.entries(conditionLabels).map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      min="1"
+                      value={achievementForm.condition_value}
+                      onChange={(event) => setAchievementForm((current) => Object.assign({}, current, { condition_value: Number(event.target.value || 1) }))}
+                      className="rounded border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none focus:border-neonViolet"
+                    />
+                  </div>
+                  <input
+                    type="number"
+                    value={achievementForm.sort_index}
+                    onChange={(event) => setAchievementForm((current) => Object.assign({}, current, { sort_index: Number(event.target.value || 0) }))}
+                    placeholder="Index"
+                    className="w-full rounded border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none focus:border-neonViolet"
+                  />
+                  <button className="w-full rounded bg-neonViolet px-4 py-2 font-bold text-black hover:opacity-90">
+                    Add Achievement
+                  </button>
+                </form>
+              </div>
+              <div className="lg:col-span-2">
+                <div className="glass-panel p-6">
+                  <h2 className="mb-4 text-xl font-bold">Achievement Index</h2>
+                  <div className="space-y-3">
+                    {achievements.map((achievement) => (
+                      <div key={achievement.id} className="rounded-lg border border-white/10 bg-black/20 p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="font-mono text-[10px] uppercase tracking-wider text-neonViolet">#{achievement.sort_index} • {achievement.id}</div>
+                            <div className="mt-1 text-lg font-bold">{achievement.name}</div>
+                            <div className="mt-1 text-sm text-gray-400">{achievement.description}</div>
+                            <div className="mt-2 text-xs font-mono text-gray-300">Achieved by: {describeAchievement(achievement)}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="rounded border border-green-400/30 bg-green-400/10 px-3 py-1 text-xs font-mono text-green-300">
+                              {achievement.owner_count || 0} users own it
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteAchievement(achievement)}
+                              className="mt-3 rounded border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-mono text-red-300 hover:bg-red-500/20"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {achievements.length === 0 ? (
+                      <div className="rounded border border-white/10 bg-black/20 p-6 text-center text-sm text-gray-400">No achievements yet.</div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            </div>
+            )}
 
             {/* Info Footer */}
             <div className="mt-12 pt-8 border-t border-white/10">

@@ -496,16 +496,15 @@ function Sketch({ user }) {
 
         const objectiveResult = await window.LivelyProgress.markObjectiveProgress(selectedCourseId, aiDecision || {});
         if (objectiveResult.allComplete && !selectedCourseState.completed) {
-          await window.LivelyProgress.completeCourse(selectedCourseId);
-          const completionText = `Course completed: ${selectedCourse.name}. Brilliant work. All objectives are checked off, so this course is now locked as completed. You can reopen it anytime from your profile to review, but you cannot continue it.`;
+          const completionText = `All objectives are cleared for ${selectedCourse.name}. Switch to chat to take the 10-question final test. You need at least 4/10 to complete the course.`;
           if (window.LivelyChat && typeof window.LivelyChat.addSystemMessage === 'function') {
-            window.LivelyChat.addSystemMessage(completionText, { type: 'course_completed' });
+            window.LivelyChat.addSystemMessage(completionText, { type: 'final_test_needed' });
           } else {
             window.LivelyProgress.addChatMessage({
               role: 'ai',
               text: completionText,
               courseId: selectedCourseId,
-              metadata: { type: 'course_completed' }
+              metadata: { type: 'final_test_needed' }
             });
           }
         }

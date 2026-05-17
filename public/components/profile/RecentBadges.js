@@ -1,6 +1,7 @@
 function RecentBadges() {
   try {
     const progress = window.LivelyProgress.useProgress();
+    const catalog = Array.isArray(progress.achievementCatalog) ? progress.achievementCatalog : [];
     const badgeMap = {
       'first-steps': { name: 'First Steps', icon: 'icon-sparkles', color: 'from-purple-500 to-neonViolet' },
       'level-3': { name: 'Level 3 Unlocked', icon: 'icon-trophy', color: 'from-blue-400 to-cyan-500' },
@@ -9,6 +10,13 @@ function RecentBadges() {
       'quiz-wins': { name: 'Quiz Wins', icon: 'icon-message-square', color: 'from-green-400 to-emerald-500' },
       'course-master': { name: 'Course Master', icon: 'icon-book-open', color: 'from-pink-400 to-fuchsia-500' }
     };
+    catalog.forEach((achievement) => {
+      badgeMap[achievement.id] = {
+        name: achievement.name,
+        icon: achievement.icon || 'icon-award',
+        color: achievement.color || 'from-purple-500 to-neonViolet'
+      };
+    });
     const badges = progress.achievements.length > 0 ? progress.achievements.map((id) => badgeMap[id]).filter(Boolean) : [
       { name: 'No badges yet', icon: 'icon-circle-help', color: 'from-gray-400 to-gray-500' }
     ];

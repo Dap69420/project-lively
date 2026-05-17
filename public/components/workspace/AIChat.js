@@ -167,6 +167,8 @@ ${displayMathLines.join('\n')}
     const [mood, setMood] = React.useState('green');
     const [answeredQuizKeys, setAnsweredQuizKeys] = React.useState([]);
     const [activeQuizPrompt, setActiveQuizPrompt] = React.useState(null);
+    const [activeFinalTest, setActiveFinalTest] = React.useState(null);
+    const [finalTestLoading, setFinalTestLoading] = React.useState(false);
     const moodConfig = {
       green: { label: 'Focused', tone: 'bg-mcGreen shadow-[0_0_10px_#55FF55]', text: 'text-mcGreen' },
       supportive: { label: 'Supportive', tone: 'bg-mcOrange shadow-[0_0_10px_#FFAA00]', text: 'text-mcOrange' },
@@ -179,6 +181,7 @@ ${displayMathLines.join('\n')}
     const currentMood = moodConfig[mood] || moodConfig.focused;
     const [isTyping, setIsTyping] = React.useState(false);
     const messagesEndRef = React.useRef(null);
+    const finalTestStartingRef = React.useRef(false);
     const hydrateQuizAnswers = (messageList) => {
       const answersByKey = {};
       (messageList || []).forEach((message, index) => {
@@ -224,6 +227,7 @@ ${displayMathLines.join('\n')}
     React.useEffect(() => {
       setAnsweredQuizKeys([]);
       setActiveQuizPrompt(null);
+      setActiveFinalTest(null);
       let cancelled = false;
       const completedMessage = {
         role: 'ai',
@@ -431,6 +435,154 @@ ${displayMathLines.join('\n')}
       setMood(isCorrect ? 'excited' : 'supportive');
     };
 
+    const startFinalTest = async (reasonText = '', options = {}) => {
+      if (finalTestStartingRef.current || finalTestLoading || isCourseCompleted || (activeFinalTest && !options.force)) return;
+      finalTestStartingRef.current = true;
+      setFinalTestLoading(true);
+
+      try {
+        const currentCourseState = window.LivelyProgress.getState().courseProgress?.[selectedCourseId] || {};
+        const attempt = Number(currentCourseState.stats?.finalTest?.attempts || 0) + 1;
+        const response = await fetch('/api/ai/final-test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ courseContext, attempt })
+        });
+        const payload = await response.json().catch(() => ({}));
+        const test = payload?.test;
+
+        if (!response.ok || !test || !Array.isArray(test.questions)) {
+          throw new Error(payload?.error || 'Unable to build final test');
+        }
+
+        const normalizedTest = {
+          title: test.title || `${selectedCourse.name} Final Test`,
+          passScore: Number(test.pass_score || test.passScore || 4),
+          questions: test.questions.slice(0, 10),
+          answers: Array(10).fill(null),
+          attempt
+        };
+        setActiveFinalTest(normalizedTest);
+
+        const msg = {
+          role: 'ai',
+          text: reasonText || `All objectives are cleared. Final test time: answer 10 questions. You need at least ${normalizedTest.passScore}/10 to complete the course.`,
+          time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+          metadata: { type: 'final_test_started', attempt, passScore: normalizedTest.passScore }
+        };
+        setMessages((prev) => [...prev, msg]);
+        window.LivelyProgress.addChatMessage({
+          role: msg.role,
+          text: msg.text,
+          time: msg.time,
+          courseId: selectedCourseId,
+          metadata: msg.metadata
+        });
+      } catch (error) {
+        const msg = {
+          role: 'ai',
+          text: 'All objectives are cleared, but I could not build the final test yet. Try sending one more message and I will retry.',
+          time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+          metadata: { type: 'final_test_error', error: error?.message || String(error) }
+        };
+        setMessages((prev) => [...prev, msg]);
+      } finally {
+        finalTestStartingRef.current = false;
+        setFinalTestLoading(false);
+      }
+    };
+
+    const handleFinalTestAnswer = (questionIndex, selectedIndex) => {
+      setActiveFinalTest((current) => {
+        if (!current) return current;
+        const answers = current.answers.slice();
+        answers[questionIndex] = selectedIndex;
+        return Object.assign({}, current, { answers });
+      });
+    };
+
+    const submitFinalTest = async () => {
+      if (!activeFinalTest || activeFinalTest.answers.some((answer) => answer === null)) return;
+
+      const questions = activeFinalTest.questions || [];
+      const score = questions.reduce((total, question, index) => {
+        const correctIndex = Number(question.correct_index ?? question.correctIndex ?? 0);
+        return total + (activeFinalTest.answers[index] === correctIndex ? 1 : 0);
+      }, 0);
+      const passScore = Number(activeFinalTest.passScore || 4);
+      const passed = score >= passScore;
+      const summaryLines = questions.map((question, index) => {
+        const selectedIndex = activeFinalTest.answers[index];
+        const correctIndex = Number(question.correct_index ?? question.correctIndex ?? 0);
+        return `${index + 1}. Your answer: ${question.options?.[selectedIndex] || 'No answer'} | Correct: ${question.options?.[correctIndex] || 'Unknown'}`;
+      });
+      const resultText = passed
+        ? `Final test passed: ${score}/10. Course completed.`
+        : `Final test failed: ${score}/10. You need ${passScore}/10, so I made a note and you need another test.`;
+      const resultMsg = {
+        role: 'ai',
+        text: `${resultText}\n\n${summaryLines.join('\n')}`,
+        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+        metadata: {
+          type: 'final_test_result',
+          score,
+          totalQuestions: questions.length,
+          passScore,
+          passed,
+          attempt: activeFinalTest.attempt,
+          answers: activeFinalTest.answers
+        }
+      };
+
+      setMessages((prev) => [...prev, resultMsg]);
+      window.LivelyProgress.addChatMessage({
+        role: resultMsg.role,
+        text: resultMsg.text,
+        time: resultMsg.time,
+        courseId: selectedCourseId,
+        metadata: resultMsg.metadata
+      });
+      await window.LivelyProgress.recordFinalTestResult(selectedCourseId, {
+        score,
+        totalQuestions: questions.length,
+        passScore,
+        passed
+      });
+
+      setActiveFinalTest(null);
+
+      if (passed) {
+        await window.LivelyProgress.completeCourse(selectedCourseId);
+        const completionMsg = {
+          role: 'ai',
+          text: `Course completed: ${selectedCourse.name}. You passed the final test, so this course is now locked as completed. You can reopen it anytime for review.`,
+          time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+          metadata: { type: 'course_completed' }
+        };
+        setMessages((prev) => [...prev, completionMsg]);
+        window.LivelyProgress.addChatMessage({
+          role: completionMsg.role,
+          text: completionMsg.text,
+          time: completionMsg.time,
+          courseId: selectedCourseId,
+          metadata: completionMsg.metadata
+        });
+      } else {
+        startFinalTest(`You scored ${score}/10. Let's run another final test so you can try again.`, { force: true });
+      }
+    };
+
+    React.useEffect(() => {
+      const objectives = Array.isArray(selectedCourse.objectives) ? selectedCourse.objectives : [];
+      const objectiveStatus = Array.isArray(selectedCourseState.objectiveStatus) ? selectedCourseState.objectiveStatus : [];
+      const allObjectivesCleared = objectives.length > 0 && objectives.every((_objective, index) => Boolean(objectiveStatus[index]));
+      const finalTestPassed = Boolean(selectedCourseState.stats?.finalTest?.passed);
+
+      if (allObjectivesCleared && !isCourseCompleted && !finalTestPassed && !activeFinalTest && !finalTestLoading) {
+        startFinalTest(`All objectives are cleared. Final test time: answer 10 questions. You need at least 4/10 to complete ${selectedCourse.name}.`);
+      }
+    }, [selectedCourseId, selectedCourseState.objectiveStatus, selectedCourseState.completed]);
+
     const handleSend = async () => {
       if (!input.trim() || isTyping || isCourseCompleted) return;
       
@@ -512,13 +664,7 @@ ${displayMathLines.join('\n')}
 
           const objectiveResult = await window.LivelyProgress.markObjectiveProgress(selectedCourseId, aiDecision || {});
           if (objectiveResult.allComplete && !selectedCourseState.completed) {
-            await window.LivelyProgress.completeCourse(selectedCourseId);
-            completionMsg = {
-              role: 'ai',
-              text: `Course completed: ${selectedCourse.name}. Brilliant work. All objectives are checked off, so this course is now locked as completed. You can reopen it anytime from your profile to review, but you cannot continue it.`,
-              time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-              metadata: { type: 'course_completed' }
-            };
+            startFinalTest(`All objectives are cleared. Final test time: answer 10 questions. You need at least 4/10 to complete ${selectedCourse.name}.`);
           }
         }
 
@@ -768,6 +914,60 @@ ${displayMathLines.join('\n')}
                     </button>
                   ))}
                 </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {activeFinalTest ? (
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/70 p-4">
+            <div className="flex max-h-[92%] w-full max-w-3xl flex-col rounded-lg border border-blue-400/70 bg-discordDarkest shadow-[0_0_32px_rgba(96,165,250,0.22)]">
+              <div className="flex items-center justify-between border-b border-gray-700 px-4 py-3">
+                <div>
+                  <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-blue-400">Final Test</div>
+                  <div className="text-sm font-bold text-gray-100">{activeFinalTest.title}</div>
+                </div>
+                <div className="rounded border border-blue-400/40 bg-blue-400/10 px-3 py-1 text-xs font-mono text-blue-200">
+                  Pass: {activeFinalTest.passScore}/10
+                </div>
+              </div>
+              <div className="flex-1 space-y-4 overflow-y-auto p-4 custom-scrollbar">
+                {(activeFinalTest.questions || []).map((question, questionIndex) => (
+                  <div key={`final-${questionIndex}`} className="rounded border border-gray-700 bg-black/20 p-3">
+                    <div className="mb-3 text-sm font-bold text-white">{question.question}</div>
+                    <div className="grid gap-2">
+                      {(question.options || []).map((option, optionIndex) => {
+                        const selected = activeFinalTest.answers[questionIndex] === optionIndex;
+                        return (
+                          <button
+                            key={`final-${questionIndex}-${optionIndex}`}
+                            type="button"
+                            onClick={() => handleFinalTestAnswer(questionIndex, optionIndex)}
+                            className={`flex min-h-10 items-center gap-3 rounded border px-3 py-2 text-left text-xs transition-colors ${selected ? 'border-blue-400 bg-blue-400/15 text-white' : 'border-gray-600 bg-discordDark text-gray-200 hover:border-blue-400'}`}
+                          >
+                            <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded font-mono font-bold ${selected ? 'bg-blue-400 text-black' : 'bg-black/30 text-blue-300'}`}>
+                              {String.fromCharCode(65 + optionIndex)}
+                            </span>
+                            <span>{option}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center justify-between border-t border-gray-700 px-4 py-3">
+                <span className="text-xs font-mono text-gray-400">
+                  {activeFinalTest.answers.filter((answer) => answer !== null).length}/10 answered
+                </span>
+                <button
+                  type="button"
+                  onClick={submitFinalTest}
+                  disabled={activeFinalTest.answers.some((answer) => answer === null)}
+                  className="rounded bg-blue-400 px-4 py-2 font-pixel text-lg font-bold text-black hover:bg-blue-300 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  SUBMIT TEST
+                </button>
               </div>
             </div>
           </div>

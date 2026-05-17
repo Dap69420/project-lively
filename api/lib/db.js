@@ -118,6 +118,37 @@ if (!connectionString) {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS achievements (
+      id VARCHAR(100) PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      description TEXT DEFAULT '',
+      icon VARCHAR(100) DEFAULT 'icon-award',
+      color VARCHAR(120) DEFAULT 'from-purple-500 to-neonViolet',
+      condition_type VARCHAR(80) DEFAULT 'total_xp',
+      condition_value INTEGER DEFAULT 1,
+      is_active BOOLEAN DEFAULT true,
+      sort_index INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS user_achievements (
+      user_id UUID NOT NULL,
+      achievement_id VARCHAR(100) NOT NULL REFERENCES achievements(id) ON DELETE CASCADE,
+      unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (user_id, achievement_id)
+    );
+
+    INSERT INTO achievements (id, name, description, icon, color, condition_type, condition_value, sort_index)
+    VALUES
+      ('first-steps', 'First Steps', 'Earn 25 XP', 'icon-sparkles', 'from-purple-500 to-neonViolet', 'total_xp', 25, 10),
+      ('level-3', 'Level 3 Unlocked', 'Reach level 3', 'icon-trophy', 'from-blue-400 to-cyan-500', 'level', 3, 20),
+      ('streak-3', 'Three Day Streak', 'Keep learning for 3 days', 'icon-flame', 'from-orange-400 to-red-500', 'streak', 3, 30),
+      ('coin-runner', 'Coin Runner', 'Collect 100 coins', 'icon-coins', 'from-yellow-400 to-amber-500', 'coins', 100, 40),
+      ('quiz-wins', 'Quiz Wins', 'Get 5 strong answers', 'icon-message-square', 'from-green-400 to-emerald-500', 'correct_answers', 5, 50),
+      ('course-master', 'Course Master', 'Complete 1 course', 'icon-book-open', 'from-pink-400 to-fuchsia-500', 'courses_completed', 1, 60)
+    ON CONFLICT (id) DO NOTHING;
+
     CREATE INDEX IF NOT EXISTS idx_user_courses_user_id ON user_courses(user_id);
     CREATE INDEX IF NOT EXISTS idx_user_courses_course_id ON user_courses(course_id);
     CREATE INDEX IF NOT EXISTS idx_chat_messages_user_id ON chat_messages(user_id);
@@ -126,6 +157,8 @@ if (!connectionString) {
     CREATE INDEX IF NOT EXISTS idx_course_notes_course_id ON course_notes(course_id);
     CREATE INDEX IF NOT EXISTS idx_courses_subject_grade ON courses(subject, grade);
     CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_achievements_sort_index ON achievements(sort_index);
+    CREATE INDEX IF NOT EXISTS idx_user_achievements_user_id ON user_achievements(user_id);
   `;
 
   let schemaReadyPromise = null;

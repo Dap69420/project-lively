@@ -42,6 +42,7 @@
       correctAnswers: 0,
       lastStudyDate: '',
       achievements: [],
+      achievementCatalog: ACHIEVEMENT_RULES,
       availableCourses: [],
       catalogStatus: 'idle',
       catalogError: '',
@@ -95,6 +96,7 @@
         correctAnswers: state.correctAnswers,
         lastStudyDate: state.lastStudyDate,
         achievements: state.achievements,
+        achievementCatalog: state.achievementCatalog,
         availableCourses: state.availableCourses,
         catalogStatus: state.catalogStatus,
         catalogError: state.catalogError,
@@ -181,6 +183,7 @@
     merged.userEmail = String(merged.userEmail || '');
     merged.userGrade = String(merged.userGrade || '');
     merged.achievements = Array.isArray(merged.achievements) ? merged.achievements : [];
+    merged.achievementCatalog = Array.isArray(merged.achievementCatalog) && merged.achievementCatalog.length ? merged.achievementCatalog : ACHIEVEMENT_RULES;
     merged.courseProgress = Object.assign({}, createDefaultCourseProgress(), merged.courseProgress || {});
     merged.availableCourses.forEach((course) => {
       merged.courseProgress[course.id] = Object.assign({ xp: 0, questions: 0, mastery: 0, completed: false, completedAt: '', objectiveStatus: [], stats: {} }, merged.courseProgress[course.id] || {});
@@ -291,13 +294,51 @@
 
   function unlockAchievements(state) {
     const unlocked = new Set(state.achievements || []);
-    ACHIEVEMENT_RULES.forEach((achievement) => {
-      if (achievement.test(state)) {
+    const rules = Array.isArray(state.achievementCatalog) && state.achievementCatalog.length ? state.achievementCatalog : ACHIEVEMENT_RULES;
+    rules.forEach((achievement) => {
+      const passed = typeof achievement.test === 'function'
+        ? achievement.test(state)
+        : achievementRuleIsMet(achievement, state);
+      if (passed) {
         unlocked.add(achievement.id);
       }
     });
     state.achievements = Array.from(unlocked);
     return state;
+  }
+
+  function achievementRuleIsMet(achievement, state) {
+    const value = Number(achievement.condition_value ?? achievement.conditionValue ?? 1);
+    const type = String(achievement.condition_type || achievement.conditionType || 'total_xp');
+    const completedCourses = Object.values(state.courseProgress || {}).filter((course) => course.completed).length;
+
+    if (type === 'total_xp') return Number(state.xp || 0) >= value;
+    if (type === 'level') return Number(state.level || 1) >= value;
+    if (type === 'streak') return Number(state.streak || 0) >= value;
+    if (type === 'coins') return Number(state.coins || 0) >= value;
+    if (type === 'correct_answers') return Number(state.correctAnswers || 0) >= value;
+    if (type === 'courses_completed') return completedCourses >= value;
+    return false;
+  }
+
+  async function syncAchievements(nextState) {
+    if (!currentState.userId) {
+      return null;
+    }
+
+    const completedCourses = Object.values(nextState.courseProgress || {}).filter((course) => course.completed).length;
+    return apiJson(`/api/achievements?userId=${encodeURIComponent(currentState.userId)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        totalXp: nextState.xp,
+        coins: nextState.coins,
+        level: nextState.level,
+        streak: nextState.streak,
+        correctAnswers: nextState.correctAnswers,
+        coursesCompleted: completedCourses
+      })
+    });
   }
 
   function updateMastery(state, courseId, xpAmount) {
@@ -424,9 +465,54 @@
         }
 
         await syncProgressToServer(next);
+        const achievementResult = await syncAchievements(next).catch(() => null);
+        if (achievementResult?.owned) {
+          const refreshed = normalizeState(Object.assign({}, currentState, { achievements: achievementResult.owned }));
+          saveState(refreshed);
+        }
       } catch (error) {
         console.error('Course completion sync error:', error);
       }
+    }
+
+    return next;
+  }
+
+  async function recordFinalTestResult(courseId, result) {
+    const course = getCourseById(courseId);
+    if (!course) {
+      return currentState;
+    }
+
+    const next = normalizeState(currentState);
+    const courseState = next.courseProgress[courseId] || { xp: 0, questions: 0, mastery: 0, completed: false, objectiveStatus: [], stats: {} };
+    const previousFinalTest = courseState.stats?.finalTest || {};
+    const attempts = Number(previousFinalTest.attempts || 0) + 1;
+    const finalTest = Object.assign({}, previousFinalTest, {
+      attempts,
+      lastScore: Number(result?.score || 0),
+      totalQuestions: Number(result?.totalQuestions || 10),
+      passScore: Number(result?.passScore || 4),
+      passed: Boolean(result?.passed),
+      lastTakenAt: new Date().toISOString(),
+      status: result?.passed ? 'passed' : 'failed'
+    });
+
+    next.courseProgress[courseId] = Object.assign({}, courseState, {
+      stats: Object.assign({}, courseState.stats || {}, { finalTest })
+    });
+
+    saveState(next);
+
+    if (currentState.userId) {
+      syncCourseToServer(courseId, {
+        progress_percentage: next.courseProgress[courseId].progress_percentage || 100,
+        xp_in_course: next.courseProgress[courseId].xp || 0,
+        coins_earned: next.courseProgress[courseId].coins || 0,
+        stats: next.courseProgress[courseId].stats
+      }).catch((error) => {
+        console.error('Final test sync error:', error);
+      });
     }
 
     return next;
@@ -544,6 +630,15 @@
       syncProgressToServer(next).catch((error) => {
         console.error('Progress sync error:', error);
       });
+      syncAchievements(next)
+        .then((result) => {
+          if (result?.owned) {
+            saveState(Object.assign({}, currentState, { achievements: result.owned }));
+          }
+        })
+        .catch((error) => {
+          console.error('Achievement sync error:', error);
+        });
     }
 
     return next;
@@ -675,13 +770,16 @@
       }));
       saveState(next);
 
-      const [progressResult, coursesResult, userCoursesResult] = await Promise.all([
+      const [progressResult, coursesResult, userCoursesResult, achievementsResult] = await Promise.all([
         apiJson(`/api/progress?userId=${encodeURIComponent(userId)}`),
         user?.user_metadata?.grade ? apiJson(`/api/courses?grade=${encodeURIComponent(user.user_metadata.grade)}`) : Promise.resolve({ success: true, data: [] }),
-        apiJson(`/api/user/courses?userId=${encodeURIComponent(userId)}`)
+        apiJson(`/api/user/courses?userId=${encodeURIComponent(userId)}`),
+        apiJson(`/api/achievements?userId=${encodeURIComponent(userId)}`).catch(() => ({ success: true, data: [] }))
       ]);
 
       const availableCourses = normalizeCourseList(coursesResult?.data || []);
+      const achievementCatalog = Array.isArray(achievementsResult?.data) && achievementsResult.data.length ? achievementsResult.data : ACHIEVEMENT_RULES;
+      const ownedAchievements = achievementCatalog.filter((achievement) => achievement.owned).map((achievement) => achievement.id);
       const userProgressRows = Array.isArray(userCoursesResult?.data) ? userCoursesResult.data : [];
       const courseProgress = {};
 
@@ -713,6 +811,8 @@
         level: Number(progressResult?.data?.global_level || currentState.level || 1),
         streak: Number(progressResult?.data?.current_streak || currentState.streak || 0),
         longestStreak: Number(progressResult?.data?.longest_streak || currentState.longestStreak || 0),
+        achievementCatalog,
+        achievements: ownedAchievements.length ? ownedAchievements : currentState.achievements,
         courseProgress: Object.assign({}, currentState.courseProgress || {}, courseProgress),
         selectedCourse: currentState.selectedCourse || (availableCourses[0] && availableCourses[0].id) || ''
       }));
@@ -840,7 +940,9 @@
       get courses() {
         return getSnapshot().availableCourses;
       },
-      achievements: ACHIEVEMENT_RULES,
+      get achievements() {
+        return getSnapshot().achievementCatalog || ACHIEVEMENT_RULES;
+      },
       getSnapshot,
       getState: getSnapshot,
       subscribe,
@@ -848,6 +950,7 @@
       awardProgress,
       markObjectiveProgress,
       completeCourse,
+      recordFinalTestResult,
       setSelectedCourse,
       setAvailableCourses,
       loadCoursesForGrade,
