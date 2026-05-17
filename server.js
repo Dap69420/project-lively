@@ -85,11 +85,18 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-app.all('/api/notes', require('./api/notes'));
-app.all('/api/ai/chat', require('./api/ai/chat'));
-app.all('/api/ai/final-test', require('./api/ai/final-test'));
-app.all('/api/achievements', require('./api/achievements'));
-app.all('/api/admin/achievements', require('./api/admin/achievements'));
+app.all('/api/config', require('./server-api/config'));
+app.all('/api/courses', require('./server-api/courses'));
+app.all('/api/user/courses', require('./server-api/user/courses'));
+app.all('/api/progress', require('./server-api/progress'));
+app.all('/api/notes', require('./server-api/notes'));
+app.all('/api/chat/messages', require('./server-api/chat/messages'));
+app.all('/api/ai/chat', require('./server-api/ai/chat'));
+app.all('/api/ai/vision', require('./server-api/ai/vision'));
+app.all('/api/ai/final-test', require('./server-api/ai/final-test'));
+app.all('/api/achievements', require('./server-api/achievements'));
+app.all('/api/admin/courses', require('./server-api/admin/courses'));
+app.all('/api/admin/achievements', require('./server-api/admin/achievements'));
 
 app.post('/api/ai/chat', async (req, res) => {
   const { systemPrompt = '', userText = '' } = req.body || {};
