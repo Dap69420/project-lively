@@ -166,6 +166,7 @@ ${displayMathLines.join('\n')}
     const [input, setInput] = React.useState('');
     const [mood, setMood] = React.useState('green');
     const [answeredQuizKeys, setAnsweredQuizKeys] = React.useState([]);
+    const [activeQuizPrompt, setActiveQuizPrompt] = React.useState(null);
     const moodConfig = {
       green: { label: 'Focused', tone: 'bg-mcGreen shadow-[0_0_10px_#55FF55]', text: 'text-mcGreen' },
       supportive: { label: 'Supportive', tone: 'bg-mcOrange shadow-[0_0_10px_#FFAA00]', text: 'text-mcOrange' },
@@ -182,6 +183,7 @@ ${displayMathLines.join('\n')}
     // Load messages from progression when course changes
     React.useEffect(() => {
       setAnsweredQuizKeys([]);
+      setActiveQuizPrompt(null);
       let cancelled = false;
       const completedMessage = {
         role: 'ai',
@@ -311,8 +313,10 @@ ${displayMathLines.join('\n')}
     }, [selectedCourseId]);
 
     const handleQuizAnswer = (quiz, selectedIndex, quizKey) => {
-      if (!quiz || isCourseCompleted || answeredQuizKeys.includes(quizKey)) return;
+      const isActivePromptAnswer = Boolean(activeQuizPrompt?.quizKey && activeQuizPrompt.quizKey === quizKey);
+      if (!quiz || (isCourseCompleted && !isActivePromptAnswer) || answeredQuizKeys.includes(quizKey)) return;
       setAnsweredQuizKeys((current) => current.includes(quizKey) ? current : [...current, quizKey]);
+      setActiveQuizPrompt((current) => current?.quizKey === quizKey ? null : current);
       const correctIndex = Number(quiz.correct_index ?? quiz.correctIndex ?? 0);
       const isCorrect = selectedIndex === correctIndex;
       const selectedAnswer = quiz.options?.[selectedIndex] || `Option ${selectedIndex + 1}`;
@@ -324,7 +328,7 @@ ${displayMathLines.join('\n')}
         role: 'user',
         text: `Quiz answer: ${selectedAnswer}`,
         time: timeNow,
-        metadata: { type: 'quiz_answer', selectedIndex, correctIndex, isCorrect }
+        metadata: { type: 'quiz_answer', quizKey, selectedIndex, correctIndex, isCorrect }
       };
       const feedbackMsg = {
         role: 'ai',
@@ -455,11 +459,12 @@ ${displayMathLines.join('\n')}
           time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
           metadata: { aiDecision }
         };
+        const quizKey = aiDecision?.quiz ? `${selectedCourseId}-${Date.now()}` : '';
         const quizMsg = aiDecision?.quiz ? {
           role: 'ai',
           text: 'Quick quiz',
           time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-          metadata: { type: 'quiz', quiz: aiDecision.quiz }
+          metadata: { type: 'quiz', quiz: aiDecision.quiz, quizKey }
         } : null;
         setMessages(prev => {
           const nextMessages = [...prev, aiMsg];
@@ -467,6 +472,9 @@ ${displayMathLines.join('\n')}
           if (completionMsg) nextMessages.push(completionMsg);
           return nextMessages;
         });
+        if (quizMsg) {
+          setActiveQuizPrompt({ quiz: aiDecision.quiz, quizKey });
+        }
         // Persist AI message
         window.LivelyProgress.addChatMessage({
           role: aiMsg.role,
@@ -518,7 +526,7 @@ ${displayMathLines.join('\n')}
     };
 
     return (
-      <div className="panel flex-1 m-4 ml-0 flex flex-col" data-name="ai-chat" data-file="components/workspace/AIChat.js">
+      <div className="panel relative flex-1 m-4 ml-0 flex flex-col overflow-hidden" data-name="ai-chat" data-file="components/workspace/AIChat.js">
         
         {/* Chat Header */}
         <div className="bg-discordDarkest p-3 border-b border-gray-700/50 flex items-center justify-between">
@@ -571,8 +579,8 @@ ${displayMathLines.join('\n')}
                           <button
                             key={`${idx}-${optionIndex}`}
                             type="button"
-                            onClick={() => handleQuizAnswer(msg.metadata.quiz, optionIndex, `${selectedCourseId}-${idx}`)}
-                            disabled={isCourseCompleted || answeredQuizKeys.includes(`${selectedCourseId}-${idx}`)}
+                            onClick={() => handleQuizAnswer(msg.metadata.quiz, optionIndex, msg.metadata.quizKey || `${selectedCourseId}-${idx}`)}
+                            disabled={isCourseCompleted || answeredQuizKeys.includes(msg.metadata.quizKey || `${selectedCourseId}-${idx}`)}
                             className="text-left rounded border border-gray-600 bg-discordDark px-3 py-2 text-xs hover:border-mcGreen hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <span className="font-mono text-mcGreen mr-2">{String.fromCharCode(65 + optionIndex)}.</span>{option}
@@ -630,6 +638,45 @@ ${displayMathLines.join('\n')}
             </div>
           </div>
         </div>
+
+        {activeQuizPrompt ? (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 p-4">
+            <div className="w-full max-w-md rounded-lg border border-mcGreen/60 bg-discordDarkest shadow-[0_0_28px_rgba(85,255,85,0.22)]">
+              <div className="flex items-center justify-between border-b border-gray-700 px-4 py-3">
+                <div>
+                  <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-mcGreen">Quick Quiz</div>
+                  <div className="text-sm font-bold text-gray-100">Buddy_AI wants to check this</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveQuizPrompt(null)}
+                  className="flex h-8 w-8 items-center justify-center rounded bg-discordDark text-gray-400 hover:text-white"
+                  aria-label="Close quiz"
+                >
+                  <div className="icon-x text-sm"></div>
+                </button>
+              </div>
+              <div className="space-y-4 p-4">
+                <div className="text-base font-bold leading-snug text-white">{activeQuizPrompt.quiz.question}</div>
+                <div className="grid gap-2">
+                  {(activeQuizPrompt.quiz.options || []).map((option, optionIndex) => (
+                    <button
+                      key={`active-quiz-${optionIndex}`}
+                      type="button"
+                      onClick={() => handleQuizAnswer(activeQuizPrompt.quiz, optionIndex, activeQuizPrompt.quizKey)}
+                      className="flex min-h-12 items-center gap-3 rounded border border-gray-600 bg-discordDark px-3 py-2 text-left text-sm text-gray-100 hover:border-mcGreen hover:bg-[#263128]"
+                    >
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-mcGreen font-mono font-bold text-black">
+                        {String.fromCharCode(65 + optionIndex)}
+                      </span>
+                      <span className="leading-snug">{option}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
         
       </div>
     );
