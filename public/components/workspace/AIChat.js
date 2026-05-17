@@ -235,6 +235,7 @@ ${displayMathLines.join('\n')}
     const [finalTestLoading, setFinalTestLoading] = React.useState(false);
     const [courseCompletionPending, setCourseCompletionPending] = React.useState(false);
     const [pendingHintConfirm, setPendingHintConfirm] = React.useState(false);
+    const [pendingFinalQuizKey, setPendingFinalQuizKey] = React.useState('');
     const moodConfig = {
       green: { label: 'Focused', tone: 'bg-mcGreen shadow-[0_0_10px_#55FF55]', text: 'text-mcGreen' },
       supportive: { label: 'Supportive', tone: 'bg-mcOrange shadow-[0_0_10px_#FFAA00]', text: 'text-mcOrange' },
@@ -248,6 +249,7 @@ ${displayMathLines.join('\n')}
     const [isTyping, setIsTyping] = React.useState(false);
     const messagesEndRef = React.useRef(null);
     const finalTestStartingRef = React.useRef(false);
+    const pendingFinalQuizKeyRef = React.useRef('');
     const hydrateQuizAnswers = (messageList) => {
       const answersByKey = {};
       (messageList || []).forEach((message, index) => {
@@ -300,6 +302,8 @@ ${displayMathLines.join('\n')}
       }) : null);
       setCourseCompletionPending(false);
       setPendingHintConfirm(false);
+      setPendingFinalQuizKey('');
+      pendingFinalQuizKeyRef.current = '';
       let cancelled = false;
       const completedMessage = {
         role: 'ai',
@@ -515,7 +519,19 @@ ${displayMathLines.join('\n')}
         courseId: selectedCourseId,
         source: 'quiz'
       });
+      window.dispatchEvent(new CustomEvent('livelyPlaySfx', { detail: { type: isCorrect ? 'success' : 'error' } }));
       setMood(isCorrect ? 'excited' : 'supportive');
+      if (pendingFinalQuizKey && pendingFinalQuizKey === quizKey) {
+        setPendingFinalQuizKey('');
+        pendingFinalQuizKeyRef.current = '';
+        const liveState = window.LivelyProgress.getState().courseProgress?.[selectedCourseId] || {};
+        const objectives = Array.isArray(selectedCourse.objectives) ? selectedCourse.objectives : [];
+        const objectiveStatus = Array.isArray(liveState.objectiveStatus) ? liveState.objectiveStatus : [];
+        const allObjectivesCleared = objectives.length > 0 && objectives.every((_objective, index) => Boolean(objectiveStatus[index]));
+        if (allObjectivesCleared && !liveState.completed && !liveState.stats?.finalTest?.passed) {
+          startFinalTest(`Quiz done. Final test time: answer 10 questions. You need at least 4/10 to complete ${selectedCourse.name}.`);
+        }
+      }
     };
 
     const handleHintRequest = () => {
@@ -671,6 +687,7 @@ ${displayMathLines.join('\n')}
       });
 
       if (passed) {
+        window.dispatchEvent(new CustomEvent('livelyPlaySfx', { detail: { type: 'success' } }));
         setCourseCompletionPending(true);
         setActiveFinalTest(null);
         if (typeof window.LivelyProgress.clearFinalTestDraft === 'function') {
@@ -692,6 +709,7 @@ ${displayMathLines.join('\n')}
           metadata: completionMsg.metadata
         });
       } else {
+        window.dispatchEvent(new CustomEvent('livelyPlaySfx', { detail: { type: 'error' } }));
         setActiveFinalTest(null);
         if (typeof window.LivelyProgress.clearFinalTestDraft === 'function') {
           window.LivelyProgress.clearFinalTestDraft(selectedCourseId);
@@ -706,10 +724,10 @@ ${displayMathLines.join('\n')}
       const allObjectivesCleared = objectives.length > 0 && objectives.every((_objective, index) => Boolean(objectiveStatus[index]));
       const finalTestPassed = Boolean(selectedCourseState.stats?.finalTest?.passed);
 
-      if (allObjectivesCleared && !isCourseCompleted && !finalTestPassed && !activeFinalTest && !finalTestLoading && !courseCompletionPending) {
+      if (allObjectivesCleared && !isCourseCompleted && !finalTestPassed && !activeFinalTest && !finalTestLoading && !courseCompletionPending && !activeQuizPrompt && !pendingFinalQuizKey && !pendingFinalQuizKeyRef.current) {
         startFinalTest(`All objectives are cleared. Final test time: answer 10 questions. You need at least 4/10 to complete ${selectedCourse.name}.`);
       }
-    }, [selectedCourseId, selectedCourseState.objectiveStatus, selectedCourseState.completed, courseCompletionPending]);
+    }, [selectedCourseId, selectedCourseState.objectiveStatus, selectedCourseState.completed, courseCompletionPending, activeQuizPrompt, pendingFinalQuizKey]);
 
     const handleSend = async () => {
       if (!input.trim() || isTyping || isCourseCompleted) return;
@@ -785,6 +803,10 @@ ${displayMathLines.join('\n')}
         setMood(aiDecision?.mood || (isStruggling ? 'supportive' : 'focused'));
 
         let completionMsg = null;
+        const quizKey = aiDecision?.quiz ? `${selectedCourseId}-${Date.now()}` : '';
+        if (quizKey) {
+          pendingFinalQuizKeyRef.current = quizKey;
+        }
         if (window.LivelyProgress) {
           const xpReward = Number(aiDecision?.xp_delta ?? (aiResponse ? Math.max(10, Math.min(30, Math.floor(userText.length / 2))) : 0));
           const coinReward = Number(aiDecision?.coins_delta ?? (xpReward > 0 ? Math.max(2, Math.floor(xpReward / 5)) : 0));
@@ -798,8 +820,18 @@ ${displayMathLines.join('\n')}
           });
 
           const objectiveResult = await window.LivelyProgress.markObjectiveProgress(selectedCourseId, aiDecision || {});
+          if (objectiveResult.newlyCompleted?.length) {
+            window.dispatchEvent(new CustomEvent('livelyPlaySfx', { detail: { type: 'success' } }));
+          }
           if (objectiveResult.allComplete && !selectedCourseState.completed) {
-            startFinalTest(`All objectives are cleared. Final test time: answer 10 questions. You need at least 4/10 to complete ${selectedCourse.name}.`);
+            if (aiDecision?.quiz && quizKey) {
+              setPendingFinalQuizKey(quizKey);
+            } else {
+              pendingFinalQuizKeyRef.current = '';
+              startFinalTest(`All objectives are cleared. Final test time: answer 10 questions. You need at least 4/10 to complete ${selectedCourse.name}.`);
+            }
+          } else if (quizKey) {
+            pendingFinalQuizKeyRef.current = '';
           }
         }
 
@@ -809,7 +841,6 @@ ${displayMathLines.join('\n')}
           time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
           metadata: { aiDecision }
         };
-        const quizKey = aiDecision?.quiz ? `${selectedCourseId}-${Date.now()}` : '';
         const quizMsg = aiDecision?.quiz ? {
           role: 'ai',
           text: 'Quick quiz',

@@ -495,6 +495,9 @@ function Sketch({ user }) {
         });
 
         const objectiveResult = await window.LivelyProgress.markObjectiveProgress(selectedCourseId, aiDecision || {});
+        if (objectiveResult.newlyCompleted?.length) {
+          window.dispatchEvent(new CustomEvent('livelyPlaySfx', { detail: { type: 'success' } }));
+        }
         if (objectiveResult.allComplete && !selectedCourseState.completed) {
           const completionText = `All objectives are cleared for ${selectedCourse.name}. Switch to chat to take the 10-question final test. You need at least 4/10 to complete the course.`;
           if (window.LivelyChat && typeof window.LivelyChat.addSystemMessage === 'function') {

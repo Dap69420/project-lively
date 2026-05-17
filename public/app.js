@@ -36,6 +36,38 @@ class ErrorBoundary extends React.Component {
 
 function App() {
   try {
+    const [user, setUser] = React.useState(null);
+    const [authChecked, setAuthChecked] = React.useState(false);
+
+    React.useEffect(() => {
+      if (!window.supabaseClient) {
+        setAuthChecked(true);
+        return;
+      }
+
+      window.supabaseClient.auth.getSession().then(({ data: { session } }) => {
+        setUser(session?.user || null);
+        setAuthChecked(true);
+        if (session?.user && window.LivelyProgress?.setUserContext) {
+          window.LivelyProgress.setUserContext(session.user).catch((error) => {
+            console.error('Landing progress hydration failed:', error);
+          });
+        }
+      });
+
+      const { data: { subscription } } = window.supabaseClient.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user || null);
+        if (session?.user && window.LivelyProgress?.setUserContext) {
+          window.LivelyProgress.setUserContext(session.user).catch(() => {});
+        }
+      });
+
+      return () => subscription.unsubscribe();
+    }, []);
+
+    const progress = window.LivelyProgress?.useProgress ? window.LivelyProgress.useProgress() : {};
+    const alias = progress.username || user?.user_metadata?.alias || user?.email?.split('@')?.[0] || 'Student';
+
     return (
       <div className="min-h-screen flex flex-col items-center overflow-x-hidden relative" data-name="app" data-file="app.js">
         
@@ -55,9 +87,18 @@ function App() {
             <a href="#features" className="hover:text-lime transition-colors">FEATURES</a>
             <a href="#roadmap" className="hover:text-hotpink transition-colors">ROADMAP</a>
             <a href="#donate" className="hover:text-lime transition-colors">SUPPORT US</a>
-            <a href="login.html" className="bg-lime text-black px-4 py-1.5 border-2 border-black font-bold shadow-[2px_2px_0px_#ff00ff] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all ml-4">
-              LOGIN
-            </a>
+            {user ? (
+              <div className="ml-4 flex items-center gap-3">
+                <a href="profile.html" className="max-w-36 truncate text-lime hover:underline" title={alias}>@{alias}</a>
+                <a href="workspace.html" className="bg-lime text-black px-4 py-1.5 border-2 border-black font-bold shadow-[2px_2px_0px_#ff00ff] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all">
+                  OPEN APP
+                </a>
+              </div>
+            ) : (
+              <a href="login.html" className="bg-lime text-black px-4 py-1.5 border-2 border-black font-bold shadow-[2px_2px_0px_#ff00ff] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all ml-4">
+                {authChecked ? 'LOGIN' : '...'}
+              </a>
+            )}
           </nav>
         </header>
 

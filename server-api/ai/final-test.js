@@ -23,6 +23,24 @@ function normalizeQuestion(item, index, fallbackTopic) {
   };
 }
 
+function shuffleQuestion(question, seed) {
+  const options = Array.isArray(question.options) ? question.options.slice(0, 4) : [];
+  const correct = Math.max(0, Math.min(options.length - 1, Number(question.correct_index || 0)));
+  const correctValue = options[correct];
+  const orderPatterns = [
+    [0, 1, 2, 3],
+    [1, 0, 3, 2],
+    [2, 3, 0, 1],
+    [3, 2, 1, 0]
+  ];
+  const order = orderPatterns[Math.abs(Number(seed || 0)) % orderPatterns.length].filter((index) => index < options.length);
+  const shuffled = order.map((index) => options[index]);
+  return Object.assign({}, question, {
+    options: shuffled,
+    correct_index: Math.max(0, shuffled.findIndex((option) => option === correctValue))
+  });
+}
+
 function topicQuestionSet(objective, topic, objectiveIndex) {
   const lowerObjective = String(objective || '').toLowerCase();
   const lowerTopic = String(topic || '').toLowerCase();
@@ -47,6 +65,12 @@ function topicQuestionSet(objective, topic, objectiveIndex) {
         options: ['Neutralization.', 'Photosynthesis.', 'Evaporation.', 'Melting.'],
         correct_index: 0,
         explanation: 'An acid and base reacting to form salt and water is neutralization.'
+      },
+      {
+        question: 'In a neutralization equation, where do you usually find the products?',
+        options: ['After the reaction arrow.', 'Before the reaction arrow.', 'Inside the acid name only.', 'On the litmus paper.'],
+        correct_index: 0,
+        explanation: 'Products are written after the reaction arrow.'
       }
     ];
   }
@@ -70,6 +94,12 @@ function topicQuestionSet(objective, topic, objectiveIndex) {
         options: ['pH goes from 5 to 2.', 'pH goes from 2 to 7.', 'pH goes from 8 to 12.', 'pH stays at 7.'],
         correct_index: 0,
         explanation: 'A lower pH means the solution is more acidic.'
+      },
+      {
+        question: 'A solution has pH 11. How should it be described?',
+        options: ['Basic.', 'Strongly acidic.', 'Neutral.', 'Without any ions.'],
+        correct_index: 0,
+        explanation: 'A pH above 7 is basic.'
       }
     ];
   }
@@ -93,6 +123,41 @@ function topicQuestionSet(objective, topic, objectiveIndex) {
         options: ['Acids turn blue litmus red; bases turn red litmus blue.', 'Acids and bases both turn litmus purple.', 'Bases always taste sour; acids always feel slippery.', 'Acids are always pH 14; bases are always pH 0.'],
         correct_index: 0,
         explanation: 'Litmus color change is a common way to compare acids and bases.'
+      },
+      {
+        question: 'Which observation best points to an acid?',
+        options: ['Sour taste and blue litmus turning red.', 'Slippery feel and red litmus turning blue.', 'No color change with any indicator.', 'Always having pH above 10.'],
+        correct_index: 0,
+        explanation: 'Acids often taste sour and turn blue litmus red.'
+      }
+    ];
+  }
+
+  if (/\bsolve|word problem|formula|calculate|calculation\b/.test(lowerObjective)) {
+    return [
+      {
+        question: 'A cyclist travels at 5 m/s for 12 s. What distance is covered?',
+        options: ['60 m', '17 m', '2.4 m', '7 m'],
+        correct_index: 0,
+        explanation: 'distance = speed x time = 5 x 12 = 60 m.'
+      },
+      {
+        question: 'A car moves 80 m in 10 s. What is its speed?',
+        options: ['8 m/s', '800 m/s', '70 m/s', '90 m/s'],
+        correct_index: 0,
+        explanation: 'speed = distance / time = 80 / 10 = 8 m/s.'
+      },
+      {
+        question: 'If a runner speeds up from 2 m/s to 6 m/s in 4 s, what is the acceleration?',
+        options: ['1 m/s^2', '8 m/s^2', '4 m/s^2', '24 m/s^2'],
+        correct_index: 0,
+        explanation: 'acceleration = change in velocity / time = (6 - 2) / 4 = 1 m/s^2.'
+      },
+      {
+        question: 'Which line is the correct substitution for distance when speed = 3 m/s and time = 9 s?',
+        options: ['d = 3 x 9', 'd = 9 / 3', 'd = 3 + 9', 'd = 9 - 3'],
+        correct_index: 0,
+        explanation: 'For constant speed, distance = speed x time.'
       }
     ];
   }
@@ -101,21 +166,39 @@ function topicQuestionSet(objective, topic, objectiveIndex) {
     return [
       {
         question: 'Which statement best describes Newton\'s Second Law?',
-        options: ['Force equals mass times acceleration.', 'Objects always move in circles.', 'Every liquid has pH 7.', 'Energy is always destroyed.'],
+        options: ['Force equals mass times acceleration.', 'Objects keep constant speed only when force increases.', 'Acceleration is never related to force.', 'Mass has no effect on acceleration.'],
         correct_index: 0,
         explanation: 'Newton\'s Second Law is commonly written as F = ma.'
       },
       {
         question: 'A ball rolling in a straight hallway is an example of what kind of motion?',
-        options: ['Motion along one line.', 'Random circular motion.', 'No motion at all.', 'A chemical reaction.'],
+        options: ['Motion along one line.', 'Motion around a fixed circle.', 'No motion because the hallway is straight.', 'Only acceleration with no position change.'],
         correct_index: 0,
         explanation: 'Straight-line motion happens along one axis or path.'
       },
       {
         question: 'Which example shows inertia?',
-        options: ['A book stays still until someone pushes it.', 'Salt dissolves in water.', 'Litmus changes color.', 'A plant grows leaves.'],
+        options: ['A book stays still until someone pushes it.', 'A moving object changes direction with no force.', 'A car stops because mass disappears.', 'A cyclist travels distance with no time passing.'],
         correct_index: 0,
         explanation: 'Inertia is an object resisting changes to its motion.'
+      },
+      {
+        question: 'A cyclist moves at 5 m/s for 12 s in a straight line. Which formula finds distance?',
+        options: ['distance = speed x time', 'force = mass x acceleration', 'speed = time x distance', 'acceleration = distance x mass'],
+        correct_index: 0,
+        explanation: 'For constant speed in a straight line, distance = speed x time.'
+      },
+      {
+        question: 'What does velocity include that speed alone does not?',
+        options: ['Direction.', 'Mass.', 'Color.', 'Temperature.'],
+        correct_index: 0,
+        explanation: 'Velocity is speed with direction.'
+      },
+      {
+        question: 'Which situation shows acceleration?',
+        options: ['A scooter speeds up from 2 m/s to 6 m/s.', 'A train stays still at a station.', 'A runner keeps exactly the same velocity.', 'A book rests on a desk.'],
+        correct_index: 0,
+        explanation: 'Acceleration means velocity changes.'
       }
     ];
   }
@@ -144,11 +227,32 @@ function buildFallbackFinalTest(courseContext = {}, attempt = 1) {
   const templates = objectives.flatMap((objective, objectiveIndex) => topicQuestionSet(objective, topic, objectiveIndex));
 
   const questions = [];
-  for (let i = 0; i < 10; i += 1) {
-    const template = templates[(i + attempt - 1) % templates.length];
-    questions.push(Object.assign({}, template, {
-      question: `${i + 1}. ${template.question}`
-    }));
+  const seen = new Set();
+  let cursor = Math.max(0, Number(attempt || 1) - 1);
+  while (questions.length < 10 && cursor < templates.length + 20) {
+    const template = templates[cursor % templates.length];
+    cursor += 1;
+    const key = String(template.question || '').toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    questions.push(shuffleQuestion(Object.assign({}, template, {
+      question: `${questions.length + 1}. ${template.question}`
+    }), questions.length + Number(attempt || 1)));
+  }
+
+  while (questions.length < 10) {
+    const number = questions.length + 1;
+    questions.push(shuffleQuestion({
+      question: `${number}. Which answer best applies ${topic} in a real course problem?`,
+      options: [
+        `Use a correct ${topic} idea with values, evidence, or an example.`,
+        `Ignore the course topic and guess.`,
+        `Repeat only the title of the checkpoint.`,
+        `Give no reasoning or evidence.`
+      ],
+      correct_index: 0,
+      explanation: `The correct answer applies ${topic} with evidence.`
+    }, number + Number(attempt || 1)));
   }
 
   return {
@@ -180,10 +284,10 @@ module.exports = async (req, res) => {
   const fallback = buildFallbackFinalTest(courseContext, Number(attempt || 1));
   const config = getSambaNovaConfig();
 
-  if (!config.SAMBANOVA_API_KEY) {
-    sendJson(res, 200, { success: true, provider: 'fallback', test: fallback });
-    return;
-  }
+  // Use deterministic course-safe questions for now. This avoids model drift like
+  // meta answers, off-subject distractors, repeated questions, or always-A answers.
+  sendJson(res, 200, { success: true, provider: 'course-template', test: fallback });
+  return;
 
   try {
     const prompt = [
@@ -220,6 +324,7 @@ module.exports = async (req, res) => {
       if (hasMetaOptions(question)) {
         questions[index] = fallback.questions[index] || fallback.questions[index % fallback.questions.length];
       }
+      questions[index] = shuffleQuestion(questions[index], index + Number(attempt || 1));
     });
 
     while (questions.length < 10) {

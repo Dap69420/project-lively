@@ -70,16 +70,30 @@ function getQuizTemplate(courseContext, objectives, objectiveIndex) {
 
   const topic = objectives[objectiveIndex] || courseContext.topic || courseContext.aiAim || 'the current idea';
   return {
-    question: `Which answer shows the strongest understanding of ${topic}?`,
+    question: `Which answer best applies ${topic}?`,
     options: [
-      `A clear explanation of ${topic} with a correct example.`,
-      `A memorized phrase about ${topic} with no example.`,
-      'An unrelated fact from a different lesson.',
-      'A guess that avoids explaining the idea.'
+      `Use ${topic} in a specific course example and explain why it fits.`,
+      `Only repeat the words "${topic}" without applying them.`,
+      'Switch to a different topic instead of answering.',
+      'Say it is understood without giving evidence.'
     ],
     correct_index: 0,
     explanation: `The strongest answer explains ${topic} and connects it to a correct example.`
   };
+}
+
+function shuffleQuizOptions(quiz, seed = 0) {
+  if (!quiz || !Array.isArray(quiz.options)) return quiz;
+  const options = quiz.options.slice(0, 4);
+  const correct = Math.max(0, Math.min(options.length - 1, Number(quiz.correct_index ?? quiz.correctIndex ?? 0)));
+  const correctValue = options[correct];
+  const patterns = [[0, 1, 2, 3], [1, 0, 3, 2], [2, 3, 0, 1], [3, 2, 1, 0]];
+  const order = patterns[Math.abs(Number(seed || 0)) % patterns.length].filter((index) => index < options.length);
+  const shuffled = order.map((index) => options[index]);
+  return Object.assign({}, quiz, {
+    options: shuffled,
+    correct_index: Math.max(0, shuffled.findIndex((option) => option === correctValue))
+  });
 }
 
 function hasMetaQuizOptions(quiz) {
@@ -153,6 +167,10 @@ function hasEnoughObjectiveEvidence({ cleanText, cumulativeText, objectiveText }
     && evidenceScore >= 4;
 }
 
+function isPromptRequest(text) {
+  return /\b(give|send|provide|show|tell)\b.{0,40}\b(question|problem|reaction|example|prompt)\b|\bwhat\s+(is|'s|is the)\s+(the\s+)?(question|problem|reaction|example)\b/i.test(String(text || ''));
+}
+
 function getObjectiveGuidance(objectiveText, courseContext = {}) {
   const objective = String(objectiveText || courseContext.topic || courseContext.title || 'this checkpoint').trim();
   const lowerObjective = objective.toLowerCase();
@@ -206,7 +224,9 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
   const objectiveIndex = mentionedObjectiveIndex >= 0 ? mentionedObjectiveIndex : firstIncompleteIndex;
   const mentionedObjective = objectiveIndex >= 0 && (mentionedObjectiveIndex >= 0 || cumulativeText.length > 120);
   const objectiveText = objectives[objectiveIndex] || courseContext.aiAim || courseContext.topic || '';
-  const enoughObjectiveEvidence = hasEnoughObjectiveEvidence({ cleanText, cumulativeText, objectiveText });
+  const promptRequest = isPromptRequest(cleanText);
+  const needsBuddyProvidedPrompt = /\b(provided|given)\s+by\s+(buddy|buddy_ai|ai)\b|\bword problem\b/i.test(objectiveText);
+  const enoughObjectiveEvidence = !promptRequest && hasEnoughObjectiveEvidence({ cleanText, cumulativeText, objectiveText });
   let xpDelta = isOffTopic ? -8 : isStruggling ? 4 : 10;
 
   if (repeatedInput) {
@@ -251,9 +271,9 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
     );
   const quizTopic = objectives[objectiveIndex] || courseContext.topic || courseContext.aiAim || 'this topic';
   const quizTemplate = getQuizTemplate(courseContext, objectives, objectiveIndex);
-  const quiz = shouldQuiz ? Object.assign({}, quizTemplate, {
+  const quiz = shouldQuiz ? shuffleQuizOptions(Object.assign({}, quizTemplate, {
     difficulty: aiSettings.quiz_difficulty || 'mixed'
-  }) : null;
+  }), attemptCount + objectiveIndex) : null;
 
   let visibleResponse = '';
   if (isOffTopic) {
@@ -262,6 +282,14 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
     visibleResponse = `Nice consistency. You explained that clearly. Add one new example tied to ${objectives[0] || courseContext.aiAim || courseContext.topic || 'this topic'} so we can push to the next checkpoint.`;
   } else if (objectiveCompleted) {
     visibleResponse = `Strong explanation. You gave enough reasoning and a concrete example for this checkpoint, so I will mark it complete and move you to the next one.`;
+  } else if (promptRequest && needsBuddyProvidedPrompt) {
+    if (/\bneutralization|reactants|products|acid|base|salt|water\b/i.test(objectiveText)) {
+      visibleResponse = 'Here is the reaction: hydrochloric acid + sodium hydroxide -> sodium chloride + water. Now identify the reactants and products, then explain why it is a neutralization reaction.';
+    } else if (/\bmotion|straight line|velocity|speed|acceleration|distance|time\b/i.test(`${objectiveText} ${courseContext.topic || ''}`)) {
+      visibleResponse = 'Here is the word problem: A cyclist travels in a straight line for 12 seconds at a constant speed of 5 m/s. What distance does the cyclist travel? Show the given values, formula, substitution, answer with unit, and one sentence explaining it.';
+    } else {
+      visibleResponse = `Here is your checkpoint prompt: create one example for ${objectiveText || courseContext.topic || 'this topic'}, solve or identify the important parts, then explain why your answer fits.`;
+    }
   } else if (isStruggling) {
     visibleResponse = `You are close. Start with one short line about ${objectives[0] || courseContext.topic || 'the concept'}, then I will help you refine it.`;
   } else {
@@ -330,9 +358,9 @@ function normalizeDecision(decision, fallbackDecision, courseContext = {}) {
   if (quiz && hasMetaQuizOptions(quiz)) {
     const objectives = Array.isArray(courseContext.objectives) ? courseContext.objectives : [];
     const fallbackQuiz = getQuizTemplate(courseContext, objectives, objectiveIndex);
-    quiz = Object.assign({}, fallbackQuiz, {
+    quiz = shuffleQuizOptions(Object.assign({}, fallbackQuiz, {
       difficulty: quiz.difficulty || fallbackQuiz.difficulty || 'mixed'
-    });
+    }), Number(courseContext.attemptCount || 0) + objectiveIndex);
   }
 
   const evidenceText = [
@@ -349,8 +377,9 @@ function normalizeDecision(decision, fallbackDecision, courseContext = {}) {
     cumulativeText: evidenceText,
     objectiveText
   });
+  const promptRequest = isPromptRequest(latestEvidence);
 
-  if (!objectiveCompleted && Boolean(base.objective_completed) && hasCompletionEvidence) {
+  if (!objectiveCompleted && Boolean(base.objective_completed) && hasCompletionEvidence && !promptRequest) {
     objectiveCompleted = true;
     completed = base.completed;
     if (completedObjectiveIndexes.length === 0 && Number.isInteger(Number(base.objective_index))) {
@@ -360,11 +389,13 @@ function normalizeDecision(decision, fallbackDecision, courseContext = {}) {
     internalResponse = `Checkpoint completed by evidence gate. objective_index=${Number(base.objective_index)}.`;
   }
 
-  if (objectiveCompleted && !hasCompletionEvidence) {
+  if (objectiveCompleted && (!hasCompletionEvidence || promptRequest)) {
     objectiveCompleted = false;
     completed = false;
     completedObjectiveIndexes.length = 0;
-    visibleResponse = `Good progress. I am not marking this objective complete yet because I need a clearer explanation with an example or calculation. Add one concrete step that shows why your answer works.`;
+    visibleResponse = promptRequest
+      ? base.visible_response
+      : `Good progress. I am not marking this objective complete yet because I need a clearer explanation with an example or calculation. Add one concrete step that shows why your answer works.`;
   }
 
   if (Boolean(courseContext.completed) || Boolean(courseContext.repeatedInput)) {

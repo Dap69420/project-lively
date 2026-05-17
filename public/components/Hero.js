@@ -1,5 +1,25 @@
 function Hero() {
   try {
+    const progress = window.LivelyProgress?.useProgress ? window.LivelyProgress.useProgress() : {};
+    const [user, setUser] = React.useState(null);
+
+    React.useEffect(() => {
+      if (!window.supabaseClient) return;
+      window.supabaseClient.auth.getSession().then(({ data: { session } }) => {
+        setUser(session?.user || null);
+      });
+      const { data: { subscription } } = window.supabaseClient.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user || null);
+      });
+      return () => subscription.unsubscribe();
+    }, []);
+
+    const isSignedIn = Boolean(user);
+    const primaryHref = isSignedIn ? 'workspace.html' : 'login.html';
+    const primaryText = isSignedIn ? 'CONTINUE LEARNING' : 'JOIN THE BETA';
+    const secondaryHref = isSignedIn ? 'profile.html' : 'login.html';
+    const secondaryText = isSignedIn ? `LVL ${progress.level || 1} PROFILE` : 'BECOME A TESTER';
+
     return (
       <section className="w-full max-w-6xl mx-auto px-6 py-20 md:py-32 flex flex-col lg:flex-row items-center gap-12" data-name="hero" data-file="components/Hero.js">
         
@@ -20,11 +40,11 @@ function Hero() {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-6 pt-4">
-            <a href="login.html" className="brutal-btn-lime flex items-center justify-center gap-2 text-lg no-underline inline-flex">
-              JOIN THE BETA <div className="icon-arrow-right"></div>
+            <a href={primaryHref} className="brutal-btn-lime flex items-center justify-center gap-2 text-lg no-underline inline-flex">
+              {primaryText} <div className="icon-arrow-right"></div>
             </a>
-            <a href="login.html" className="brutal-btn-pink flex items-center justify-center gap-2 text-lg no-underline inline-flex">
-              <div className="icon-flask-conical"></div> BECOME A TESTER
+            <a href={secondaryHref} className="brutal-btn-pink flex items-center justify-center gap-2 text-lg no-underline inline-flex">
+              <div className={isSignedIn ? 'icon-user-round' : 'icon-flask-conical'}></div> {secondaryText}
             </a>
           </div>
         </div>

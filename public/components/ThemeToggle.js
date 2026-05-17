@@ -2,8 +2,41 @@ function ThemeToggle() {
   try {
     const [theme, setTheme] = React.useState(localStorage.getItem('lively-theme') || 'brutal');
     const [animations, setAnimations] = React.useState(localStorage.getItem('lively-animations') !== 'false');
+    const [sounds, setSounds] = React.useState(localStorage.getItem('lively-sounds') !== 'false');
     const [isOpen, setIsOpen] = React.useState(false);
     const [levelUp, setLevelUp] = React.useState(null);
+
+    const playSfx = React.useCallback((type = 'click') => {
+      if (!sounds) return;
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const context = new AudioContext();
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        const tones = {
+          click: [520, 0.035, 'square', 0.025],
+          success: [740, 0.12, 'triangle', 0.045],
+          level: [880, 0.18, 'sawtooth', 0.04],
+          error: [180, 0.12, 'square', 0.03]
+        };
+        const [frequency, duration, wave, volume] = tones[type] || tones.click;
+        oscillator.type = wave;
+        oscillator.frequency.setValueAtTime(frequency, context.currentTime);
+        if (type === 'level') {
+          oscillator.frequency.exponentialRampToValueAtTime(1320, context.currentTime + duration);
+        }
+        gain.gain.setValueAtTime(volume, context.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + duration);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start();
+        oscillator.stop(context.currentTime + duration);
+        window.setTimeout(() => context.close?.(), Math.ceil((duration + 0.05) * 1000));
+      } catch (_error) {
+        // SFX are decorative; ignore browser audio restrictions.
+      }
+    }, [sounds]);
 
     React.useEffect(() => {
       document.body.className = `theme-${theme} ${animations ? '' : 'animations-reduced'}`.trim();
@@ -18,12 +51,28 @@ function ThemeToggle() {
           level: detail.level || detail.newLevel || '?',
           previousLevel: detail.previousLevel || ''
         });
+        playSfx('level');
         window.setTimeout(() => setLevelUp(null), 2600);
       };
 
       window.addEventListener('livelyLevelUp', handleLevelUp);
       return () => window.removeEventListener('livelyLevelUp', handleLevelUp);
-    }, []);
+    }, [playSfx]);
+
+    React.useEffect(() => {
+      const handleSfx = (event) => playSfx(event.detail?.type || event.detail || 'click');
+      const handleGlobalClick = (event) => {
+        if (event.target?.closest?.('button,a,[role="button"]')) {
+          playSfx('click');
+        }
+      };
+      window.addEventListener('livelyPlaySfx', handleSfx);
+      document.addEventListener('click', handleGlobalClick, true);
+      return () => {
+        window.removeEventListener('livelyPlaySfx', handleSfx);
+        document.removeEventListener('click', handleGlobalClick, true);
+      };
+    }, [playSfx]);
 
     const toggleTheme = () => {
       const newTheme = theme === 'brutal' ? 'glass' : 'brutal';
@@ -37,6 +86,13 @@ function ThemeToggle() {
       localStorage.setItem('lively-animations', newAnim.toString());
     };
 
+    const toggleSounds = () => {
+      const newSounds = !sounds;
+      setSounds(newSounds);
+      localStorage.setItem('lively-sounds', newSounds.toString());
+      if (newSounds) window.setTimeout(() => playSfx('success'), 0);
+    };
+
     return (
       <div data-name="global-settings" data-file="components/ThemeToggle.js">
         <style>{`
@@ -45,10 +101,10 @@ function ThemeToggle() {
             to { transform: translateX(0); opacity: 1; }
           }
         `}</style>
-        {/* Top Settings Button */}
+        {/* Bottom Settings Button */}
         <button 
           onClick={() => setIsOpen(true)}
-          className={`fixed top-4 right-4 z-[9990] flex items-center justify-center w-11 h-11 rounded-lg transition-all duration-300
+          className={`fixed bottom-4 left-4 z-[9990] flex items-center justify-center w-11 h-11 rounded-lg transition-all duration-300
             ${theme === 'brutal' 
               ? 'bg-black text-lime border-2 border-white shadow-[4px_4px_0px_#ff00ff] hover:translate-x-[-1px] hover:translate-y-[-1px]' 
               : 'bg-glassBg text-neonViolet border border-white/20 backdrop-blur-xl shadow-[0_0_20px_rgba(176,38,255,0.25)] hover:bg-white/10'
@@ -115,6 +171,25 @@ function ThemeToggle() {
                   >
                     <span className={`inline-block h-6 w-6 transform transition-transform 
                       ${animations ? 'translate-x-9' : 'translate-x-1'} 
+                      ${theme === 'brutal' ? 'border-2 border-black bg-white' : 'rounded-full bg-white shadow-md'}`} 
+                    />
+                  </button>
+                </div>
+
+                {/* Sound Toggle */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-mono font-bold text-sm uppercase">Sound Effects</div>
+                    <div className={`text-xs ${theme === 'brutal' ? 'text-gray-400' : 'text-gray-500'}`}>Tiny UI bleeps and level-up sound</div>
+                  </div>
+                  <button 
+                    onClick={toggleSounds}
+                    className={`relative inline-flex h-8 w-16 items-center transition-colors focus:outline-none 
+                      ${sounds ? (theme === 'brutal' ? 'bg-lime' : 'bg-neonViolet') : 'bg-gray-600'} 
+                      ${theme === 'brutal' ? 'border-2 border-white shadow-[2px_2px_0px_#ff00ff]' : 'rounded-full border border-white/20'}`}
+                  >
+                    <span className={`inline-block h-6 w-6 transform transition-transform 
+                      ${sounds ? 'translate-x-9' : 'translate-x-1'} 
                       ${theme === 'brutal' ? 'border-2 border-black bg-white' : 'rounded-full bg-white shadow-md'}`} 
                     />
                   </button>

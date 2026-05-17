@@ -2,6 +2,7 @@ function Header({ user }) {
   try {
     const progress = window.LivelyProgress.useProgress();
     const nextLevel = window.LivelyProgress.getNextLevelXp(progress);
+    const xpPercent = Math.max(0, Math.min(100, Math.round((Number(nextLevel.currentXp || 0) / Math.max(1, Number(nextLevel.nextLevelXp || 1))) * 100)));
     const handleLogout = async () => {
       if (supabaseClient) {
         await supabaseClient.auth.signOut();
@@ -16,7 +17,7 @@ function Header({ user }) {
       <div className="w-full bg-discordDarker flex flex-col" data-name="workspace-header" data-file="components/workspace/Header.js">
         {/* Full width XP Bar */}
         <div className="w-full h-2 bg-discordDarkest">
-          <div className="h-full bg-mcPurple w-[65%] transition-all duration-1000 relative">
+          <div className="h-full bg-mcPurple transition-all duration-1000 relative" style={{ width: `${xpPercent}%` }}>
             <div className="absolute right-0 top-0 w-full h-full bg-white/20 animate-pulse"></div>
           </div>
         </div>
@@ -26,12 +27,15 @@ function Header({ user }) {
             <a href="index.html" className="flex items-center justify-center w-8 h-8 rounded bg-discordDark hover:bg-gray-600 transition-colors" title="Home">
               <div className="icon-house text-gray-300"></div>
             </a>
-            <a href="profile.html" className="flex items-center justify-center w-8 h-8 rounded bg-discordDark hover:bg-gray-600 transition-colors" title="User Evolution Profile">
+            <a href="profile.html" className="group relative flex h-10 w-10 items-center justify-center rounded-xl border border-mcPurple/50 bg-discordDark shadow-[0_0_14px_rgba(170,0,170,0.18)] transition-all hover:-translate-y-0.5 hover:border-mcGreen hover:shadow-[0_0_18px_rgba(85,255,85,0.22)]" title="User Evolution Profile">
               {avatarUrl ? (
-                <img src={avatarUrl} alt={`${alias} profile`} className="h-full w-full rounded object-cover" />
+                <img src={avatarUrl} alt={`${alias} profile`} className="h-full w-full rounded-xl object-cover p-0.5" />
               ) : (
                 <div className="icon-user text-gray-300"></div>
               )}
+              <span className="absolute -bottom-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full border border-discordDarker bg-mcGreen px-1 font-mono text-[9px] font-black text-black">
+                {nextLevel.currentLevel}
+              </span>
             </a>
             <h1 className="font-pixel text-3xl text-white tracking-wider flex items-center gap-2 ml-2">
               <div className="w-4 h-4 bg-mcGreen"></div> {alias.toUpperCase()}_WORKSPACE
