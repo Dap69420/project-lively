@@ -179,6 +179,46 @@ ${displayMathLines.join('\n')}
     const currentMood = moodConfig[mood] || moodConfig.focused;
     const [isTyping, setIsTyping] = React.useState(false);
     const messagesEndRef = React.useRef(null);
+    const hydrateQuizAnswers = (messageList) => {
+      const answersByKey = {};
+      (messageList || []).forEach((message, index) => {
+        if (message.metadata?.type === 'quiz_answer') {
+          const fallbackQuizKey = message.metadata.quizIndex != null ? `${selectedCourseId}-${message.metadata.quizIndex}` : '';
+          const quizKey = message.metadata.quizKey || fallbackQuizKey;
+          if (quizKey) {
+            answersByKey[quizKey] = message.metadata;
+          }
+        }
+      });
+
+      return (messageList || []).map((message, index) => {
+        if (message.metadata?.type !== 'quiz' || !message.metadata?.quiz) {
+          return message;
+        }
+
+        const quizKey = message.metadata.quizKey || `${selectedCourseId}-${index}`;
+        const answer = answersByKey[quizKey];
+        if (!answer) {
+          return Object.assign({}, message, {
+            metadata: Object.assign({}, message.metadata, { quizKey })
+          });
+        }
+
+        return Object.assign({}, message, {
+          metadata: Object.assign({}, message.metadata, {
+            quizKey,
+            selectedIndex: answer.selectedIndex,
+            correctIndex: answer.correctIndex,
+            isCorrect: answer.isCorrect
+          })
+        });
+      });
+    };
+    const getAnsweredQuizKeys = (messageList) => Array.from(new Set(
+      (messageList || [])
+        .filter((message) => message.metadata?.type === 'quiz_answer' && message.metadata?.quizKey)
+        .map((message) => message.metadata.quizKey)
+    ));
 
     // Load messages from progression when course changes
     React.useEffect(() => {
@@ -196,8 +236,11 @@ ${displayMathLines.join('\n')}
         const savedMessages = window.LivelyProgress.getChatMessages(selectedCourseId);
         if (savedMessages && savedMessages.length > 0) {
           if (!cancelled) {
-            const hasCompletionMessage = savedMessages.some((message) => message.metadata?.type === 'course_completed');
-            setMessages(isCourseCompleted && !hasCompletionMessage ? [...savedMessages, completedMessage] : savedMessages);
+            const visibleMessages = hydrateQuizAnswers(savedMessages);
+            const hasCompletionMessage = visibleMessages.some((message) => message.metadata?.type === 'course_completed');
+            const nextMessages = isCourseCompleted && !hasCompletionMessage ? [...visibleMessages, completedMessage] : visibleMessages;
+            setAnsweredQuizKeys(getAnsweredQuizKeys(nextMessages));
+            setMessages(nextMessages);
           }
           return;
         }
@@ -207,8 +250,11 @@ ${displayMathLines.join('\n')}
           if (cancelled) return;
 
           if (hydratedMessages && hydratedMessages.length > 0) {
-            const hasCompletionMessage = hydratedMessages.some((message) => message.metadata?.type === 'course_completed');
-            setMessages(isCourseCompleted && !hasCompletionMessage ? [...hydratedMessages, completedMessage] : hydratedMessages);
+            const visibleMessages = hydrateQuizAnswers(hydratedMessages);
+            const hasCompletionMessage = visibleMessages.some((message) => message.metadata?.type === 'course_completed');
+            const nextMessages = isCourseCompleted && !hasCompletionMessage ? [...visibleMessages, completedMessage] : visibleMessages;
+            setAnsweredQuizKeys(getAnsweredQuizKeys(nextMessages));
+            setMessages(nextMessages);
           } else {
             setMessages([
               isCourseCompleted ? completedMessage : { role: 'ai', text: `Hey! Ready to tackle ${selectedCourse.name}? Let's hear what you think.`, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }
@@ -320,9 +366,10 @@ ${displayMathLines.join('\n')}
       const correctIndex = Number(quiz.correct_index ?? quiz.correctIndex ?? 0);
       const isCorrect = selectedIndex === correctIndex;
       const selectedAnswer = quiz.options?.[selectedIndex] || `Option ${selectedIndex + 1}`;
+      const correctAnswer = quiz.options?.[correctIndex] || 'the correct option';
       const feedbackText = isCorrect
-        ? `Correct. ${quiz.explanation || 'That answer fits the course idea.'}`
-        : `Not quite. ${quiz.explanation || `The best answer was: ${quiz.options?.[correctIndex] || 'the highlighted option'}.`}`;
+        ? `Correct. ${quiz.explanation || `You picked ${correctAnswer}, which fits the idea we are practicing.`}`
+        : `Not quite. You picked ${selectedAnswer}. The correct answer is ${correctAnswer}. ${quiz.explanation || 'Check the key idea, then try applying it in one example.'}`;
       const timeNow = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
       const answerMsg = {
         role: 'user',
@@ -334,10 +381,32 @@ ${displayMathLines.join('\n')}
         role: 'ai',
         text: feedbackText,
         time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-        metadata: { type: 'quiz_feedback', isCorrect }
+        metadata: { type: 'quiz_feedback', quizKey, selectedIndex, correctIndex, isCorrect }
       };
 
-      setMessages((prev) => [...prev, answerMsg, feedbackMsg]);
+      setMessages((prev) => [
+        ...prev.map((message, index) => {
+          if (message.metadata?.type !== 'quiz' || !message.metadata?.quiz) {
+            return message;
+          }
+
+          const messageQuizKey = message.metadata.quizKey || `${selectedCourseId}-${index}`;
+          if (messageQuizKey !== quizKey) {
+            return message;
+          }
+
+          return Object.assign({}, message, {
+            metadata: Object.assign({}, message.metadata, {
+              quizKey,
+              selectedIndex,
+              correctIndex,
+              isCorrect
+            })
+          });
+        }),
+        answerMsg,
+        feedbackMsg
+      ]);
       window.LivelyProgress.addChatMessage({
         role: answerMsg.role,
         text: answerMsg.text,
@@ -397,7 +466,7 @@ ${displayMathLines.join('\n')}
           recentStudentEvidence
         });
 
-        const systemPrompt = `You are Buddy_AI, an encouraging study partner helping a student study ${selectedCourse.name}. Focus only on the current course topic: ${selectedCourse.focus}. The current course objectives are: ${(courseContext.objectives || []).join(' | ') || 'none listed'}. Score objectives from cumulative recent student evidence, not only the newest message. If the student explained part of an objective earlier and adds another part now, keep the earlier evidence and guide them to only the missing pieces. If the student repeats the same answer, do not mark completion unless new evidence appears.`;
+        const systemPrompt = `You are Buddy_AI, an encouraging study partner helping a student study ${selectedCourse.name}. Focus only on the current course topic: ${selectedCourse.focus}. The current course objectives are: ${(courseContext.objectives || []).join(' | ') || 'none listed'}. Score objectives from cumulative recent student evidence, not only the newest message. If the student explained part of an objective earlier and adds another part now, keep the earlier evidence and guide them to only the missing pieces. Be strict about objective completion: only mark an objective complete after the student gives a clear explanation plus a concrete example, calculation, or reasoning chain. Do not mark completion for one short fact, a guess, or "I understand". If you create a quiz, make the options real subject answers, not labels like "a correct explanation" or "random fact".`;
 
         let aiResponse = '';
         let aiDecision = null;
@@ -568,27 +637,53 @@ ${displayMathLines.join('\n')}
                   <span className="text-[10px] font-mono text-gray-500">{msg.time}</span>
                 </div>
                 <div className={`p-3 rounded-lg text-sm leading-relaxed ${msg.role === 'user' ? 'bg-mcPurple text-white rounded-tr-none' : 'bg-discordDarkest text-gray-200 rounded-tl-none border border-gray-700'}`}>
-                  {msg.metadata?.type === 'quiz' && msg.metadata?.quiz ? (
-                    <div className="space-y-3 min-w-[240px]">
-                      <div>
-                        <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-mcGreen mb-1">Quick Quiz</div>
-                        <div className="font-bold text-sm">{msg.metadata.quiz.question}</div>
+                  {msg.metadata?.type === 'quiz' && msg.metadata?.quiz ? (() => {
+                    const quiz = msg.metadata.quiz;
+                    const quizKey = msg.metadata.quizKey || `${selectedCourseId}-${idx}`;
+                    const selectedIndex = Number.isFinite(Number(msg.metadata.selectedIndex)) ? Number(msg.metadata.selectedIndex) : null;
+                    const correctIndex = Number(quiz.correct_index ?? quiz.correctIndex ?? msg.metadata.correctIndex ?? 0);
+                    const answered = selectedIndex !== null || answeredQuizKeys.includes(quizKey);
+                    const selectedAnswer = selectedIndex !== null ? quiz.options?.[selectedIndex] : '';
+                    const correctAnswer = quiz.options?.[correctIndex] || '';
+
+                    return (
+                      <div className="space-y-3 min-w-[240px]">
+                        <div>
+                          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-mcGreen mb-1">Quick Quiz</div>
+                          <div className="font-bold text-sm">{quiz.question}</div>
+                        </div>
+                        <div className="grid gap-2">
+                          {(quiz.options || []).map((option, optionIndex) => {
+                            const isSelected = selectedIndex === optionIndex;
+                            const isCorrectOption = correctIndex === optionIndex;
+                            const answeredClass = answered && isCorrectOption
+                              ? 'border-mcGreen bg-mcGreen/10 text-white'
+                              : answered && isSelected
+                                ? 'border-red-400 bg-red-400/10 text-white'
+                                : 'border-gray-600 bg-discordDark';
+
+                            return (
+                              <button
+                                key={`${idx}-${optionIndex}`}
+                                type="button"
+                                onClick={() => handleQuizAnswer(quiz, optionIndex, quizKey)}
+                                disabled={isCourseCompleted || answered}
+                                className={`text-left rounded border px-3 py-2 text-xs hover:border-mcGreen hover:text-white disabled:cursor-not-allowed disabled:opacity-80 ${answeredClass}`}
+                              >
+                                <span className="font-mono text-mcGreen mr-2">{String.fromCharCode(65 + optionIndex)}.</span>{option}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {answered ? (
+                          <div className="rounded border border-gray-600 bg-black/20 px-3 py-2 text-xs text-gray-200">
+                            <div><span className="font-mono text-gray-400">Your answer:</span> {selectedAnswer || 'Answered'}</div>
+                            <div className="mt-1"><span className="font-mono text-mcGreen">Correct answer:</span> {correctAnswer}</div>
+                          </div>
+                        ) : null}
                       </div>
-                      <div className="grid gap-2">
-                        {(msg.metadata.quiz.options || []).map((option, optionIndex) => (
-                          <button
-                            key={`${idx}-${optionIndex}`}
-                            type="button"
-                            onClick={() => handleQuizAnswer(msg.metadata.quiz, optionIndex, msg.metadata.quizKey || `${selectedCourseId}-${idx}`)}
-                            disabled={isCourseCompleted || answeredQuizKeys.includes(msg.metadata.quizKey || `${selectedCourseId}-${idx}`)}
-                            className="text-left rounded border border-gray-600 bg-discordDark px-3 py-2 text-xs hover:border-mcGreen hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            <span className="font-mono text-mcGreen mr-2">{String.fromCharCode(65 + optionIndex)}.</span>{option}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ) : msg.metadata?.type === 'sketch' && msg.metadata?.imageUrl ? (
+                    );
+                  })() : msg.metadata?.type === 'sketch' && msg.metadata?.imageUrl ? (
                     <div className="space-y-2">
                       <div className="font-mono text-xs uppercase tracking-wider opacity-80">{msg.text || 'Sketch submitted'}</div>
                       <img src={msg.metadata.imageUrl} alt="Submitted sketch" className="max-h-56 max-w-full rounded border border-white/20 bg-discordDarkest object-contain" />

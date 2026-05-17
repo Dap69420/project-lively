@@ -32,6 +32,86 @@ function extractJsonObject(text) {
   return null;
 }
 
+function getQuizTemplate(courseContext, objectives, objectiveIndex) {
+  const rawTopic = [
+    objectives[objectiveIndex],
+    courseContext.topic,
+    courseContext.aiAim,
+    courseContext.title
+  ].map((item) => String(item || '').toLowerCase()).join(' ');
+
+  if (/\bph\b|acid|base|alkali|litmus/.test(rawTopic)) {
+    return {
+      question: 'Which statement best explains what the pH scale tells us?',
+      options: [
+        'It measures how acidic or basic a solution is.',
+        'It measures only the color of a liquid.',
+        'It tells us the mass of a chemical sample.',
+        'It shows how fast a reaction always happens.'
+      ],
+      correct_index: 0,
+      explanation: 'The pH scale compares acidity and basicity. Low pH is acidic, high pH is basic, and 7 is neutral.'
+    };
+  }
+
+  if (/motion|straight line|velocity|speed|acceleration|inertia|force/.test(rawTopic)) {
+    return {
+      question: 'Which answer best describes motion in a straight line?',
+      options: [
+        'An object changes position along one path over time.',
+        'An object must always move in a circle.',
+        'An object has no speed when its position changes.',
+        'An object moves only when no force acts on it.'
+      ],
+      correct_index: 0,
+      explanation: 'Straight-line motion means position changes along one line. Speed, velocity, and acceleration describe how that motion changes.'
+    };
+  }
+
+  const topic = objectives[objectiveIndex] || courseContext.topic || courseContext.aiAim || 'the current idea';
+  return {
+    question: `Which answer shows the strongest understanding of ${topic}?`,
+    options: [
+      `A clear explanation of ${topic} with a correct example.`,
+      `A memorized phrase about ${topic} with no example.`,
+      'An unrelated fact from a different lesson.',
+      'A guess that avoids explaining the idea.'
+    ],
+    correct_index: 0,
+    explanation: `The strongest answer explains ${topic} and connects it to a correct example.`
+  };
+}
+
+function hasMetaQuizOptions(quiz) {
+  const optionsText = Array.isArray(quiz?.options) ? quiz.options.join(' ').toLowerCase() : '';
+  return /\ba correct explanation\b|\brandom fact\b|\brepeating words\b|\bskipping\b|\bunrelated to the course\b|\bwithout showing understanding\b/.test(optionsText);
+}
+
+function hasEnoughObjectiveEvidence({ cleanText, cumulativeText, objectiveText }) {
+  const latest = String(cleanText || '').trim();
+  const cumulative = String(cumulativeText || '').trim();
+  const lowerLatest = latest.toLowerCase();
+  const lowerCumulative = cumulative.toLowerCase();
+  const objectiveWords = String(objectiveText || '')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((word) => word.length > 3 && !['explain', 'solve', 'learn', 'meaning', 'provided', 'buddy'].includes(word));
+  const matchedObjectiveWords = new Set(objectiveWords.filter((word) => lowerCumulative.includes(word))).size;
+  const hasReasoning = /\b(because|so that|therefore|which means|this means|as a result|since|so)\b/.test(lowerCumulative);
+  const hasApplication = /\b(example|for instance|when|if|using|solve|equals|formula|calculate|step|given|therefore|substitute)\b/.test(lowerCumulative);
+  const hasSpecificDetail = /\d|=|->|→|:|;|\b(low|high|neutral|acidic|basic|velocity|acceleration|force|speed|distance|time|mass|energy|ratio|function|variable|equation)\b/.test(lowerCumulative);
+  const hasVagueCompletionClaim = /\b(done|finished|complete|understand|mastered)\b/.test(lowerLatest) && latest.length < 90;
+  const hasEnoughLength = latest.length >= 120 || cumulative.length >= 240;
+  const requiredObjectiveMatches = objectiveWords.length >= 3 ? 2 : Math.max(1, objectiveWords.length);
+
+  return !hasVagueCompletionClaim
+    && hasEnoughLength
+    && hasReasoning
+    && hasApplication
+    && hasSpecificDetail
+    && matchedObjectiveWords >= requiredObjectiveMatches;
+}
+
 function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}, mode = 'chat' }) {
   const cleanText = String(userText || '').trim();
   const lowerText = cleanText.toLowerCase();
@@ -52,6 +132,8 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
   const firstIncompleteIndex = objectives.findIndex((_objective, index) => !objectiveStatus[index]);
   const objectiveIndex = mentionedObjectiveIndex >= 0 ? mentionedObjectiveIndex : firstIncompleteIndex;
   const mentionedObjective = objectiveIndex >= 0 && (mentionedObjectiveIndex >= 0 || cumulativeText.length > 120);
+  const objectiveText = objectives[objectiveIndex] || courseContext.aiAim || courseContext.topic || '';
+  const enoughObjectiveEvidence = hasEnoughObjectiveEvidence({ cleanText, cumulativeText, objectiveText });
   let xpDelta = isOffTopic ? -8 : isStruggling ? 4 : 10;
 
   if (repeatedInput) {
@@ -76,9 +158,10 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
     && !repeatedInput
     && !isOffTopic
     && !isStruggling
-    && attemptCount >= 2
+    && attemptCount >= 3
     && objectiveIndex >= 0
-    && (mentionedObjective || cumulativeText.length > 120 || /\b(done|finished|mastered|understand|solved|complete)\b/.test(lowerCumulativeText));
+    && mentionedObjective
+    && enoughObjectiveEvidence;
   const completedObjectiveIndexes = objectiveCompleted ? [objectiveIndex] : [];
   const completed = objectives.length > 0
     ? objectiveCompleted && objectives.every((_objective, index) => index === objectiveIndex || Boolean(objectiveStatus[index]))
@@ -95,18 +178,10 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
       || (quizFrequency === 'every_5_messages' && attemptCount > 0 && attemptCount % 5 === 0)
     );
   const quizTopic = objectives[objectiveIndex] || courseContext.topic || courseContext.aiAim || 'this topic';
-  const quiz = shouldQuiz ? {
-    question: `Quick check: which answer best matches ${quizTopic}?`,
-    options: [
-      `A correct explanation of ${quizTopic}`,
-      'A random fact unrelated to the course',
-      'Repeating words without showing understanding',
-      'Skipping the idea entirely'
-    ],
-    correct_index: 0,
-    explanation: `Nice. The best answer is the one that directly explains ${quizTopic}.`,
+  const quizTemplate = getQuizTemplate(courseContext, objectives, objectiveIndex);
+  const quiz = shouldQuiz ? Object.assign({}, quizTemplate, {
     difficulty: aiSettings.quiz_difficulty || 'mixed'
-  } : null;
+  }) : null;
 
   let visibleResponse = '';
   if (isOffTopic) {
@@ -114,11 +189,11 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
   } else if (repeatedInput) {
     visibleResponse = `Nice consistency. You explained that clearly. Add one new example tied to ${objectives[0] || courseContext.aiAim || courseContext.topic || 'this topic'} so we can push to the next checkpoint.`;
   } else if (objectiveCompleted) {
-    visibleResponse = `Strong explanation. You connected your idea to ${objectives[objectiveIndex] || courseContext.aiAim || 'the core objective'} clearly. I'll mark that objective complete and move you to the next checkpoint.`;
+    visibleResponse = `Strong explanation. You gave enough reasoning and a concrete example for this checkpoint, so I will mark it complete and move you to the next one.`;
   } else if (isStruggling) {
     visibleResponse = `You are close. Start with one short line about ${objectives[0] || courseContext.topic || 'the concept'}, then I will help you refine it.`;
   } else {
-    visibleResponse = `Good direction. Now tighten it with one concrete example focused on ${objectives[0] || courseContext.aiAim || 'the objective'}.`;
+    visibleResponse = `Good start. To count this checkpoint, explain the idea in your own words and add one concrete example or calculation from ${courseContext.topic || courseContext.title || 'this lesson'}.`;
   }
 
   return {
@@ -141,7 +216,7 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
 function normalizeDecision(decision, fallbackDecision, courseContext = {}) {
   const base = fallbackDecision || buildFallbackDecision({ userText: '' });
   const source = decision && typeof decision === 'object' ? decision : {};
-  const visibleResponse = String(source.visible_response || source.text || base.visible_response || '').trim() || base.visible_response;
+  let visibleResponse = String(source.visible_response || source.text || base.visible_response || '').trim() || base.visible_response;
   const internalResponse = String(source.internal_response || source.admin_response || source.secret_response || base.internal_response || '').trim() || base.internal_response;
   let xpDelta = Number.isFinite(Number(source.xp_delta)) ? Math.round(Number(source.xp_delta)) : base.xp_delta;
   const coinsDelta = Number.isFinite(Number(source.coins_delta)) ? Math.round(Number(source.coins_delta)) : base.coins_delta;
@@ -159,7 +234,7 @@ function normalizeDecision(decision, fallbackDecision, courseContext = {}) {
     : Number.isInteger(Number(base.objective_index))
       ? Number(base.objective_index)
       : null;
-  const objectiveCompleted = typeof source.objective_completed === 'boolean'
+  let objectiveCompleted = typeof source.objective_completed === 'boolean'
     ? source.objective_completed
     : typeof source.completedObjective === 'boolean'
       ? source.completedObjective
@@ -168,7 +243,7 @@ function normalizeDecision(decision, fallbackDecision, courseContext = {}) {
     ? String(source.mood).toLowerCase()
     : base.mood || 'focused';
   const quizSource = source.quiz && typeof source.quiz === 'object' ? source.quiz : base.quiz;
-  const quiz = quizSource && typeof quizSource === 'object' && Array.isArray(quizSource.options) && quizSource.options.length >= 2
+  let quiz = quizSource && typeof quizSource === 'object' && Array.isArray(quizSource.options) && quizSource.options.length >= 2
     ? {
         question: String(quizSource.question || '').trim(),
         options: quizSource.options.slice(0, 4).map((option) => String(option || '').trim()).filter(Boolean),
@@ -178,8 +253,39 @@ function normalizeDecision(decision, fallbackDecision, courseContext = {}) {
       }
     : null;
 
+  if (quiz && hasMetaQuizOptions(quiz)) {
+    const objectives = Array.isArray(courseContext.objectives) ? courseContext.objectives : [];
+    const fallbackQuiz = getQuizTemplate(courseContext, objectives, objectiveIndex);
+    quiz = Object.assign({}, fallbackQuiz, {
+      difficulty: quiz.difficulty || fallbackQuiz.difficulty || 'mixed'
+    });
+  }
+
+  const evidenceText = Array.isArray(courseContext.recentStudentEvidence)
+    ? courseContext.recentStudentEvidence.join('\n')
+    : '';
+  const latestEvidence = Array.isArray(courseContext.recentStudentEvidence) && courseContext.recentStudentEvidence.length
+    ? courseContext.recentStudentEvidence[courseContext.recentStudentEvidence.length - 1]
+    : '';
+  const objectives = Array.isArray(courseContext.objectives) ? courseContext.objectives : [];
+  const objectiveText = objectives[objectiveIndex] || courseContext.aiAim || courseContext.topic || '';
+  const hasCompletionEvidence = hasEnoughObjectiveEvidence({
+    cleanText: latestEvidence,
+    cumulativeText: evidenceText,
+    objectiveText
+  });
+
+  if (objectiveCompleted && !hasCompletionEvidence) {
+    objectiveCompleted = false;
+    completed = false;
+    completedObjectiveIndexes.length = 0;
+    visibleResponse = `Good progress. I am not marking this objective complete yet because I need a clearer explanation with an example or calculation. Add one concrete step that shows why your answer works.`;
+  }
+
   if (Boolean(courseContext.completed) || Boolean(courseContext.repeatedInput)) {
     completed = false;
+    objectiveCompleted = false;
+    completedObjectiveIndexes.length = 0;
   }
 
   if (completed && xpDelta <= 0) {
@@ -194,10 +300,10 @@ function normalizeDecision(decision, fallbackDecision, courseContext = {}) {
     mood,
     quiz: quiz && quiz.question && quiz.options.length >= 2 ? quiz : null,
     objective_completed: objectiveCompleted,
-    objective_index: objectiveIndex,
+    objective_index: objectiveCompleted ? objectiveIndex : null,
     completed_objective_indexes: completedObjectiveIndexes,
     completed,
-    completion_reason: String(source.completion_reason || base.completion_reason || '').trim(),
+    completion_reason: objectiveCompleted ? String(source.completion_reason || base.completion_reason || '').trim() : '',
     level_delta: Number.isFinite(Number(source.level_delta)) ? Math.round(Number(source.level_delta)) : 0,
     provider: source.provider || base.provider || 'fallback'
   };
@@ -252,9 +358,12 @@ module.exports = async (req, res) => {
       'xp_delta may be negative, zero, or positive. coins_delta may be zero or positive.',
       'mood must be one of supportive, focused, excited, curious, strict. Match it to the student state.',
       'quiz may be null, or an MCQ object with question, options, correct_index, explanation, difficulty. Only include a quiz when the AI behavior settings say quizzes are enabled and the timing fits.',
+      'When you include a quiz, make every option a real course-content answer. Do not use meta options like "a correct explanation", "random fact", "repeating words", or "skipping the idea".',
+      'Quiz explanations should sound like a tutor: briefly explain why the correct answer is right and, if useful, why the tempting wrong answer is wrong.',
       'Evaluate objective completion using the full recent student evidence, not only the latest message.',
       'If earlier messages already covered part of an objective, do not ask the student to repeat that part; ask only for the missing part.',
-      'objective_completed should be true only when one listed incomplete objective is sufficiently demonstrated.',
+      'Be strict with objective completion. objective_completed should be true only when one listed incomplete objective is demonstrated with a clear explanation plus a concrete example, calculation, or reasoning chain.',
+      'Do not complete an objective from a short answer, a single recalled fact, a guess, or a student merely saying they understand.',
       'objective_index must be the zero-based index of the completed objective, or null when no objective is completed.',
       'completed_objective_indexes should list all zero-based objective indexes completed by this answer.',
       'completed should be true only when this answer completes the final remaining objective in the course.',
