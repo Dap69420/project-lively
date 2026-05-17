@@ -202,6 +202,69 @@ function getObjectiveGuidance(objectiveText, courseContext = {}) {
   return `Give one clear explanation, one concrete example from ${topic}, and one sentence showing why the example fits.`;
 }
 
+function buildHintResponse(courseContext = {}) {
+  const objectives = Array.isArray(courseContext.objectives) ? courseContext.objectives : [];
+  const objectiveStatus = Array.isArray(courseContext.objectiveStatus) ? courseContext.objectiveStatus : [];
+  const objectiveIndex = objectives.findIndex((_objective, index) => !objectiveStatus[index]);
+  const objective = objectives[objectiveIndex] || courseContext.topic || courseContext.title || 'this checkpoint';
+  const lowerObjective = String(objective || '').toLowerCase();
+  const topic = courseContext.topic || courseContext.title || 'this course';
+  const latest = Array.isArray(courseContext.recentStudentEvidence) && courseContext.recentStudentEvidence.length
+    ? String(courseContext.recentStudentEvidence[courseContext.recentStudentEvidence.length - 1] || '')
+    : '';
+
+  if (/\balgebraic identit/.test(lowerObjective) || /\bidentity|identities|algebra/.test(`${lowerObjective} ${topic}`.toLowerCase())) {
+    return [
+      `Hint for ${objective}: I am expecting you to show how an identity works, not only define it.`,
+      'Try this structure:',
+      '1. Say: an algebraic identity is an equation true for every value of the variable.',
+      '2. Give one identity, like (a + b)^2 = a^2 + 2ab + b^2.',
+      '3. Prove it with numbers: if a = 2 and b = 3, both sides become 25.',
+      '4. Finish with: this shows the identity is a reliable shortcut because both forms give the same value.'
+    ].join('\n');
+  }
+
+  if (/\bsolve|word problem|calculation|formula/.test(lowerObjective)) {
+    return [
+      `Hint for ${objective}: I am expecting a solved setup, not just the final answer.`,
+      'Use: Given -> Formula -> Substitute -> Answer -> Meaning.',
+      'Example frame: Given speed = 5 m/s and time = 12 s. Formula: distance = speed x time. Substitute: d = 5 x 12 = 60 m. Meaning: the object travels 60 meters in a straight line.'
+    ].join('\n');
+  }
+
+  if (/\b3 laws|three laws|newton|first law|second law|third law/.test(lowerObjective)) {
+    return [
+      `Hint for ${objective}: I am expecting each law to have its own tiny explanation and example.`,
+      'Use this frame for each missing law: Law name -> simple meaning -> everyday example.',
+      'Example: Second Law means F = ma, so a heavier shopping cart needs more force to get the same acceleration.'
+    ].join('\n');
+  }
+
+  if (/\bdifferentiate|compare|contrast|difference/.test(lowerObjective)) {
+    return [
+      `Hint for ${objective}: I am expecting both sides of the comparison.`,
+      `Write one sentence for each side, then one sentence that directly contrasts them.`,
+      `Example frame: Acids __, while bases __. A clear example of an acid is __ because __. A clear example of a base is __ because __.`
+    ].join('\n');
+  }
+
+  if (/\bph\b|acid|base|neutralization|reactants|products/.test(`${lowerObjective} ${topic}`.toLowerCase())) {
+    return [
+      `Hint for ${objective}: I am expecting the key chemistry terms plus one example.`,
+      'Use a because sentence. Example: pH shows acid/base strength because lower pH means more acidic and higher pH means more basic.',
+      latest ? `Your last answer started with: "${latest.slice(0, 90)}${latest.length > 90 ? '...' : ''}". Add the missing example or because sentence.` : ''
+    ].filter(Boolean).join('\n');
+  }
+
+  return [
+    `Hint for ${objective}: I am expecting three parts.`,
+    `1. Explain the idea in your own words.`,
+    `2. Add one specific example from ${topic}.`,
+    '3. Add a because/so sentence that proves why your example fits.',
+    latest ? `Your last answer is a start. Now add the example and the because/so sentence.` : ''
+  ].filter(Boolean).join('\n');
+}
+
 function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}, mode = 'chat' }) {
   const cleanText = String(userText || '').trim();
   const lowerText = cleanText.toLowerCase();
@@ -438,6 +501,70 @@ module.exports = async (req, res) => {
   if (!String(userText).trim()) {
     sendJson(res, 400, { error: 'Missing userText' });
     return;
+  }
+
+  if (mode === 'hint') {
+    const hintFallback = {
+      visible_response: buildHintResponse(courseContext),
+      internal_response: 'Paid hint generated for the current incomplete objective.',
+      xp_delta: 0,
+      coins_delta: 0,
+      mood: 'curious',
+      quiz: null,
+      objective_completed: false,
+      objective_index: null,
+      completed_objective_indexes: [],
+      completed: false,
+      completion_reason: '',
+      level_delta: 0,
+      provider: 'hint-template'
+    };
+
+    if (!sambaNovaConfig.SAMBANOVA_API_KEY) {
+      sendJson(res, 200, { text: hintFallback.visible_response, provider: 'hint-template', decision: hintFallback });
+      return;
+    }
+
+    try {
+      const objectives = Array.isArray(courseContext.objectives) ? courseContext.objectives : [];
+      const objectiveStatus = Array.isArray(courseContext.objectiveStatus) ? courseContext.objectiveStatus : [];
+      const objectiveIndex = objectives.findIndex((_objective, index) => !objectiveStatus[index]);
+      const objective = objectives[objectiveIndex] || courseContext.topic || courseContext.title || 'this checkpoint';
+      const prompt = [
+        'You are Buddy_AI giving a paid hint.',
+        'Do not complete the objective for the student. Do not give a quiz.',
+        'Give a concrete hint about what answer structure you expect, with one starter example or sentence frame.',
+        'Keep it short, friendly, and useful for a student.',
+        `Course: ${courseContext.title || courseContext.topic || ''}`,
+        `Current objective: ${objective}`,
+        Array.isArray(courseContext.recentStudentEvidence) && courseContext.recentStudentEvidence.length ? `Recent student answers:\n- ${courseContext.recentStudentEvidence.slice(-4).join('\n- ')}` : ''
+      ].filter(Boolean).join('\n');
+
+      const response = await fetch(`${sambaNovaConfig.SAMBANOVA_BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${sambaNovaConfig.SAMBANOVA_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: sambaNovaConfig.SAMBANOVA_MODEL,
+          messages: [{ role: 'user', content: prompt }],
+          stream: false
+        })
+      });
+      const payload = await response.json().catch(() => ({}));
+      const text = String(payload?.choices?.[0]?.message?.content || '').trim();
+      const visible = response.ok && text ? text : hintFallback.visible_response;
+      const decision = Object.assign({}, hintFallback, {
+        visible_response: visible,
+        provider: response.ok && text ? 'sambanova-hint' : 'hint-template'
+      });
+      sendJson(res, 200, { text: visible, provider: decision.provider, decision });
+      return;
+    } catch (error) {
+      sendJson(res, 200, { text: hintFallback.visible_response, provider: 'hint-template', error: error?.message || String(error), decision: hintFallback });
+      return;
+    }
   }
 
   if (!sambaNovaConfig.SAMBANOVA_API_KEY) {

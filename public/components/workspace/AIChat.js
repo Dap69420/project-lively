@@ -539,15 +539,43 @@ ${displayMathLines.join('\n')}
       setPendingHintConfirm(true);
     };
 
-    const confirmHintRequest = () => {
+    const confirmHintRequest = async () => {
       setPendingHintConfirm(false);
       const cost = 5;
       const spendResult = typeof window.LivelyProgress.spendCoins === 'function'
         ? window.LivelyProgress.spendCoins(cost, 'chat_hint')
         : { success: Number(progress.coins || 0) >= cost };
-      const text = spendResult.success
-        ? `${buildObjectiveHint('hint')}\n\nHint cost: ${cost} coins.`
-        : `You need ${cost} coins for a hint. Try answering a quiz or explaining one idea to earn more.`;
+      let text = `You need ${cost} coins for a hint. Try answering a quiz or explaining one idea to earn more.`;
+
+      if (spendResult.success) {
+        text = `${buildObjectiveHint('hint')}\n\nHint cost: ${cost} coins.`;
+        try {
+          const recentStudentEvidence = messages
+            .filter((msg) => msg.role === 'user')
+            .slice(-8)
+            .map((msg) => msg.text)
+            .filter(Boolean);
+          const response = await fetch('/api/ai/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              mode: 'hint',
+              userText: 'Give me a hint for the current checkpoint.',
+              courseContext: Object.assign({}, courseContext, {
+                recentStudentEvidence,
+                cumulativeStudentEvidence: recentStudentEvidence.join('\n\n')
+              })
+            })
+          });
+          const data = await response.json().catch(() => ({}));
+          if (response.ok && data.text) {
+            text = `${sanitizeAssistantText(data.text)}\n\nHint cost: ${cost} coins.`;
+          }
+        } catch (error) {
+          console.error('Hint request failed:', error);
+        }
+      }
+
       const msg = {
         role: 'ai',
         text,

@@ -52,6 +52,11 @@ function Header({ user }) {
               <div className="w-px h-4 bg-gray-700 mx-2"></div>
               <span className="font-mono text-xs text-gray-300">{progress.xp.toLocaleString()} / {nextLevel.nextLevelXp.toLocaleString()} XP</span>
             </div>
+
+            <div className="flex items-center gap-2 text-yellow-300 bg-yellow-400/10 px-3 py-1.5 rounded-lg border border-yellow-400/30" title="Coins">
+              <div className="icon-coins text-sm"></div>
+              <span className="font-pixel text-2xl">{Number(progress.coins || 0).toLocaleString()}</span>
+            </div>
             
             <div className="flex items-center gap-2 text-mcOrange bg-mcOrange/10 px-3 py-1.5 rounded-lg border border-mcOrange/30">
               <div className="icon-flame animate-pulse"></div>
