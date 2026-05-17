@@ -38,6 +38,8 @@ function LoginApp() {
     const [errorMsg, setErrorMsg] = React.useState('');
     const [currentUser, setCurrentUser] = React.useState(null);
     const [showSetup, setShowSetup] = React.useState(false);
+    const isNativeApp = () => Boolean(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    const nativeRedirectUrl = 'com.buddyai.lively://login';
 
     const checkSetupCompletion = (user) => {
       if (user?.user_metadata?.setupComplete) {
@@ -56,6 +58,70 @@ function LoginApp() {
           }
         });
       }
+    }, []);
+
+    React.useEffect(() => {
+      const AppPlugin = window.Capacitor?.Plugins?.App;
+      const BrowserPlugin = window.Capacitor?.Plugins?.Browser;
+      if (!supabaseClient || !AppPlugin || !isNativeApp()) return;
+
+      let listenerHandle = null;
+
+      const completeNativeLogin = async (url) => {
+        if (!url || !String(url).startsWith(nativeRedirectUrl)) return;
+
+        try {
+          const callbackUrl = new URL(url);
+          const queryParams = callbackUrl.searchParams;
+          const hashParams = new URLSearchParams(String(callbackUrl.hash || '').replace(/^#/, ''));
+          const errorDescription = queryParams.get('error_description') || hashParams.get('error_description');
+
+          if (errorDescription) {
+            throw new Error(errorDescription);
+          }
+
+          const code = queryParams.get('code') || hashParams.get('code');
+          const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
+
+          if (code) {
+            const { data, error } = await supabaseClient.auth.exchangeCodeForSession(code);
+            if (error) throw error;
+            await BrowserPlugin?.close?.();
+            checkSetupCompletion(data?.session?.user || data?.user);
+            return;
+          }
+
+          if (accessToken && refreshToken) {
+            const { data, error } = await supabaseClient.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            });
+            if (error) throw error;
+            await BrowserPlugin?.close?.();
+            checkSetupCompletion(data?.session?.user || data?.user);
+          }
+        } catch (error) {
+          console.error('Native login callback failed:', error);
+          setErrorMsg(error.message || 'Login callback failed.');
+          setIsLoading(false);
+          try {
+            await BrowserPlugin?.close?.();
+          } catch (_closeError) {
+            // Ignore close failures.
+          }
+        }
+      };
+
+      AppPlugin.addListener('appUrlOpen', ({ url }) => completeNativeLogin(url)).then((handle) => {
+        listenerHandle = handle;
+      });
+
+      return () => {
+        if (listenerHandle?.remove) {
+          listenerHandle.remove();
+        }
+      };
     }, []);
 
     const handleSubmit = async (e) => {
@@ -92,13 +158,23 @@ function LoginApp() {
       if (!supabaseClient) return;
       try {
         setIsLoading(true);
+        const native = isNativeApp();
         const { data, error } = await supabaseClient.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: window.location.origin + '/login.html'
+            redirectTo: native ? nativeRedirectUrl : window.location.origin + '/login.html',
+            skipBrowserRedirect: native
           }
         });
         if (error) throw error;
+        if (native && data?.url) {
+          const BrowserPlugin = window.Capacitor?.Plugins?.Browser;
+          if (BrowserPlugin?.open) {
+            await BrowserPlugin.open({ url: data.url, presentationStyle: 'fullscreen' });
+          } else {
+            window.location.href = data.url;
+          }
+        }
       } catch (error) {
         console.error('Auth error:', error);
         alert('Failed to connect: ' + error.message);

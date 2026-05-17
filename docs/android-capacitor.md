@@ -27,6 +27,22 @@ npm run android:build
 
 If `CAPACITOR_SERVER_URL` is not set, Capacitor bundles the current `public` files into the APK.
 
+## Google Login In APK
+
+The APK uses this native OAuth callback URL:
+
+```text
+com.buddyai.lively://login
+```
+
+Add that URL to your Supabase project's allowed redirect URLs. The regular website URL should also stay allowed:
+
+```text
+https://project-lively.vercel.app/login.html
+```
+
+After changing login code, deploy the website first, then rebuild the APK in live website mode.
+
 ## Build Requirement
 
 Android builds require Java/JDK and Android tooling. If `android:build` says `JAVA_HOME is not set`, install Android Studio or a JDK, then set `JAVA_HOME`.
