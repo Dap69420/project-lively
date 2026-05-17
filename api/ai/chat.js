@@ -96,20 +96,35 @@ function hasEnoughObjectiveEvidence({ cleanText, cumulativeText, objectiveText }
     .toLowerCase()
     .split(/[^a-z0-9]+/)
     .filter((word) => word.length > 3 && !['explain', 'solve', 'learn', 'meaning', 'provided', 'buddy'].includes(word));
-  const matchedObjectiveWords = new Set(objectiveWords.filter((word) => lowerCumulative.includes(word))).size;
+  const objectiveWordMatches = objectiveWords.filter((word) => {
+    const variants = new Set([word]);
+    if (word.endsWith('ies')) variants.add(`${word.slice(0, -3)}y`);
+    if (word.endsWith('s')) variants.add(word.slice(0, -1));
+    variants.add(`${word}s`);
+    return Array.from(variants).some((variant) => variant.length > 3 && lowerCumulative.includes(variant));
+  });
+  const matchedObjectiveWords = new Set(objectiveWordMatches).size;
   const hasReasoning = /\b(because|so that|therefore|which means|this means|as a result|since|so)\b/.test(lowerCumulative);
-  const hasApplication = /\b(example|for instance|when|if|using|solve|equals|formula|calculate|step|given|therefore|substitute)\b/.test(lowerCumulative);
-  const hasSpecificDetail = /\d|=|->|→|:|;|\b(low|high|neutral|acidic|basic|velocity|acceleration|force|speed|distance|time|mass|energy|ratio|function|variable|equation)\b/.test(lowerCumulative);
+  const hasApplication = /\b(example|for instance|when|if|using|use|solve|solving|equals|formula|calculate|calculation|step|given|therefore|substitute|apply|applying)\b/.test(lowerCumulative);
+  const hasSpecificDetail = /\d|=|\+|-|\*|\/|\^|->|→|:|;|\b(low|high|neutral|acidic|basic|velocity|acceleration|force|speed|distance|time|mass|energy|ratio|function|variable|equation|identity|expression|derivative|calculus)\b/.test(lowerCumulative);
   const hasVagueCompletionClaim = /\b(done|finished|complete|understand|mastered)\b/.test(lowerLatest) && latest.length < 90;
-  const hasEnoughLength = latest.length >= 120 || cumulative.length >= 240;
-  const requiredObjectiveMatches = objectiveWords.length >= 3 ? 2 : Math.max(1, objectiveWords.length);
+  const hasEnoughLength = latest.length >= 75 || cumulative.length >= 150;
+  const requiredObjectiveMatches = objectiveWords.length >= 3 ? 2 : 1;
+  const objectiveMatchOk = objectiveWords.length === 0 || matchedObjectiveWords >= requiredObjectiveMatches;
+  const evidenceScore = [
+    hasEnoughLength,
+    hasReasoning,
+    hasApplication,
+    hasSpecificDetail,
+    objectiveMatchOk,
+    latest.length >= 140 || cumulative.length >= 260
+  ].filter(Boolean).length;
 
   return !hasVagueCompletionClaim
     && hasEnoughLength
-    && hasReasoning
-    && hasApplication
     && hasSpecificDetail
-    && matchedObjectiveWords >= requiredObjectiveMatches;
+    && objectiveMatchOk
+    && evidenceScore >= 4;
 }
 
 function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}, mode = 'chat' }) {
