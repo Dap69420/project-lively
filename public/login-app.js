@@ -43,6 +43,7 @@ function LoginApp() {
     const [errorMsg, setErrorMsg] = React.useState('');
     const [currentUser, setCurrentUser] = React.useState(null);
     const [showSetup, setShowSetup] = React.useState(false);
+    const [nativeMode, setNativeMode] = React.useState(false);
     const nativeRedirectUrl = 'com.buddyai.lively://login';
     const getCapacitorPlugin = (name) => {
       try {
@@ -73,6 +74,8 @@ function LoginApp() {
     };
 
     React.useEffect(() => {
+      setNativeMode(isNativeApp() || new URLSearchParams(window.location.search || '').get('app') === '1');
+
       if (supabaseClient) {
         supabaseClient.auth.getSession().then(({ data: { session } }) => {
           if (session) {
@@ -146,6 +149,12 @@ function LoginApp() {
         }
       } catch (error) {
         console.error('Failed to register native login listener:', error);
+      }
+
+      if (typeof AppPlugin.getLaunchUrl === 'function') {
+        AppPlugin.getLaunchUrl()
+          .then((launchUrl) => completeNativeLogin(launchUrl?.url))
+          .catch((error) => console.error('Failed to read launch URL:', error));
       }
 
       return () => {
@@ -236,9 +245,11 @@ function LoginApp() {
         <div className="absolute top-10 left-10 text-[10rem] font-black font-mono text-white opacity-5 select-none -rotate-12 pointer-events-none">CTRL</div>
         <div className="absolute bottom-10 right-10 text-[10rem] font-black font-mono text-white opacity-5 select-none rotate-12 pointer-events-none">ALT</div>
 
-        <a href="index.html" className="absolute top-6 left-6 flex items-center gap-2 text-white hover:text-lime transition-colors font-mono font-bold group relative z-10">
-          <div className="icon-arrow-left transform group-hover:-translate-x-1 transition-transform"></div> BACK TO BASE
-        </a>
+        {!nativeMode ? (
+          <a href="index.html" className="absolute top-6 left-6 flex items-center gap-2 text-white hover:text-lime transition-colors font-mono font-bold group relative z-10">
+            <div className="icon-arrow-left transform group-hover:-translate-x-1 transition-transform"></div> BACK TO BASE
+          </a>
+        ) : null}
 
         <div className="w-full max-w-md relative z-10">
           {/* Logo Header */}
@@ -251,21 +262,28 @@ function LoginApp() {
 
           <div className="brutal-card brutal-card-pink bg-black">
             <div className="flex justify-between items-center mb-8 border-b-4 border-white/20 pb-4">
-              <h2 className="text-2xl text-lime">{isLogin ? 'ACCESS GRANTED' : 'NEW RECRUIT'}</h2>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => setIsLogin(true)} 
-                  className={`font-mono font-bold text-sm px-2 py-1 ${isLogin ? 'bg-hotpink text-white border-2 border-white' : 'text-gray-500 hover:text-white'}`}
-                >
-                  LOGIN
-                </button>
-                <button 
-                  onClick={() => setIsLogin(false)} 
-                  className={`font-mono font-bold text-sm px-2 py-1 ${!isLogin ? 'bg-hotpink text-white border-2 border-white' : 'text-gray-500 hover:text-white'}`}
-                >
-                  SIGN UP
-                </button>
+              <div>
+                <h2 className="text-2xl text-lime">{nativeMode ? 'MOBILE ACCESS' : (isLogin ? 'ACCESS GRANTED' : 'NEW RECRUIT')}</h2>
+                {nativeMode ? (
+                  <p className="mt-2 font-mono text-xs uppercase tracking-wider text-gray-400">Use Google to continue in the app</p>
+                ) : null}
               </div>
+              {!nativeMode ? (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setIsLogin(true)}
+                    className={`font-mono font-bold text-sm px-2 py-1 ${isLogin ? 'bg-hotpink text-white border-2 border-white' : 'text-gray-500 hover:text-white'}`}
+                  >
+                    LOGIN
+                  </button>
+                  <button
+                    onClick={() => setIsLogin(false)}
+                    className={`font-mono font-bold text-sm px-2 py-1 ${!isLogin ? 'bg-hotpink text-white border-2 border-white' : 'text-gray-500 hover:text-white'}`}
+                  >
+                    SIGN UP
+                  </button>
+                </div>
+              ) : null}
             </div>
 
             {errorMsg && (
@@ -274,6 +292,8 @@ function LoginApp() {
               </div>
             )}
 
+            {!nativeMode ? (
+            <>
             <form onSubmit={handleSubmit} className="space-y-6">
               {!isLogin && (
                 <div className="space-y-2">
@@ -317,6 +337,8 @@ function LoginApp() {
               <span className="px-4 font-mono text-sm text-gray-400 font-bold uppercase">OR</span>
               <div className="w-full h-1 bg-white/20"></div>
             </div>
+            </>
+            ) : null}
 
             <button 
               type="button" 
