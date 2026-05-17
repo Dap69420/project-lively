@@ -15,7 +15,7 @@ function AIChat() {
       if (!text) return null;
 
       const tokens = [];
-      const inlineRegex = /(\*\*([^*]+)\*\*|\*([^*]+)\*|\\\((.+?)\\\)|\$\$([\s\S]+?)\$\$)/g;
+      const inlineRegex = /(\*\*([^*]+)\*\*|\*([^*]+)\*|\\\((.+?)\\\)|\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$)/g;
       let lastIndex = 0;
       let match;
 
@@ -28,7 +28,7 @@ function AIChat() {
           tokens.push(<strong key={`${match.index}-b`}>{match[2]}</strong>);
         } else if (match[3]) {
           tokens.push(<em key={`${match.index}-i`}>{match[3]}</em>);
-        } else if (match[4] || match[5]) {
+        } else if (match[4] || match[5] || match[6]) {
           tokens.push(
             <span key={`${match.index}-m`} className="inline-block align-baseline whitespace-pre-wrap">
               {match[0]}
@@ -160,6 +160,46 @@ ${displayMathLines.join('\n')}
       aiSettings: selectedCourse.aiSettings || {},
       completed: Boolean(selectedCourseState.completed),
       attemptCount: Number(selectedCourseState.questions || 0)
+    };
+
+    const getCurrentObjectiveInfo = () => {
+      const state = window.LivelyProgress.getState();
+      const liveCourseState = state.courseProgress?.[selectedCourseId] || selectedCourseState || {};
+      const objectives = Array.isArray(selectedCourse.objectives) ? selectedCourse.objectives : [];
+      const objectiveStatus = Array.isArray(liveCourseState.objectiveStatus) ? liveCourseState.objectiveStatus : [];
+      const index = objectives.findIndex((_objective, objectiveIndex) => !objectiveStatus[objectiveIndex]);
+      return {
+        index,
+        objective: index >= 0 ? objectives[index] : '',
+        objectives,
+        allComplete: objectives.length > 0 && index < 0
+      };
+    };
+
+    const buildObjectiveHint = (kind = 'hint') => {
+      const info = getCurrentObjectiveInfo();
+      if (info.allComplete) {
+        return 'All checkpoints are cleared. Take the final test in chat: answer all 10 questions and score at least 4/10 to complete the course.';
+      }
+
+      const objective = info.objective || selectedCourse.focus || selectedCourse.name;
+      const topic = selectedCourse.focus || selectedCourse.name;
+      const lowerObjective = objective.toLowerCase();
+
+      let expected = `Use this shape: define the idea in your own words, add one concrete example from ${topic}, then explain why the example proves your point.`;
+      if (/\bsolve|problem|calculation|formula|word problem\b/.test(lowerObjective)) {
+        expected = 'Write the given values, choose the formula, substitute numbers, calculate the answer, and add the unit plus one sentence explaining the result.';
+      } else if (/\b3 laws|three laws|newton|first law|second law|third law|laws of motion\b/.test(lowerObjective)) {
+        expected = 'Cover the missing Newton laws one by one: name the law, explain it simply, then give a daily-life example for that law.';
+      } else if (/\bdifferentiate|compare|contrast|difference\b/.test(lowerObjective)) {
+        expected = `State both sides clearly, give one concrete ${topic} example for each side, and add one sentence explaining how the examples are different.`;
+      } else if (/\bexplain|meaning|define\b/.test(lowerObjective)) {
+        expected = `Explain ${objective} in your own words, then give one specific example and one because/so sentence that connects the example back to the idea.`;
+      }
+
+      return kind === 'next'
+        ? `Next checkpoint: ${objective}. ${expected}`
+        : `Hint for checkpoint ${info.index + 1}: ${objective}. ${expected}`;
     };
 
     const getCoveredConcepts = (messageList) => {
@@ -392,8 +432,8 @@ ${displayMathLines.join('\n')}
       const selectedAnswer = quiz.options?.[selectedIndex] || `Option ${selectedIndex + 1}`;
       const correctAnswer = quiz.options?.[correctIndex] || 'the correct option';
       const feedbackText = isCorrect
-        ? `Correct. ${quiz.explanation || `You picked ${correctAnswer}, which fits the idea we are practicing.`}`
-        : `Not quite. You picked ${selectedAnswer}. The correct answer is ${correctAnswer}. ${quiz.explanation || 'Check the key idea, then try applying it in one example.'}`;
+        ? `Correct. ${quiz.explanation || `You picked ${correctAnswer}, which fits the idea we are practicing.`}\n\n${buildObjectiveHint('next')}`
+        : `Not quite. You picked ${selectedAnswer}. The correct answer is ${correctAnswer}. ${quiz.explanation || 'Check the key idea, then try applying it in one example.'}\n\n${buildObjectiveHint('next')}`;
       const timeNow = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
       const answerMsg = {
         role: 'user',
@@ -453,6 +493,32 @@ ${displayMathLines.join('\n')}
         source: 'quiz'
       });
       setMood(isCorrect ? 'excited' : 'supportive');
+    };
+
+    const handleHintRequest = () => {
+      if (isCourseCompleted) return;
+      const cost = 5;
+      const spendResult = typeof window.LivelyProgress.spendCoins === 'function'
+        ? window.LivelyProgress.spendCoins(cost, 'chat_hint')
+        : { success: Number(progress.coins || 0) >= cost };
+      const text = spendResult.success
+        ? `${buildObjectiveHint('hint')}\n\nHint cost: ${cost} coins.`
+        : `You need ${cost} coins for a hint. Try answering a quiz or explaining one idea to earn more.`;
+      const msg = {
+        role: 'ai',
+        text,
+        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+        metadata: { type: 'hint', cost: spendResult.success ? cost : 0 }
+      };
+      setMessages((prev) => [...prev, msg]);
+      window.LivelyProgress.addChatMessage({
+        role: msg.role,
+        text: msg.text,
+        time: msg.time,
+        courseId: selectedCourseId,
+        metadata: msg.metadata
+      });
+      setMood(spendResult.success ? 'curious' : 'supportive');
     };
 
     const startFinalTest = async (reasonText = '', options = {}) => {
@@ -789,11 +855,21 @@ ${displayMathLines.join('\n')}
             </div>
           </div>
           <div className="flex gap-2">
-            <button className="w-8 h-8 rounded bg-discordDark hover:bg-gray-600 flex items-center justify-center text-gray-400">
+            <button
+              type="button"
+              className="w-8 h-8 rounded bg-discordDark hover:bg-gray-600 flex items-center justify-center text-gray-400"
+              title="Sound"
+            >
               <div className="icon-volume-2 text-sm"></div>
             </button>
-            <button className="w-8 h-8 rounded bg-discordDark hover:bg-gray-600 flex items-center justify-center text-gray-400">
-              <div className="icon-more-vertical text-sm"></div>
+            <button
+              type="button"
+              onClick={handleHintRequest}
+              disabled={isCourseCompleted}
+              className="w-8 h-8 rounded bg-discordDark hover:bg-gray-600 flex items-center justify-center text-gray-400 disabled:cursor-not-allowed disabled:opacity-50"
+              title="Spend 5 coins for a hint"
+            >
+              <div className="icon-lightbulb text-sm"></div>
             </button>
           </div>
         </div>
@@ -810,7 +886,7 @@ ${displayMathLines.join('\n')}
                   <span className="font-bold text-sm text-gray-300">{msg.role === 'ai' ? 'Buddy_AI' : 'You'}</span>
                   <span className="text-[10px] font-mono text-gray-500">{msg.time}</span>
                 </div>
-                <div className={`p-3 rounded-lg text-sm leading-relaxed ${msg.role === 'user' ? 'bg-mcPurple text-white rounded-tr-none' : 'bg-discordDarkest text-gray-200 rounded-tl-none border border-gray-700'}`}>
+                <div className={`p-3 rounded-lg text-sm leading-relaxed break-words whitespace-pre-wrap ${msg.role === 'user' ? 'bg-mcPurple text-white rounded-tr-none' : 'bg-discordDarkest text-gray-200 rounded-tl-none border border-gray-700'}`}>
                   {msg.metadata?.type === 'quiz' && msg.metadata?.quiz ? (() => {
                     const quiz = msg.metadata.quiz;
                     const quizKey = msg.metadata.quizKey || `${selectedCourseId}-${idx}`;
@@ -862,7 +938,7 @@ ${displayMathLines.join('\n')}
                       <div className="font-mono text-xs uppercase tracking-wider opacity-80">{msg.text || 'Sketch submitted'}</div>
                       <img src={msg.metadata.imageUrl} alt="Submitted sketch" className="max-h-56 max-w-full rounded border border-white/20 bg-discordDarkest object-contain" />
                     </div>
-                  ) : msg.role === 'ai' ? renderFormattedMessage(msg.text) : msg.text}
+                  ) : renderFormattedMessage(msg.text)}
                 </div>
                 {msg.role === 'ai' && isAdminViewer && msg.metadata?.aiDecision?.internal_response ? (
                   <div className="mt-2 rounded border border-yellow-400/40 bg-yellow-400/10 px-3 py-2 text-[11px] leading-relaxed text-yellow-100">

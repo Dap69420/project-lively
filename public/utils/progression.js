@@ -785,6 +785,33 @@
     return next;
   }
 
+  function spendCoins(amount, reason = '') {
+    const cost = Math.max(0, Math.round(Number(amount || 0)));
+    if (cost <= 0) {
+      return { success: true, state: currentState };
+    }
+
+    if (Number(currentState.coins || 0) < cost) {
+      return {
+        success: false,
+        error: `You need ${cost} coins for this.`,
+        state: currentState
+      };
+    }
+
+    const next = normalizeState(currentState);
+    next.coins = Math.max(0, Number(next.coins || 0) - cost);
+    saveState(next);
+
+    if (currentState.userId) {
+      syncProgressToServer(next).catch((error) => {
+        console.error('Coin spend sync error:', error, reason);
+      });
+    }
+
+    return { success: true, state: next };
+  }
+
   function setUserContext(user) {
     const next = normalizeState(Object.assign({}, currentState, {
       userId: user?.id || '',
@@ -996,6 +1023,7 @@
       subscribe,
       useProgress,
       awardProgress,
+      spendCoins,
       markObjectiveProgress,
       completeCourse,
       recordFinalTestResult,

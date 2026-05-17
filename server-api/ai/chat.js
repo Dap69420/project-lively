@@ -153,6 +153,30 @@ function hasEnoughObjectiveEvidence({ cleanText, cumulativeText, objectiveText }
     && evidenceScore >= 4;
 }
 
+function getObjectiveGuidance(objectiveText, courseContext = {}) {
+  const objective = String(objectiveText || courseContext.topic || courseContext.title || 'this checkpoint').trim();
+  const lowerObjective = objective.toLowerCase();
+  const topic = courseContext.topic || courseContext.title || 'this lesson';
+
+  if (/\bsolve|problem|calculation|formula|word problem\b/.test(lowerObjective)) {
+    return 'Show the given values, the formula you chose, substitution, final answer with unit, and one sentence explaining what the result means.';
+  }
+
+  if (/\b3 laws|three laws|newton|first law|second law|third law|laws of motion\b/.test(lowerObjective)) {
+    return 'Name each missing law, explain it simply, and give one everyday example for each law.';
+  }
+
+  if (/\bdifferentiate|compare|contrast|difference\b/.test(lowerObjective)) {
+    return `State both sides clearly, give one concrete ${topic} example for each side, and add one sentence explaining how the examples are different.`;
+  }
+
+  if (/\bexplain|meaning|define\b/.test(lowerObjective)) {
+    return `Use your own words, add one specific ${topic} example, and include a because/so sentence that connects the example back to the concept.`;
+  }
+
+  return `Give one clear explanation, one concrete example from ${topic}, and one sentence showing why the example fits.`;
+}
+
 function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}, mode = 'chat' }) {
   const cleanText = String(userText || '').trim();
   const lowerText = cleanText.toLowerCase();
@@ -235,8 +259,9 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
   } else if (isStruggling) {
     visibleResponse = `You are close. Start with one short line about ${objectives[0] || courseContext.topic || 'the concept'}, then I will help you refine it.`;
   } else {
+    const guidance = getObjectiveGuidance(objectiveText, courseContext);
     visibleResponse = getMissingNewtonLawPrompt(courseContext)
-      || `Good start. To count this checkpoint, explain the idea in your own words and add one concrete example or calculation from ${courseContext.topic || courseContext.title || 'this lesson'}.`;
+      || `Good start. To count this checkpoint, I need a little more evidence for "${objectiveText || courseContext.topic || 'this checkpoint'}". ${guidance}`;
   }
 
   return {
