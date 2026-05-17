@@ -68,17 +68,45 @@ function getQuizTemplate(courseContext, objectives, objectiveIndex) {
     };
   }
 
+  if (/algebra|identity|identit/.test(rawTopic)) {
+    return {
+      question: 'Which statement correctly uses an algebraic identity?',
+      options: [
+        '(a + b)^2 = a^2 + 2ab + b^2, so substituting values into either side gives the same result.',
+        '(a + b)^2 always equals a^2 + b^2, because the middle term disappears.',
+        'An identity only works for one special value of the variable.',
+        'Algebraic identities are used to measure speed and distance.'
+      ],
+      correct_index: 0,
+      explanation: 'An identity is true for all allowed values. The expanded form keeps the middle term 2ab, which is why both sides match.'
+    };
+  }
+
+  if (/quadratic|factor|expand|polynomial/.test(rawTopic)) {
+    return {
+      question: 'Which expansion is correct?',
+      options: [
+        '(x + 3)^2 = x^2 + 6x + 9',
+        '(x + 3)^2 = x^2 + 9',
+        '(x + 3)^2 = 2x + 6',
+        '(x + 3)^2 = x^2 + 3x + 3'
+      ],
+      correct_index: 0,
+      explanation: 'Use (a + b)^2 = a^2 + 2ab + b^2. Here, 2ab becomes 6x.'
+    };
+  }
+
   const topic = objectives[objectiveIndex] || courseContext.topic || courseContext.aiAim || 'the current idea';
   return {
-    question: `Which answer best applies ${topic}?`,
+    question: `What would make an answer about ${topic} strong enough to count?`,
     options: [
-      `Use ${topic} in a specific course example and explain why it fits.`,
-      `Only repeat the words "${topic}" without applying them.`,
-      'Switch to a different topic instead of answering.',
-      'Say it is understood without giving evidence.'
+      'It gives the idea, a real example, and a short why-it-works sentence.',
+      'It repeats the title only.',
+      'It changes to a different topic.',
+      'It says “I understand” without showing work.'
     ],
     correct_index: 0,
-    explanation: `The strongest answer explains ${topic} and connects it to a correct example.`
+    explanation: `A strong answer proves understanding by applying ${topic}, not just naming it.`
   };
 }
 
@@ -132,6 +160,41 @@ function hasEnoughObjectiveEvidence({ cleanText, cumulativeText, objectiveText }
   const cumulative = String(cumulativeText || '').trim();
   const lowerLatest = latest.toLowerCase();
   const lowerCumulative = cumulative.toLowerCase();
+  const normalizeWord = (word) => String(word || '')
+    .toLowerCase()
+    .replace(/(.)\1{2,}/g, '$1$1');
+  const editDistance = (a, b) => {
+    const left = normalizeWord(a);
+    const right = normalizeWord(b);
+    if (left === right) return 0;
+    if (!left || !right) return Math.max(left.length, right.length);
+    const row = Array.from({ length: right.length + 1 }, (_item, index) => index);
+    for (let i = 1; i <= left.length; i += 1) {
+      let previous = row[0];
+      row[0] = i;
+      for (let j = 1; j <= right.length; j += 1) {
+        const temp = row[j];
+        row[j] = Math.min(
+          row[j] + 1,
+          row[j - 1] + 1,
+          previous + (left[i - 1] === right[j - 1] ? 0 : 1)
+        );
+        previous = temp;
+      }
+    }
+    return row[right.length];
+  };
+  const cumulativeWords = lowerCumulative
+    .split(/[^a-z0-9]+/)
+    .map(normalizeWord)
+    .filter((word) => word.length > 3);
+  const fuzzyIncludes = (target) => {
+    const normalizedTarget = normalizeWord(target);
+    if (!normalizedTarget || normalizedTarget.length <= 3) return false;
+    if (lowerCumulative.includes(normalizedTarget)) return true;
+    const maxDistance = normalizedTarget.length >= 8 ? 2 : 1;
+    return cumulativeWords.some((word) => Math.abs(word.length - normalizedTarget.length) <= maxDistance && editDistance(word, normalizedTarget) <= maxDistance);
+  };
   const objectiveWords = String(objectiveText || '')
     .toLowerCase()
     .split(/[^a-z0-9]+/)
@@ -141,7 +204,7 @@ function hasEnoughObjectiveEvidence({ cleanText, cumulativeText, objectiveText }
     if (word.endsWith('ies')) variants.add(`${word.slice(0, -3)}y`);
     if (word.endsWith('s')) variants.add(word.slice(0, -1));
     variants.add(`${word}s`);
-    return Array.from(variants).some((variant) => variant.length > 3 && lowerCumulative.includes(variant));
+    return Array.from(variants).some(fuzzyIncludes);
   });
   const matchedObjectiveWords = new Set(objectiveWordMatches).size;
   const hasFormulaOrEquation = /[a-z]\s*[=+\-*/^]|\([^)]*[a-z][^)]*\)\s*\^?\d|\d+\s*[=+\-*/^]\s*\d+|=/.test(lowerCumulative);
@@ -350,7 +413,7 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
   } else if (repeatedInput) {
     visibleResponse = `Nice consistency. You explained that clearly. Add one new example tied to ${objectives[0] || courseContext.aiAim || courseContext.topic || 'this topic'} so we can push to the next checkpoint.`;
   } else if (objectiveCompleted) {
-    visibleResponse = `Strong explanation. You gave enough reasoning and a concrete example for this checkpoint, so I will mark it complete and move you to the next one.`;
+    visibleResponse = `Nice, that lands. You used the idea and backed it with enough detail, so this checkpoint is complete. Let's push into the next one.`;
   } else if (promptRequest && needsBuddyProvidedPrompt) {
     if (/\bneutralization|reactants|products|acid|base|salt|water\b/i.test(objectiveText)) {
       visibleResponse = 'Here is the reaction: hydrochloric acid + sodium hydroxide -> sodium chloride + water. Now identify the reactants and products, then explain why it is a neutralization reaction.';
@@ -454,7 +517,7 @@ function normalizeDecision(decision, fallbackDecision, courseContext = {}) {
     if (completedObjectiveIndexes.length === 0 && Number.isInteger(Number(base.objective_index))) {
       completedObjectiveIndexes.push(Number(base.objective_index));
     }
-    visibleResponse = `Strong explanation. You gave enough reasoning and concrete detail for this checkpoint, so I will mark it complete and move you to the next one.`;
+    visibleResponse = `Nice, that lands. You used the idea and backed it with enough detail, so this checkpoint is complete. Let's push into the next one.`;
     internalResponse = `Checkpoint completed by evidence gate. objective_index=${Number(base.objective_index)}.`;
   }
 

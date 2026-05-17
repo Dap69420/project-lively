@@ -458,9 +458,10 @@ ${displayMathLines.join('\n')}
       const isCorrect = selectedIndex === correctIndex;
       const selectedAnswer = quiz.options?.[selectedIndex] || `Option ${selectedIndex + 1}`;
       const correctAnswer = quiz.options?.[correctIndex] || 'the correct option';
+      const nextHint = buildObjectiveHint('next').replace(/^Next checkpoint:\s*/i, 'Next up: ');
       const feedbackText = isCorrect
-        ? `Correct. ${quiz.explanation || `You picked ${correctAnswer}, which fits the idea we are practicing.`}\n\n${buildObjectiveHint('next')}`
-        : `Not quite. You picked ${selectedAnswer}. The correct answer is ${correctAnswer}. ${quiz.explanation || 'Check the key idea, then try applying it in one example.'}\n\n${buildObjectiveHint('next')}`;
+        ? `Boom, correct. ${quiz.explanation || `You picked ${correctAnswer}, and that fits the idea we are practicing.`}\n\n${nextHint}`
+        : `Close, but not this one. You picked: ${selectedAnswer}. The right answer is: ${correctAnswer}.\n\n${quiz.explanation || 'The key is to apply the idea, not just name it.'}\n\n${nextHint}`;
       const timeNow = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
       const answerMsg = {
         role: 'user',
@@ -763,7 +764,11 @@ ${displayMathLines.join('\n')}
       const userText = input;
       const normalizeForComparison = (value) => String(value || '').toLowerCase().replace(/\s+/g, ' ').replace(/[^a-z0-9 ]/g, '').trim();
       const lastUserMessage = [...messages].reverse().find((msg) => msg.role === 'user');
-      const repeatedInput = Boolean(lastUserMessage) && normalizeForComparison(lastUserMessage.text) !== '' && normalizeForComparison(lastUserMessage.text) === normalizeForComparison(userText);
+      const lastAiDecision = [...messages].reverse().find((msg) => msg.role === 'ai' && msg.metadata?.aiDecision)?.metadata?.aiDecision;
+      const repeatedInput = Boolean(lastUserMessage)
+        && normalizeForComparison(lastUserMessage.text) !== ''
+        && normalizeForComparison(lastUserMessage.text) === normalizeForComparison(userText)
+        && Boolean(lastAiDecision?.objective_completed || lastAiDecision?.completed);
       const timeNow = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
       const userMsg = { role: 'user', text: userText, time: timeNow };
       const newMsgs = [...messages, userMsg];
