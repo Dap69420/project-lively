@@ -18,7 +18,12 @@ class ErrorBoundary extends React.Component {
         <div className="min-h-screen flex items-center justify-center bg-dark text-white p-8">
           <div className="brutal-card brutal-card-pink text-center">
             <h1 className="text-4xl mb-4 text-hotpink">System Glitch</h1>
-            <p className="mb-6 font-mono">Something unexpected happened in the matrix.</p>
+            <p className="mb-3 font-mono">Something unexpected happened in the matrix.</p>
+            {this.state.error?.message ? (
+              <p className="mb-6 break-words rounded border border-red-400/40 bg-red-500/10 p-3 text-left font-mono text-xs text-red-100">
+                {this.state.error.message}
+              </p>
+            ) : null}
             <button onClick={() => window.location.reload()} className="brutal-btn-lime">Reboot System</button>
           </div>
         </div>
@@ -38,8 +43,25 @@ function LoginApp() {
     const [errorMsg, setErrorMsg] = React.useState('');
     const [currentUser, setCurrentUser] = React.useState(null);
     const [showSetup, setShowSetup] = React.useState(false);
-    const isNativeApp = () => Boolean(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
     const nativeRedirectUrl = 'com.buddyai.lively://login';
+    const getCapacitorPlugin = (name) => {
+      try {
+        return window.Capacitor?.Plugins?.[name] || window.Capacitor?.[name] || null;
+      } catch (_error) {
+        return null;
+      }
+    };
+    const isNativeApp = () => {
+      try {
+        if (!window.Capacitor) return false;
+        if (typeof window.Capacitor.isNativePlatform === 'function') {
+          return Boolean(window.Capacitor.isNativePlatform());
+        }
+        return Boolean(window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'web');
+      } catch (_error) {
+        return false;
+      }
+    };
 
     const checkSetupCompletion = (user) => {
       if (user?.user_metadata?.setupComplete) {
@@ -61,8 +83,8 @@ function LoginApp() {
     }, []);
 
     React.useEffect(() => {
-      const AppPlugin = window.Capacitor?.Plugins?.App;
-      const BrowserPlugin = window.Capacitor?.Plugins?.Browser;
+      const AppPlugin = getCapacitorPlugin('App');
+      const BrowserPlugin = getCapacitorPlugin('Browser');
       if (!supabaseClient || !AppPlugin || !isNativeApp()) return;
 
       let listenerHandle = null;
@@ -113,9 +135,18 @@ function LoginApp() {
         }
       };
 
-      AppPlugin.addListener('appUrlOpen', ({ url }) => completeNativeLogin(url)).then((handle) => {
-        listenerHandle = handle;
-      });
+      try {
+        const maybeHandle = AppPlugin.addListener('appUrlOpen', ({ url }) => completeNativeLogin(url));
+        if (maybeHandle?.then) {
+          maybeHandle.then((handle) => {
+            listenerHandle = handle;
+          });
+        } else {
+          listenerHandle = maybeHandle;
+        }
+      } catch (error) {
+        console.error('Failed to register native login listener:', error);
+      }
 
       return () => {
         if (listenerHandle?.remove) {
@@ -168,7 +199,7 @@ function LoginApp() {
         });
         if (error) throw error;
         if (native && data?.url) {
-          const BrowserPlugin = window.Capacitor?.Plugins?.Browser;
+          const BrowserPlugin = getCapacitorPlugin('Browser');
           if (BrowserPlugin?.open) {
             await BrowserPlugin.open({ url: data.url, presentationStyle: 'fullscreen' });
           } else {
