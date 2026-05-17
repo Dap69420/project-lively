@@ -52,7 +52,20 @@ function AdminApp() {
       condition_value: 25,
       sort_index: 100
     });
+    const [editingAchievementId, setEditingAchievementId] = React.useState('');
     const [achievementError, setAchievementError] = React.useState('');
+    const achievementIcons = [
+      { value: 'icon-award', label: 'Award', symbol: '🏅' },
+      { value: 'icon-trophy', label: 'Trophy', symbol: '🏆' },
+      { value: 'icon-sparkles', label: 'Sparkles', symbol: '✨' },
+      { value: 'icon-flame', label: 'Flame', symbol: '🔥' },
+      { value: 'icon-coins', label: 'Coins', symbol: '🪙' },
+      { value: 'icon-book-open', label: 'Book', symbol: '📖' },
+      { value: 'icon-message-square', label: 'Chat', symbol: '💬' },
+      { value: 'icon-zap', label: 'Energy', symbol: '⚡' },
+      { value: 'icon-star', label: 'Star', symbol: '★' },
+      { value: 'icon-brain', label: 'Brain', symbol: '🧠' }
+    ];
 
     React.useEffect(() => {
       let mounted = true;
@@ -208,15 +221,21 @@ function AdminApp() {
 
       setAchievementError('');
       try {
+        const isEditingAchievement = Boolean(editingAchievementId);
         const result = await fetchJson('/api/admin/achievements', {
-          method: 'POST',
+          method: isEditingAchievement ? 'PATCH' : 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify(achievementForm),
+          body: JSON.stringify(isEditingAchievement ? Object.assign({ id: editingAchievementId }, achievementForm) : achievementForm),
         });
-        setAchievements((current) => [...current, result.data].sort((a, b) => Number(a.sort_index || 0) - Number(b.sort_index || 0)));
+        setAchievements((current) => {
+          const next = isEditingAchievement
+            ? current.map((item) => item.id === editingAchievementId ? Object.assign({}, item, result.data) : item)
+            : [...current, result.data];
+          return next.sort((a, b) => Number(a.sort_index || 0) - Number(b.sort_index || 0));
+        });
         setAchievementForm({
           name: '',
           description: '',
@@ -226,9 +245,39 @@ function AdminApp() {
           condition_value: 25,
           sort_index: 100
         });
+        setEditingAchievementId('');
       } catch (error) {
         setAchievementError(error?.message || 'Failed to save achievement');
       }
+    };
+
+    const handleEditAchievement = (achievement) => {
+      setEditingAchievementId(achievement.id);
+      setAchievementForm({
+        name: achievement.name || '',
+        description: achievement.description || '',
+        icon: achievement.icon || 'icon-award',
+        color: achievement.color || 'from-purple-500 to-neonViolet',
+        condition_type: achievement.condition_type || 'total_xp',
+        condition_value: Number(achievement.condition_value || 1),
+        sort_index: Number(achievement.sort_index || 0)
+      });
+      setAchievementError('');
+      setActiveAdminTab('achievements');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const cancelAchievementEdit = () => {
+      setEditingAchievementId('');
+      setAchievementForm({
+        name: '',
+        description: '',
+        icon: 'icon-award',
+        color: 'from-purple-500 to-neonViolet',
+        condition_type: 'total_xp',
+        condition_value: 25,
+        sort_index: 100
+      });
     };
 
     const handleDeleteAchievement = async (achievement) => {
@@ -436,7 +485,7 @@ function AdminApp() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-1">
                 <form onSubmit={handleAchievementSubmit} className="glass-panel p-6 space-y-4">
-                  <h2 className="text-xl font-bold">Add Achievement</h2>
+                  <h2 className="text-xl font-bold">{editingAchievementId ? 'Edit Achievement' : 'Add Achievement'}</h2>
                   {achievementError ? (
                     <div className="rounded border border-red-500/30 bg-red-500/10 p-3 text-xs font-mono text-red-300">{achievementError}</div>
                   ) : null}
@@ -453,12 +502,15 @@ function AdminApp() {
                     className="min-h-20 w-full rounded border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none focus:border-neonViolet"
                   />
                   <div className="grid grid-cols-2 gap-3">
-                    <input
+                    <select
                       value={achievementForm.icon}
                       onChange={(event) => setAchievementForm((current) => Object.assign({}, current, { icon: event.target.value }))}
-                      placeholder="icon-award"
                       className="rounded border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none focus:border-neonViolet"
-                    />
+                    >
+                      {achievementIcons.map((icon) => (
+                        <option key={icon.value} value={icon.value}>{icon.symbol} {icon.label} - {icon.value}</option>
+                      ))}
+                    </select>
                     <input
                       value={achievementForm.color}
                       onChange={(event) => setAchievementForm((current) => Object.assign({}, current, { color: event.target.value }))}
@@ -491,9 +543,16 @@ function AdminApp() {
                     placeholder="Index"
                     className="w-full rounded border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none focus:border-neonViolet"
                   />
-                  <button className="w-full rounded bg-neonViolet px-4 py-2 font-bold text-black hover:opacity-90">
-                    Add Achievement
-                  </button>
+                  <div className="grid grid-cols-2 gap-3">
+                    {editingAchievementId ? (
+                      <button type="button" onClick={cancelAchievementEdit} className="rounded border border-white/10 bg-white/10 px-4 py-2 font-bold text-gray-200 hover:bg-white/20">
+                        Cancel
+                      </button>
+                    ) : null}
+                    <button className={`${editingAchievementId ? '' : 'col-span-2'} rounded bg-neonViolet px-4 py-2 font-bold text-black hover:opacity-90`}>
+                      {editingAchievementId ? 'Save Changes' : 'Add Achievement'}
+                    </button>
+                  </div>
                 </form>
               </div>
               <div className="lg:col-span-2">
@@ -515,8 +574,15 @@ function AdminApp() {
                             </div>
                             <button
                               type="button"
+                              onClick={() => handleEditAchievement(achievement)}
+                              className="mt-3 rounded border border-blue-400/30 bg-blue-400/10 px-3 py-1 text-xs font-mono text-blue-300 hover:bg-blue-400/20"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => handleDeleteAchievement(achievement)}
-                              className="mt-3 rounded border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-mono text-red-300 hover:bg-red-500/20"
+                              className="ml-2 mt-3 rounded border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-mono text-red-300 hover:bg-red-500/20"
                             >
                               Delete
                             </button>

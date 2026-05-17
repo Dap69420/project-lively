@@ -87,6 +87,28 @@ function hasMetaQuizOptions(quiz) {
   return /\ba correct explanation\b|\brandom fact\b|\brepeating words\b|\bskipping\b|\bunrelated to the course\b|\bwithout showing understanding\b/.test(optionsText);
 }
 
+function getMissingNewtonLawPrompt(courseContext = {}) {
+  const objectives = Array.isArray(courseContext.objectives) ? courseContext.objectives.join(' ').toLowerCase() : '';
+  const topicText = `${objectives} ${courseContext.topic || ''} ${courseContext.aiAim || ''}`.toLowerCase();
+  if (!/3 laws|three laws|newton/.test(topicText)) {
+    return '';
+  }
+
+  const covered = Array.isArray(courseContext.coveredConcepts)
+    ? courseContext.coveredConcepts.join(' ').toLowerCase()
+    : '';
+  const missing = [];
+  if (!/first law|inertia/.test(covered)) missing.push('First Law');
+  if (!/second law|f\s*=\s*ma/.test(covered)) missing.push('Second Law');
+  if (!/third law|action/.test(covered)) missing.push('Third Law');
+
+  if (!missing.length) {
+    return '';
+  }
+
+  return `Nice, keep building from what you already explained. You do not need to repeat the covered laws. Next, explain ${missing.join(' and ')} with a simple everyday example.`;
+}
+
 function hasEnoughObjectiveEvidence({ cleanText, cumulativeText, objectiveText }) {
   const latest = String(cleanText || '').trim();
   const cumulative = String(cumulativeText || '').trim();
@@ -133,7 +155,8 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
   const recentEvidence = Array.isArray(courseContext.recentStudentEvidence)
     ? courseContext.recentStudentEvidence.map((item) => String(item || '').trim()).filter(Boolean)
     : [];
-  const cumulativeText = [...recentEvidence, cleanText].join('\n').trim() || cleanText;
+  const storedCumulativeEvidence = String(courseContext.cumulativeStudentEvidence || '').trim();
+  const cumulativeText = [storedCumulativeEvidence, ...recentEvidence, cleanText].filter(Boolean).join('\n').trim() || cleanText;
   const lowerCumulativeText = cumulativeText.toLowerCase();
   const objectives = Array.isArray(courseContext.objectives) ? courseContext.objectives.filter(Boolean) : [];
   const objectiveStatus = Array.isArray(courseContext.objectiveStatus) ? courseContext.objectiveStatus : [];
@@ -208,7 +231,8 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
   } else if (isStruggling) {
     visibleResponse = `You are close. Start with one short line about ${objectives[0] || courseContext.topic || 'the concept'}, then I will help you refine it.`;
   } else {
-    visibleResponse = `Good start. To count this checkpoint, explain the idea in your own words and add one concrete example or calculation from ${courseContext.topic || courseContext.title || 'this lesson'}.`;
+    visibleResponse = getMissingNewtonLawPrompt(courseContext)
+      || `Good start. To count this checkpoint, explain the idea in your own words and add one concrete example or calculation from ${courseContext.topic || courseContext.title || 'this lesson'}.`;
   }
 
   return {
@@ -276,9 +300,10 @@ function normalizeDecision(decision, fallbackDecision, courseContext = {}) {
     });
   }
 
-  const evidenceText = Array.isArray(courseContext.recentStudentEvidence)
-    ? courseContext.recentStudentEvidence.join('\n')
-    : '';
+  const evidenceText = [
+    String(courseContext.cumulativeStudentEvidence || ''),
+    Array.isArray(courseContext.recentStudentEvidence) ? courseContext.recentStudentEvidence.join('\n') : ''
+  ].filter(Boolean).join('\n');
   const latestEvidence = Array.isArray(courseContext.recentStudentEvidence) && courseContext.recentStudentEvidence.length
     ? courseContext.recentStudentEvidence[courseContext.recentStudentEvidence.length - 1]
     : '';
@@ -359,6 +384,8 @@ module.exports = async (req, res) => {
           Array.isArray(courseContext.objectives) && courseContext.objectives.length ? `Objectives:\n- ${courseContext.objectives.join('\n- ')}` : '',
           Array.isArray(courseContext.objectiveStatus) && courseContext.objectiveStatus.length ? `Objective completion status: ${courseContext.objectiveStatus.map((done, index) => `${index}:${done ? 'complete' : 'incomplete'}`).join(', ')}` : '',
           Array.isArray(courseContext.recentStudentEvidence) && courseContext.recentStudentEvidence.length ? `Recent student evidence, oldest to newest:\n- ${courseContext.recentStudentEvidence.join('\n- ')}` : '',
+          courseContext.cumulativeStudentEvidence ? `Cumulative student evidence:\n${courseContext.cumulativeStudentEvidence}` : '',
+          Array.isArray(courseContext.coveredConcepts) && courseContext.coveredConcepts.length ? `Covered concepts already explained by the student:\n- ${courseContext.coveredConcepts.join('\n- ')}` : '',
           courseContext.aiSettings && typeof courseContext.aiSettings === 'object' ? `AI behavior settings: ${JSON.stringify(courseContext.aiSettings)}` : '',
           courseContext.cardStyle && typeof courseContext.cardStyle === 'object' ? `Card style: ${JSON.stringify(courseContext.cardStyle)}` : ''
         ].filter(Boolean).join('\n')
@@ -377,6 +404,8 @@ module.exports = async (req, res) => {
       'Quiz explanations should sound like a tutor: briefly explain why the correct answer is right and, if useful, why the tempting wrong answer is wrong.',
       'Evaluate objective completion using the full recent student evidence, not only the latest message.',
       'If earlier messages already covered part of an objective, do not ask the student to repeat that part; ask only for the missing part.',
+      'Treat coveredConcepts and cumulative student evidence as memory. If coveredConcepts says Newton second law / F = ma is already covered, do not ask the student to explain the Second Law again.',
+      'For multi-part objectives, acknowledge which parts are already done and ask only for the remaining sub-parts.',
       'Be strict with objective completion. objective_completed should be true only when one listed incomplete objective is demonstrated with a clear explanation plus a concrete example, calculation, or reasoning chain.',
       'Do not complete an objective from a short answer, a single recalled fact, a guess, or a student merely saying they understand.',
       'objective_index must be the zero-based index of the completed objective, or null when no objective is completed.',

@@ -161,6 +161,24 @@ ${displayMathLines.join('\n')}
       completed: Boolean(selectedCourseState.completed),
       attemptCount: Number(selectedCourseState.questions || 0)
     };
+
+    const getCoveredConcepts = (messageList) => {
+      const text = (messageList || [])
+        .filter((msg) => msg.role === 'user')
+        .map((msg) => msg.text)
+        .join('\n')
+        .toLowerCase();
+      const concepts = [];
+
+      if (/\b(first law|1st law|inertia|law of inertia)\b/.test(text)) concepts.push('Newton first law / inertia');
+      if (/\b(second law|2nd law|f\s*=\s*m\s*a|f=ma|force equals mass|force\s+is\s+mass)\b/.test(text)) concepts.push('Newton second law / F = ma');
+      if (/\b(third law|3rd law|action reaction|equal and opposite)\b/.test(text)) concepts.push('Newton third law / action-reaction');
+      if (/\bmotion\b/.test(text)) concepts.push('motion');
+      if (/\bvelocity|speed\b/.test(text)) concepts.push('speed or velocity');
+      if (/\bacceleration\b/.test(text)) concepts.push('acceleration');
+
+      return Array.from(new Set(concepts));
+    };
     
     const [messages, setMessages] = React.useState([]);
     const [input, setInput] = React.useState('');
@@ -609,16 +627,23 @@ ${displayMathLines.join('\n')}
       try {
         const recentStudentEvidence = [...messages, userMsg]
           .filter((msg) => msg.role === 'user')
-          .slice(-8)
+          .slice(-20)
           .map((msg) => msg.text)
           .filter(Boolean);
+        const allStudentEvidence = [...messages, userMsg]
+          .filter((msg) => msg.role === 'user')
+          .map((msg) => msg.text)
+          .filter(Boolean);
+        const coveredConcepts = getCoveredConcepts([...messages, userMsg]);
         const runtimeCourseContext = Object.assign({}, courseContext, {
           repeatedInput,
           attemptCount: Number(selectedCourseState.questions || 0) + 1,
-          recentStudentEvidence
+          recentStudentEvidence,
+          cumulativeStudentEvidence: allStudentEvidence.slice(-40).join('\n\n'),
+          coveredConcepts
         });
 
-        const systemPrompt = `You are Buddy_AI, an encouraging study partner helping a student study ${selectedCourse.name}. Focus only on the current course topic: ${selectedCourse.focus}. The current course objectives are: ${(courseContext.objectives || []).join(' | ') || 'none listed'}. Score objectives from cumulative recent student evidence, not only the newest message. If the student explained part of an objective earlier and adds another part now, keep the earlier evidence and guide them to only the missing pieces. Be strict about objective completion: only mark an objective complete after the student gives a clear explanation plus a concrete example, calculation, or reasoning chain. Do not mark completion for one short fact, a guess, or "I understand". If you create a quiz, make the options real subject answers, not labels like "a correct explanation" or "random fact".`;
+        const systemPrompt = `You are Buddy_AI, an encouraging study partner helping a student study ${selectedCourse.name}. Focus only on the current course topic: ${selectedCourse.focus}. The current course objectives are: ${(courseContext.objectives || []).join(' | ') || 'none listed'}. Score objectives from cumulative recent student evidence, not only the newest message. If the student explained part of an objective earlier and adds another part now, keep the earlier evidence and guide them to only the missing pieces. Do not ask again for any covered concept listed in courseContext.coveredConcepts. For multi-part objectives like Newton's three laws, track each law separately across messages and ask only for the laws or examples that are still missing. Be strict about objective completion: only mark an objective complete after the student gives a clear explanation plus a concrete example, calculation, or reasoning chain. Do not mark completion for one short fact, a guess, or "I understand". If you create a quiz, make the options real subject answers, not labels like "a correct explanation" or "random fact".`;
 
         let aiResponse = '';
         let aiDecision = null;

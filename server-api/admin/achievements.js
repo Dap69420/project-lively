@@ -102,7 +102,11 @@ module.exports = async (req, res) => {
         return res.status(404).json({ success: false, error: 'Achievement not found' });
       }
 
-      return res.status(200).json({ success: true, data: result.rows[0] });
+      const ownerResult = await query('SELECT COUNT(*)::int AS owner_count FROM user_achievements WHERE achievement_id = $1', [id]);
+      return res.status(200).json({
+        success: true,
+        data: Object.assign({}, result.rows[0], { owner_count: ownerResult.rows[0]?.owner_count || 0 })
+      });
     }
 
     if (req.method === 'DELETE') {
