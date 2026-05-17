@@ -348,6 +348,9 @@ function AdminApp() {
               >
                 Achievements
               </button>
+              <div className="hidden md:flex items-center rounded-lg border border-white/10 bg-white/5 px-3 text-xs font-mono text-gray-400">
+                Use Achievements to add badges, set their index, and see owner counts.
+              </div>
             </div>
 
             {activeAdminTab === 'courses' ? (
@@ -558,6 +561,7 @@ function AdminApp() {
 
           </div>
         </div>
+        <ThemeToggle />
       </div>
     );
   } catch (error) {

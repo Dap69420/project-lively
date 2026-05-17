@@ -221,6 +221,7 @@
 
   function applyXpGainWithLevelReset(state, gain) {
     const next = state;
+    const previousLevel = Number(next.level || 1);
     let xpDelta = Math.round(Number(gain || 0));
 
     while (xpDelta > 0) {
@@ -513,6 +514,14 @@
       }).catch((error) => {
         console.error('Final test sync error:', error);
       });
+    }
+
+    if (typeof window !== 'undefined' && next.level > previousLevel) {
+      window.setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('livelyLevelUp', {
+          detail: { previousLevel, level: next.level, newLevel: next.level }
+        }));
+      }, 50);
     }
 
     return next;

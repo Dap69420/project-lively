@@ -3,12 +3,27 @@ function ThemeToggle() {
     const [theme, setTheme] = React.useState(localStorage.getItem('lively-theme') || 'brutal');
     const [animations, setAnimations] = React.useState(localStorage.getItem('lively-animations') !== 'false');
     const [isOpen, setIsOpen] = React.useState(false);
+    const [levelUp, setLevelUp] = React.useState(null);
 
     React.useEffect(() => {
       document.body.className = `theme-${theme} ${animations ? '' : 'animations-reduced'}`.trim();
       window.dispatchEvent(new CustomEvent('themeChange', { detail: theme }));
       window.dispatchEvent(new CustomEvent('animationsChange', { detail: animations }));
     }, [theme, animations]);
+
+    React.useEffect(() => {
+      const handleLevelUp = (event) => {
+        const detail = event.detail || {};
+        setLevelUp({
+          level: detail.level || detail.newLevel || '?',
+          previousLevel: detail.previousLevel || ''
+        });
+        window.setTimeout(() => setLevelUp(null), 2600);
+      };
+
+      window.addEventListener('livelyLevelUp', handleLevelUp);
+      return () => window.removeEventListener('livelyLevelUp', handleLevelUp);
+    }, []);
 
     const toggleTheme = () => {
       const newTheme = theme === 'brutal' ? 'glass' : 'brutal';
@@ -24,27 +39,34 @@ function ThemeToggle() {
 
     return (
       <div data-name="global-settings" data-file="components/ThemeToggle.js">
-        {/* Floating Gear Button */}
+        <style>{`
+          @keyframes slide-in-right {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+          }
+        `}</style>
+        {/* Top Settings Button */}
         <button 
           onClick={() => setIsOpen(true)}
-          className={`fixed bottom-6 right-6 z-[9990] flex items-center justify-center w-14 h-14 rounded-full transition-all duration-500 hover:rotate-90
+          className={`fixed top-4 right-4 z-[9990] flex items-center justify-center w-11 h-11 rounded-lg transition-all duration-300
             ${theme === 'brutal' 
-              ? 'bg-black text-lime border-4 border-white shadow-[4px_4px_0px_#ff00ff] hover:shadow-[2px_2px_0px_#ff00ff]' 
-              : 'bg-glassBg text-neonViolet border border-white/20 backdrop-blur-xl shadow-[0_0_20px_rgba(176,38,255,0.4)] hover:bg-white/10 hover:scale-110'
+              ? 'bg-black text-lime border-2 border-white shadow-[4px_4px_0px_#ff00ff] hover:translate-x-[-1px] hover:translate-y-[-1px]' 
+              : 'bg-glassBg text-neonViolet border border-white/20 backdrop-blur-xl shadow-[0_0_20px_rgba(176,38,255,0.25)] hover:bg-white/10'
             }`}
           title="Global Settings"
+          aria-label="Open settings"
         >
-          <div className="icon-settings text-2xl"></div>
+          <div className="icon-menu text-2xl"></div>
         </button>
 
-        {/* Settings Modal */}
+        {/* Settings Sidebar */}
         {isOpen && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setIsOpen(false)}>
+          <div className="fixed inset-0 z-[9999] flex justify-end bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setIsOpen(false)}>
             <div 
-              className={`w-full max-w-sm p-6 relative animate-[scale-in_0.2s_ease-out]
+              className={`h-full w-full max-w-sm p-6 relative animate-[slide-in-right_0.22s_ease-out]
                 ${theme === 'brutal' 
-                  ? 'bg-dark border-4 border-white shadow-[8px_8px_0px_#ccff00] rounded-none' 
-                  : 'bg-glassBg border border-glassBorder backdrop-blur-2xl shadow-[0_16px_40px_rgba(0,0,0,0.5)] rounded-2xl'
+                  ? 'bg-dark border-l-4 border-white shadow-[-8px_0px_0px_#ccff00] rounded-none' 
+                  : 'bg-darkBg/95 border-l border-glassBorder backdrop-blur-2xl shadow-[0_16px_40px_rgba(0,0,0,0.5)]'
                 }`}
               onClick={(e) => e.stopPropagation()}
             >
@@ -56,7 +78,7 @@ function ThemeToggle() {
               </button>
 
               <h2 className="text-2xl font-bold uppercase tracking-tight mb-6 flex items-center gap-2 border-b border-white/20 pb-4">
-                <div className="icon-sliders"></div> System Config
+                <div className="icon-sliders"></div> Settings
               </h2>
 
               <div className="space-y-6">
@@ -105,6 +127,19 @@ function ThemeToggle() {
             </div>
           </div>
         )}
+
+        {levelUp ? (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-none">
+            <div className="relative text-center">
+              <div className="absolute inset-0 scale-150 rounded-full bg-neonViolet/20 blur-3xl animate-ping"></div>
+              <div className="relative border-4 border-white bg-black px-10 py-8 shadow-[10px_10px_0px_#ccff00]">
+                <div className="font-mono text-xs uppercase tracking-[0.35em] text-lime mb-2">Level Up</div>
+                <div className="font-pixel text-7xl text-white leading-none">{levelUp.level}</div>
+                <div className="mt-3 font-mono text-sm text-gray-300">New rank unlocked</div>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     );
   } catch (error) {
