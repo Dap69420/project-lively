@@ -162,6 +162,13 @@ function getObjectiveGuidance(objectiveText, courseContext = {}) {
     return 'Show the given values, the formula you chose, substitution, final answer with unit, and one sentence explaining what the result means.';
   }
 
+  if (/\b(provided|given)\s+by\s+(buddy|buddy_ai|ai)\b/.test(lowerObjective)) {
+    if (/\bneutralization|reactants|products|acid|base|salt|water\b/.test(lowerObjective)) {
+      return 'Use this reaction from Buddy_AI: hydrochloric acid + sodium hydroxide -> sodium chloride + water. Identify HCl and NaOH as reactants, NaCl and water as products, then explain that acid + base forms salt + water.';
+    }
+    return 'Buddy_AI should provide the example first. Use the example, identify the important parts, then explain why each part fits the objective.';
+  }
+
   if (/\b3 laws|three laws|newton|first law|second law|third law|laws of motion\b/.test(lowerObjective)) {
     return 'Name each missing law, explain it simply, and give one everyday example for each law.';
   }
@@ -224,7 +231,6 @@ function buildFallbackDecision({ userText, systemPrompt = '', courseContext = {}
     && !repeatedInput
     && !isOffTopic
     && !isStruggling
-    && attemptCount >= 2
     && objectiveIndex >= 0
     && mentionedObjective
     && enoughObjectiveEvidence;
@@ -445,7 +451,8 @@ module.exports = async (req, res) => {
       'If earlier messages already covered part of an objective, do not ask the student to repeat that part; ask only for the missing part.',
       'Treat coveredConcepts and cumulative student evidence as memory. If coveredConcepts says Newton second law / F = ma is already covered, do not ask the student to explain the Second Law again.',
       'For multi-part objectives, acknowledge which parts are already done and ask only for the remaining sub-parts.',
-      'Be strict with objective completion. objective_completed should be true only when one listed incomplete objective is demonstrated with a clear explanation plus a concrete example, calculation, or reasoning chain.',
+      'If an objective says an example, reaction, or problem is provided by Buddy_AI, provide that example/reaction/problem before asking the student to identify or solve it.',
+      'Be fair with objective completion. objective_completed should be true when one listed incomplete objective is demonstrated with a clear explanation plus a concrete example, calculation, or reasoning chain.',
       'Do not complete an objective from a short answer, a single recalled fact, a guess, or a student merely saying they understand.',
       'objective_index must be the zero-based index of the completed objective, or null when no objective is completed.',
       'completed_objective_indexes should list all zero-based objective indexes completed by this answer.',

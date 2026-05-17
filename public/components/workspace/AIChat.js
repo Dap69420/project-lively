@@ -189,6 +189,12 @@ ${displayMathLines.join('\n')}
       let expected = `Use this shape: define the idea in your own words, add one concrete example from ${topic}, then explain why the example proves your point.`;
       if (/\bsolve|problem|calculation|formula|word problem\b/.test(lowerObjective)) {
         expected = 'Write the given values, choose the formula, substitute numbers, calculate the answer, and add the unit plus one sentence explaining the result.';
+      } else if (/\b(provided|given)\s+by\s+(buddy|buddy_ai|ai)\b/.test(lowerObjective)) {
+        if (/\bneutralization|reactants|products|acid|base|salt|water\b/.test(lowerObjective)) {
+          expected = 'Use Buddy_AI reaction: hydrochloric acid + sodium hydroxide -> sodium chloride + water. Identify HCl and NaOH as reactants, NaCl and water as products, then explain that acid + base makes salt + water.';
+        } else {
+          expected = 'Ask Buddy_AI for the example first, then identify its important parts and explain why each part fits the objective.';
+        }
       } else if (/\b3 laws|three laws|newton|first law|second law|third law|laws of motion\b/.test(lowerObjective)) {
         expected = 'Cover the missing Newton laws one by one: name the law, explain it simply, then give a daily-life example for that law.';
       } else if (/\bdifferentiate|compare|contrast|difference\b/.test(lowerObjective)) {
@@ -228,6 +234,7 @@ ${displayMathLines.join('\n')}
     const [activeFinalTest, setActiveFinalTest] = React.useState(null);
     const [finalTestLoading, setFinalTestLoading] = React.useState(false);
     const [courseCompletionPending, setCourseCompletionPending] = React.useState(false);
+    const [pendingHintConfirm, setPendingHintConfirm] = React.useState(false);
     const moodConfig = {
       green: { label: 'Focused', tone: 'bg-mcGreen shadow-[0_0_10px_#55FF55]', text: 'text-mcGreen' },
       supportive: { label: 'Supportive', tone: 'bg-mcOrange shadow-[0_0_10px_#FFAA00]', text: 'text-mcOrange' },
@@ -286,8 +293,13 @@ ${displayMathLines.join('\n')}
     React.useEffect(() => {
       setAnsweredQuizKeys([]);
       setActiveQuizPrompt(null);
-      setActiveFinalTest(null);
+      const draft = progress.courseProgress?.[selectedCourseId]?.stats?.finalTest?.draft;
+      setActiveFinalTest(draft && Array.isArray(draft.questions) && draft.questions.length ? Object.assign({}, draft, {
+        passScore: Number(draft.passScore || draft.pass_score || 4),
+        answers: Array.isArray(draft.answers) ? draft.answers : Array(10).fill(null)
+      }) : null);
       setCourseCompletionPending(false);
+      setPendingHintConfirm(false);
       let cancelled = false;
       const completedMessage = {
         role: 'ai',
@@ -346,6 +358,17 @@ ${displayMathLines.join('\n')}
     React.useEffect(() => {
       scrollToBottom();
     }, [messages]);
+
+    React.useEffect(() => {
+      if (activeFinalTest || isCourseCompleted) return;
+      const draft = selectedCourseState.stats?.finalTest?.draft;
+      if (draft && Array.isArray(draft.questions) && draft.questions.length) {
+        setActiveFinalTest(Object.assign({}, draft, {
+          passScore: Number(draft.passScore || draft.pass_score || 4),
+          answers: Array.isArray(draft.answers) ? draft.answers : Array(10).fill(null)
+        }));
+      }
+    }, [selectedCourseId, selectedCourseState.stats?.finalTest?.draft, activeFinalTest, isCourseCompleted]);
 
       // Typewrite math after rendering
       React.useEffect(() => {
@@ -497,6 +520,11 @@ ${displayMathLines.join('\n')}
 
     const handleHintRequest = () => {
       if (isCourseCompleted) return;
+      setPendingHintConfirm(true);
+    };
+
+    const confirmHintRequest = () => {
+      setPendingHintConfirm(false);
       const cost = 5;
       const spendResult = typeof window.LivelyProgress.spendCoins === 'function'
         ? window.LivelyProgress.spendCoins(cost, 'chat_hint')
@@ -549,6 +577,9 @@ ${displayMathLines.join('\n')}
           attempt
         };
         setActiveFinalTest(normalizedTest);
+        if (typeof window.LivelyProgress.saveFinalTestDraft === 'function') {
+          window.LivelyProgress.saveFinalTestDraft(selectedCourseId, normalizedTest);
+        }
 
         const msg = {
           role: 'ai',
@@ -583,7 +614,11 @@ ${displayMathLines.join('\n')}
         if (!current) return current;
         const answers = current.answers.slice();
         answers[questionIndex] = selectedIndex;
-        return Object.assign({}, current, { answers });
+        const next = Object.assign({}, current, { answers });
+        if (typeof window.LivelyProgress.saveFinalTestDraft === 'function') {
+          window.LivelyProgress.saveFinalTestDraft(selectedCourseId, next);
+        }
+        return next;
       });
     };
 
@@ -638,6 +673,9 @@ ${displayMathLines.join('\n')}
       if (passed) {
         setCourseCompletionPending(true);
         setActiveFinalTest(null);
+        if (typeof window.LivelyProgress.clearFinalTestDraft === 'function') {
+          window.LivelyProgress.clearFinalTestDraft(selectedCourseId);
+        }
         await window.LivelyProgress.completeCourse(selectedCourseId);
         const completionMsg = {
           role: 'ai',
@@ -655,6 +693,9 @@ ${displayMathLines.join('\n')}
         });
       } else {
         setActiveFinalTest(null);
+        if (typeof window.LivelyProgress.clearFinalTestDraft === 'function') {
+          window.LivelyProgress.clearFinalTestDraft(selectedCourseId);
+        }
         startFinalTest(`You scored ${score}/10. Let's run another final test so you can try again.`, { force: true });
       }
     };
@@ -712,7 +753,7 @@ ${displayMathLines.join('\n')}
           coveredConcepts
         });
 
-        const systemPrompt = `You are Buddy_AI, an encouraging study partner helping a student study ${selectedCourse.name}. Focus only on the current course topic: ${selectedCourse.focus}. The current course objectives are: ${(courseContext.objectives || []).join(' | ') || 'none listed'}. Score objectives from cumulative recent student evidence, not only the newest message. If the student explained part of an objective earlier and adds another part now, keep the earlier evidence and guide them to only the missing pieces. Do not ask again for any covered concept listed in courseContext.coveredConcepts. For multi-part objectives like Newton's three laws, track each law separately across messages and ask only for the laws or examples that are still missing. Be strict about objective completion: only mark an objective complete after the student gives a clear explanation plus a concrete example, calculation, or reasoning chain. Do not mark completion for one short fact, a guess, or "I understand". If you create a quiz, make the options real subject answers, not labels like "a correct explanation" or "random fact".`;
+        const systemPrompt = `You are Buddy_AI, an encouraging study partner helping a student study ${selectedCourse.name}. Focus only on the current course topic: ${selectedCourse.focus}. The current course objectives are: ${(courseContext.objectives || []).join(' | ') || 'none listed'}. Score objectives from cumulative recent student evidence, not only the newest message. If the student explained part of an objective earlier and adds another part now, keep the earlier evidence and guide them to only the missing pieces. Do not ask again for any covered concept listed in courseContext.coveredConcepts. For multi-part objectives like Newton's three laws, track each law separately across messages and ask only for the laws or examples that are still missing. If an objective says the example/reaction/problem is provided by Buddy_AI, you must provide that example/reaction/problem before asking the student to identify or solve it. Be fair about objective completion: mark an objective complete when the student gives a clear explanation plus a concrete example, calculation, or reasoning chain; do not require extra repetition after that evidence exists. Do not mark completion for one short fact, a guess, or "I understand". If you create a quiz, make the options real subject answers, not labels like "a correct explanation" or "random fact".`;
 
         let aiResponse = '';
         let aiDecision = null;
@@ -983,6 +1024,34 @@ ${displayMathLines.join('\n')}
             </div>
           </div>
         </div>
+
+        {pendingHintConfirm ? (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 p-4">
+            <div className="w-full max-w-sm rounded-lg border border-yellow-400/50 bg-discordDarkest p-5 shadow-[0_0_28px_rgba(250,204,21,0.16)]">
+              <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.22em] text-yellow-300">Spend Coins</div>
+              <div className="text-lg font-bold text-white">Buy a hint for 5 coins?</div>
+              <p className="mt-2 text-sm leading-relaxed text-gray-300">
+                Buddy_AI will give a hint for the current checkpoint without completing it for you.
+              </p>
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPendingHintConfirm(false)}
+                  className="rounded border border-gray-600 px-4 py-2 text-sm font-bold text-gray-300 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmHintRequest}
+                  className="rounded bg-yellow-300 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-200"
+                >
+                  Spend 5
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {activeQuizPrompt ? (
           <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 p-4">

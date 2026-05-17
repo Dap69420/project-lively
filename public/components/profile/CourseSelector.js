@@ -42,7 +42,7 @@ function CourseSelector() {
 
     const isCourseCompleted = (course) => {
       const courseState = progress.courseProgress[course.id] || { mastery: 0, completed: false };
-      return Boolean(courseState.completed) || courseState.mastery >= 100;
+      return Boolean(courseState.completed);
     };
     const completedCourses = courses.filter(isCourseCompleted);
     const visibleCourses = activeTab === 'all'
@@ -183,7 +183,9 @@ function CourseSelector() {
           {visibleCourses.map((course) => {
             const isActive = course.id === progress.selectedCourse;
             const courseState = progress.courseProgress[course.id] || { xp: 0, mastery: 0, questions: 0, completed: false };
-            const isCompleted = Boolean(courseState.completed) || courseState.mastery >= 100;
+            const isCompleted = Boolean(courseState.completed);
+            const finalTestStatus = courseState.stats?.finalTest?.status || '';
+            const hasPendingFinalTest = !isCompleted && (finalTestStatus === 'in_progress' || courseState.stats?.finalTest?.draft);
             const cardStyle = course.cardStyle || {};
             const cardBackground = cardStyle.background_color || (isActive ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.20)');
             const cardBorder = cardStyle.border_color || (isActive ? 'var(--color-neonViolet)' : 'rgba(255,255,255,0.10)');
@@ -206,6 +208,8 @@ function CourseSelector() {
                   <div className="shrink-0">
                     {isCompleted ? (
                       <span className="text-[10px] font-mono px-2 py-1 rounded-full bg-green-500/20 text-green-300 border border-green-500/30">COMPLETED</span>
+                    ) : hasPendingFinalTest ? (
+                      <span className="text-[10px] font-mono px-2 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">TEST REMAINS</span>
                     ) : isActive ? (
                       <span className="text-[10px] font-mono px-2 py-1 rounded-full bg-neonViolet/20 text-neonViolet border border-neonViolet/30">LIVE</span>
                     ) : null}

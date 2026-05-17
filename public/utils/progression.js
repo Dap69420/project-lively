@@ -198,17 +198,19 @@
       merged.courseProgress[course.id] = Object.assign({ xp: 0, questions: 0, mastery: 0, completed: false, completedAt: '', objectiveStatus: [], stats: {} }, merged.courseProgress[course.id] || {});
       const courseState = merged.courseProgress[course.id];
       const objectives = Array.isArray(course.objectives) ? course.objectives : [];
-      const storedObjectiveStatus = Array.isArray(courseState.objectiveStatus)
+      const storedObjectiveStatus = Array.isArray(courseState.objectiveStatus) && courseState.objectiveStatus.length
         ? courseState.objectiveStatus
         : Array.isArray(courseState.stats?.objectiveStatus)
           ? courseState.stats.objectiveStatus
           : [];
+      const finalTest = courseState.stats?.finalTest && typeof courseState.stats.finalTest === 'object' ? courseState.stats.finalTest : null;
       courseState.completed = Boolean(courseState.completed);
       courseState.objectiveStatus = objectives.map((_objective, index) => Boolean(storedObjectiveStatus[index]));
       const objectiveMastery = objectives.length ? Math.round((courseState.objectiveStatus.filter(Boolean).length / objectives.length) * 100) : 0;
       courseState.mastery = Math.max(0, Math.min(100, Math.max(Math.floor(Number(courseState.xp || 0) / 2), Number(courseState.progress_percentage || 0), objectiveMastery)));
       courseState.stats = Object.assign({}, courseState.stats || {}, {
         objectiveStatus: courseState.objectiveStatus,
+        finalTest,
         questionsAnswered: Number(courseState.stats?.questionsAnswered || courseState.questions || 0)
       });
     });
@@ -505,7 +507,8 @@
       passScore: Number(result?.passScore || 4),
       passed: Boolean(result?.passed),
       lastTakenAt: new Date().toISOString(),
-      status: result?.passed ? 'passed' : 'failed'
+      status: result?.passed ? 'passed' : 'failed',
+      draft: null
     });
 
     next.courseProgress[courseId] = Object.assign({}, courseState, {
@@ -525,6 +528,69 @@
       });
     }
 
+    return next;
+  }
+
+  function saveFinalTestDraft(courseId, draft) {
+    const course = getCourseById(courseId);
+    if (!course || !draft) {
+      return currentState;
+    }
+
+    const next = normalizeState(currentState);
+    const courseState = next.courseProgress[courseId] || { xp: 0, questions: 0, mastery: 0, completed: false, objectiveStatus: [], stats: {} };
+    const previousFinalTest = courseState.stats?.finalTest || {};
+    const safeDraft = {
+      title: String(draft.title || `${course.name || 'Course'} Final Test`),
+      passScore: Number(draft.passScore || draft.pass_score || 4),
+      questions: Array.isArray(draft.questions) ? draft.questions.slice(0, 10) : [],
+      answers: Array.isArray(draft.answers) ? draft.answers.slice(0, 10) : [],
+      attempt: Number(draft.attempt || previousFinalTest.attempts || 1),
+      savedAt: new Date().toISOString()
+    };
+
+    next.courseProgress[courseId] = Object.assign({}, courseState, {
+      stats: Object.assign({}, courseState.stats || {}, {
+        finalTest: Object.assign({}, previousFinalTest, {
+          status: 'in_progress',
+          passed: false,
+          passScore: safeDraft.passScore,
+          draft: safeDraft
+        })
+      })
+    });
+
+    saveState(next);
+
+    if (currentState.userId) {
+      syncCourseToServer(courseId, {
+        progress_percentage: next.courseProgress[courseId].progress_percentage || 99,
+        xp_in_course: next.courseProgress[courseId].xp || 0,
+        coins_earned: next.courseProgress[courseId].coins || 0,
+        stats: next.courseProgress[courseId].stats
+      }).catch((error) => {
+        console.error('Final test draft sync error:', error);
+      });
+    }
+
+    return next;
+  }
+
+  function clearFinalTestDraft(courseId) {
+    const course = getCourseById(courseId);
+    if (!course) {
+      return currentState;
+    }
+
+    const next = normalizeState(currentState);
+    const courseState = next.courseProgress[courseId] || { stats: {} };
+    const previousFinalTest = courseState.stats?.finalTest || {};
+    next.courseProgress[courseId] = Object.assign({}, courseState, {
+      stats: Object.assign({}, courseState.stats || {}, {
+        finalTest: Object.assign({}, previousFinalTest, { draft: null })
+      })
+    });
+    saveState(next);
     return next;
   }
 
@@ -856,17 +922,35 @@
       const courseProgress = {};
 
       userProgressRows.forEach((row) => {
+        const localCourseState = currentState.courseProgress?.[row.course_id] || {};
+        const localStatus = Array.isArray(localCourseState.objectiveStatus)
+          ? localCourseState.objectiveStatus
+          : Array.isArray(localCourseState.stats?.objectiveStatus)
+            ? localCourseState.stats.objectiveStatus
+            : [];
+        const serverStatus = Array.isArray(row.stats?.objectiveStatus) ? row.stats.objectiveStatus : [];
+        const mergedStatusLength = Math.max(localStatus.length, serverStatus.length);
+        const mergedObjectiveStatus = Array.from({ length: mergedStatusLength }, (_item, index) => Boolean(localStatus[index] || serverStatus[index]));
+        const localFinalTest = localCourseState.stats?.finalTest && typeof localCourseState.stats.finalTest === 'object' ? localCourseState.stats.finalTest : null;
+        const serverFinalTest = row.stats?.finalTest && typeof row.stats.finalTest === 'object' ? row.stats.finalTest : null;
+        const finalTest = Object.assign({}, serverFinalTest || {}, localFinalTest || {});
+        if (serverFinalTest?.draft && !localFinalTest?.draft) finalTest.draft = serverFinalTest.draft;
+        if (localFinalTest?.draft) finalTest.draft = localFinalTest.draft;
+
         courseProgress[row.course_id] = {
-          xp: Number(row.xp_in_course || 0),
-          questions: Number(row.stats?.questionsAnswered || 0),
-          mastery: Math.min(100, Math.floor(Number(row.xp_in_course || 0) / 2)),
-          completed: Boolean(row.completed),
-          completedAt: row.completed_at || '',
-          progress_percentage: Number(row.progress_percentage || 0),
-          coins: Number(row.coins_earned || 0),
+          xp: Math.max(Number(localCourseState.xp || 0), Number(row.xp_in_course || 0)),
+          questions: Math.max(Number(localCourseState.questions || 0), Number(row.stats?.questionsAnswered || 0)),
+          mastery: Math.max(Number(localCourseState.mastery || 0), Math.min(100, Math.floor(Number(row.xp_in_course || 0) / 2))),
+          completed: Boolean(localCourseState.completed || row.completed),
+          completedAt: localCourseState.completedAt || row.completed_at || '',
+          progress_percentage: Math.max(Number(localCourseState.progress_percentage || 0), Number(row.progress_percentage || 0)),
+          coins: Math.max(Number(localCourseState.coins || 0), Number(row.coins_earned || 0)),
           userCourseId: row.id,
-          objectiveStatus: Array.isArray(row.stats?.objectiveStatus) ? row.stats.objectiveStatus : [],
-          stats: row.stats || {}
+          objectiveStatus: mergedObjectiveStatus,
+          stats: Object.assign({}, row.stats || {}, localCourseState.stats || {}, {
+            objectiveStatus: mergedObjectiveStatus,
+            finalTest
+          })
         };
       });
 
@@ -1027,6 +1111,8 @@
       markObjectiveProgress,
       completeCourse,
       recordFinalTestResult,
+      saveFinalTestDraft,
+      clearFinalTestDraft,
       setSelectedCourse,
       setAvailableCourses,
       loadCoursesForGrade,
