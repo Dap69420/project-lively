@@ -23,6 +23,10 @@
       "destination": "/login.html"
     },
     {
+      "source": "/app-download",
+      "destination": "/app-download.html"
+    },
+    {
       "source": "/profile",
       "destination": "/profile.html"
     },
