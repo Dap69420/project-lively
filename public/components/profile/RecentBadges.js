@@ -49,15 +49,15 @@ function RecentBadges() {
     };
 
     return (
-      <div className="glass-panel p-6 space-y-8" data-name="recent-badges" data-file="components/profile/RecentBadges.js">
+      <div className="glass-panel p-4 sm:p-6 space-y-7 sm:space-y-8 min-w-0 overflow-hidden" data-name="recent-badges" data-file="components/profile/RecentBadges.js">
         <div>
           <h3 className="font-mono text-sm uppercase tracking-widest text-gray-400 mb-6 flex items-center gap-2">
             <div className="icon-award"></div> RECENT BADGES
           </h3>
 
-          <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x">
+          <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x max-w-full">
             {badges.map((badge, idx) => (
-              <div key={idx} className="flex flex-col items-center gap-3 min-w-[100px] snap-center group">
+              <div key={idx} className="flex flex-col items-center gap-3 min-w-[84px] sm:min-w-[100px] snap-center group">
                 <div className="relative w-16 h-16 rounded-full p-0.5 bg-gradient-to-br transition-transform group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.2)]" style={{ backgroundImage: `linear-gradient(to bottom right, var(--tw-gradient-stops))` }}>
                   <div className={`absolute inset-0 bg-gradient-to-br ${badge.color} rounded-full`}></div>
                   <div className="absolute inset-[2px] bg-darkBg rounded-full flex items-center justify-center">
@@ -77,12 +77,12 @@ function RecentBadges() {
           <h3 className="font-mono text-sm uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
             <div className="icon-list-checks"></div> ACHIEVEMENT INDEX
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
             {achievementIndex.map((achievement) => {
               const owned = ownedSet.has(achievement.id);
               const badge = badgeMap[achievement.id] || achievement;
               return (
-                <div key={achievement.id} className={`rounded-lg border p-3 transition-colors ${owned ? 'border-neonViolet/50 bg-neonViolet/10' : 'border-white/10 bg-black/20 opacity-75'}`}>
+                <div key={achievement.id} className={`rounded-lg border p-3 transition-colors min-w-0 ${owned ? 'border-neonViolet/50 bg-neonViolet/10' : 'border-white/10 bg-black/20 opacity-75'}`}>
                   <div className="flex items-start gap-3">
                     <div className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${owned ? 'bg-neonViolet/20' : 'bg-white/5 grayscale'}`}>
                       <div className={`${badge.icon || 'icon-award'} text-xl ${owned ? 'text-white' : 'text-gray-500'}`}></div>

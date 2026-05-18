@@ -10,24 +10,24 @@ function StatsGrid() {
     ];
 
     return (
-      <div className="grid grid-cols-2 gap-4 sm:gap-6" data-name="stats-grid" data-file="components/profile/StatsGrid.js">
+      <div className="grid grid-cols-2 gap-3 sm:gap-6 min-w-0" data-name="stats-grid" data-file="components/profile/StatsGrid.js">
         {stats.map((stat, idx) => (
-          <div key={idx} className="glass-panel p-5 sm:p-6 flex flex-col justify-between relative overflow-hidden group hover:-translate-y-1">
+          <div key={idx} className="glass-panel p-3 sm:p-6 flex flex-col justify-between relative overflow-hidden group hover:-translate-y-1 min-w-0">
             
             {/* Subtle gradient background based on icon color */}
             <div className={`absolute -right-10 -top-10 w-32 h-32 rounded-full opacity-5 blur-2xl transition-opacity group-hover:opacity-20 ${stat.color.replace('text-', 'bg-')}`}></div>
 
             <div className="flex items-start justify-between mb-4 relative z-10">
-              <span className="font-mono text-xs sm:text-sm text-gray-400 uppercase tracking-wider">{stat.label}</span>
+              <span className="min-w-0 font-mono text-[10px] sm:text-sm text-gray-400 uppercase tracking-wide sm:tracking-wider leading-tight">{stat.label}</span>
               <div className={`w-8 h-8 rounded-full bg-black/40 border border-white/10 flex items-center justify-center ${stat.color} ${stat.glow}`}>
                 <div className={`${stat.icon} text-sm`}></div>
               </div>
             </div>
             
             <div className="relative z-10">
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl sm:text-4xl font-bold tracking-tighter">{stat.value}</span>
-                <span className="font-mono text-xs text-gray-500 font-bold">{stat.unit}</span>
+              <div className="flex flex-col sm:flex-row sm:items-baseline gap-0 sm:gap-2 min-w-0">
+                <span className="text-2xl sm:text-4xl font-bold tracking-tight truncate">{stat.value}</span>
+                <span className="font-mono text-[10px] sm:text-xs text-gray-500 font-bold truncate">{stat.unit}</span>
               </div>
             </div>
           </div>

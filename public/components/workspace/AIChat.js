@@ -179,28 +179,28 @@ ${displayMathLines.join('\n')}
     const buildObjectiveHint = (kind = 'hint') => {
       const info = getCurrentObjectiveInfo();
       if (info.allComplete) {
-        return 'All checkpoints are cleared. Take the final test in chat: answer all 10 questions and score at least 4/10 to complete the course.';
+        return 'All checkpoints are cleared. Start the final test when you are ready.';
       }
 
       const objective = info.objective || selectedCourse.focus || selectedCourse.name;
       const topic = selectedCourse.focus || selectedCourse.name;
       const lowerObjective = objective.toLowerCase();
 
-      let expected = `Use this shape: define the idea in your own words, add one concrete example from ${topic}, then explain why the example proves your point.`;
+      let expected = `Think of your own example from ${topic}, then ask yourself: what does this example prove about the idea?`;
       if (/\bsolve|problem|calculation|formula|word problem\b/.test(lowerObjective)) {
-        expected = 'Write the given values, choose the formula, substitute numbers, calculate the answer, and add the unit plus one sentence explaining the result.';
+        expected = 'Before calculating, list the known values and decide which formula connects them. After calculating, explain what your unit means.';
       } else if (/\b(provided|given)\s+by\s+(buddy|buddy_ai|ai)\b/.test(lowerObjective)) {
         if (/\bneutralization|reactants|products|acid|base|salt|water\b/.test(lowerObjective)) {
-          expected = 'Use Buddy_AI reaction: hydrochloric acid + sodium hydroxide -> sodium chloride + water. Identify HCl and NaOH as reactants, NaCl and water as products, then explain that acid + base makes salt + water.';
+          expected = 'Look at the reaction arrow: what is before it, what is after it, and why does that show neutralization?';
         } else {
-          expected = 'Ask Buddy_AI for the example first, then identify its important parts and explain why each part fits the objective.';
+          expected = 'Ask Buddy_AI for the prompt if you have not received it, then solve the important parts in your own words.';
         }
       } else if (/\b3 laws|three laws|newton|first law|second law|third law|laws of motion\b/.test(lowerObjective)) {
-        expected = 'Cover the missing Newton laws one by one: name the law, explain it simply, then give a daily-life example for that law.';
+        expected = 'For each missing law, think: what changes, what stays the same, and what everyday object can show that?';
       } else if (/\bdifferentiate|compare|contrast|difference\b/.test(lowerObjective)) {
-        expected = `State both sides clearly, give one concrete ${topic} example for each side, and add one sentence explaining how the examples are different.`;
+        expected = `Choose one feature for each side, then explain the contrast with examples you invent.`;
       } else if (/\bexplain|meaning|define\b/.test(lowerObjective)) {
-        expected = `Explain ${objective} in your own words, then give one specific example and one because/so sentence that connects the example back to the idea.`;
+        expected = `After your explanation, add an example you made up and one reason it proves the idea.`;
       }
 
       return kind === 'next'
@@ -235,6 +235,9 @@ ${displayMathLines.join('\n')}
     const [finalTestLoading, setFinalTestLoading] = React.useState(false);
     const [courseCompletionPending, setCourseCompletionPending] = React.useState(false);
     const [pendingHintConfirm, setPendingHintConfirm] = React.useState(false);
+    const [hintUsedObjectiveIndexes, setHintUsedObjectiveIndexes] = React.useState([]);
+    const [finalTestPrompt, setFinalTestPrompt] = React.useState(null);
+    const [finalTestPromptDismissed, setFinalTestPromptDismissed] = React.useState(false);
     const [pendingFinalQuizKey, setPendingFinalQuizKey] = React.useState('');
     const moodConfig = {
       green: { label: 'Focused', tone: 'bg-mcGreen shadow-[0_0_10px_#55FF55]', text: 'text-mcGreen' },
@@ -250,6 +253,12 @@ ${displayMathLines.join('\n')}
     const messagesEndRef = React.useRef(null);
     const finalTestStartingRef = React.useRef(false);
     const pendingFinalQuizKeyRef = React.useRef('');
+    React.useEffect(() => {
+      setHintUsedObjectiveIndexes([]);
+      setFinalTestPrompt(null);
+      setFinalTestPromptDismissed(false);
+    }, [selectedCourseId]);
+
     const hydrateQuizAnswers = (messageList) => {
       const answersByKey = {};
       (messageList || []).forEach((message, index) => {
@@ -530,19 +539,40 @@ ${displayMathLines.join('\n')}
         const objectiveStatus = Array.isArray(liveState.objectiveStatus) ? liveState.objectiveStatus : [];
         const allObjectivesCleared = objectives.length > 0 && objectives.every((_objective, index) => Boolean(objectiveStatus[index]));
         if (allObjectivesCleared && !liveState.completed && !liveState.stats?.finalTest?.passed) {
-          startFinalTest(`Quiz done. Final test time: answer 10 questions. You need at least 4/10 to complete ${selectedCourse.name}.`);
+          announceFinalTestReady(`Quiz done. You cleared every checkpoint for ${selectedCourse.name}.`);
         }
       }
     };
 
     const handleHintRequest = () => {
       if (isCourseCompleted) return;
+      const info = getCurrentObjectiveInfo();
+      if (info.index >= 0 && hintUsedObjectiveIndexes.includes(info.index)) {
+        const msg = {
+          role: 'ai',
+          text: 'You already used a hint for this checkpoint. Try making one attempt in your own words first.',
+          time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+          metadata: { type: 'hint_limit' }
+        };
+        setMessages((prev) => [...prev, msg]);
+        window.LivelyProgress.addChatMessage({
+          role: msg.role,
+          text: msg.text,
+          time: msg.time,
+          courseId: selectedCourseId,
+          metadata: msg.metadata
+        });
+        setMood('supportive');
+        return;
+      }
       setPendingHintConfirm(true);
     };
 
     const confirmHintRequest = async () => {
       setPendingHintConfirm(false);
       const cost = 5;
+      const info = getCurrentObjectiveInfo();
+      if (info.index >= 0 && hintUsedObjectiveIndexes.includes(info.index)) return;
       const spendResult = typeof window.LivelyProgress.spendCoins === 'function'
         ? window.LivelyProgress.spendCoins(cost, 'chat_hint')
         : { success: Number(progress.coins || 0) >= cost };
@@ -577,6 +607,10 @@ ${displayMathLines.join('\n')}
         }
       }
 
+      if (spendResult.success && info.index >= 0) {
+        setHintUsedObjectiveIndexes((prev) => Array.from(new Set([...prev, info.index])));
+      }
+
       const msg = {
         role: 'ai',
         text,
@@ -594,8 +628,30 @@ ${displayMathLines.join('\n')}
       setMood(spendResult.success ? 'curious' : 'supportive');
     };
 
+    const announceFinalTestReady = (introText = '') => {
+      if (finalTestPrompt || finalTestPromptDismissed || activeFinalTest || finalTestLoading || isCourseCompleted) return;
+      const text = `${introText || `All objectives are cleared for ${selectedCourse.name}.`} When you are ready, start the 10-question final test. You need at least 4/10 to complete the course.`;
+      const msg = {
+        role: 'ai',
+        text,
+        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+        metadata: { type: 'final_test_ready' }
+      };
+      setFinalTestPrompt({ text });
+      setFinalTestPromptDismissed(false);
+      setMessages((prev) => [...prev, msg]);
+      window.LivelyProgress.addChatMessage({
+        role: msg.role,
+        text: msg.text,
+        time: msg.time,
+        courseId: selectedCourseId,
+        metadata: msg.metadata
+      });
+    };
+
     const startFinalTest = async (reasonText = '', options = {}) => {
       if (finalTestStartingRef.current || finalTestLoading || isCourseCompleted || (activeFinalTest && !options.force)) return;
+      setFinalTestPrompt(null);
       finalTestStartingRef.current = true;
       setFinalTestLoading(true);
 
@@ -753,15 +809,24 @@ ${displayMathLines.join('\n')}
       const allObjectivesCleared = objectives.length > 0 && objectives.every((_objective, index) => Boolean(objectiveStatus[index]));
       const finalTestPassed = Boolean(selectedCourseState.stats?.finalTest?.passed);
 
-      if (allObjectivesCleared && !isCourseCompleted && !finalTestPassed && !activeFinalTest && !finalTestLoading && !courseCompletionPending && !activeQuizPrompt && !pendingFinalQuizKey && !pendingFinalQuizKeyRef.current) {
-        startFinalTest(`All objectives are cleared. Final test time: answer 10 questions. You need at least 4/10 to complete ${selectedCourse.name}.`);
+      if (allObjectivesCleared && !isCourseCompleted && !finalTestPassed && !activeFinalTest && !finalTestLoading && !finalTestPrompt && !finalTestPromptDismissed && !courseCompletionPending && !activeQuizPrompt && !pendingFinalQuizKey && !pendingFinalQuizKeyRef.current) {
+        announceFinalTestReady(`All objectives are cleared for ${selectedCourse.name}.`);
       }
-    }, [selectedCourseId, selectedCourseState.objectiveStatus, selectedCourseState.completed, courseCompletionPending, activeQuizPrompt, pendingFinalQuizKey]);
+    }, [selectedCourseId, selectedCourseState.objectiveStatus, selectedCourseState.completed, courseCompletionPending, activeQuizPrompt, pendingFinalQuizKey, finalTestPrompt, finalTestPromptDismissed]);
 
     const handleSend = async () => {
       if (!input.trim() || isTyping || isCourseCompleted) return;
       
       const userText = input;
+      const currentStateForSend = window.LivelyProgress.getState().courseProgress?.[selectedCourseId] || {};
+      const currentObjectivesForSend = Array.isArray(selectedCourse.objectives) ? selectedCourse.objectives : [];
+      const objectivesClearedForSend = currentObjectivesForSend.length > 0 && currentObjectivesForSend.every((_objective, index) => Boolean(currentStateForSend.objectiveStatus?.[index]));
+      if (objectivesClearedForSend && !currentStateForSend.completed && !currentStateForSend.stats?.finalTest?.passed && /\b(start|take|begin|open|give)\b.{0,20}\b(final\s*)?test\b|\bfinal\s*test\b/i.test(userText)) {
+        setInput('');
+        setFinalTestPromptDismissed(false);
+        startFinalTest('Final test started. Answer all 10 questions, then submit when you are done.');
+        return;
+      }
       const normalizeForComparison = (value) => String(value || '').toLowerCase().replace(/\s+/g, ' ').replace(/[^a-z0-9 ]/g, '').trim();
       const lastUserMessage = [...messages].reverse().find((msg) => msg.role === 'user');
       const lastAiDecision = [...messages].reverse().find((msg) => msg.role === 'ai' && msg.metadata?.aiDecision)?.metadata?.aiDecision;
@@ -861,7 +926,7 @@ ${displayMathLines.join('\n')}
               setPendingFinalQuizKey(quizKey);
             } else {
               pendingFinalQuizKeyRef.current = '';
-              startFinalTest(`All objectives are cleared. Final test time: answer 10 questions. You need at least 4/10 to complete ${selectedCourse.name}.`);
+              announceFinalTestReady(`Nice, all objectives are cleared for ${selectedCourse.name}.`);
             }
           } else if (quizKey) {
             pendingFinalQuizKeyRef.current = '';
@@ -1111,6 +1176,37 @@ ${displayMathLines.join('\n')}
                   className="rounded bg-yellow-300 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-200"
                 >
                   Spend 5
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {finalTestPrompt ? (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 p-4">
+            <div className="w-full max-w-md rounded-lg border border-blue-400/60 bg-discordDarkest p-5 shadow-[0_0_28px_rgba(96,165,250,0.22)]">
+              <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.22em] text-blue-300">Final Test Ready</div>
+              <div className="text-xl font-bold text-white">All checkpoints cleared</div>
+              <p className="mt-2 text-sm leading-relaxed text-gray-300">
+                Start the 10-question final test when you are ready. You need at least 4/10 to complete this course.
+              </p>
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFinalTestPrompt(null);
+                    setFinalTestPromptDismissed(true);
+                  }}
+                  className="rounded border border-gray-600 px-4 py-2 text-sm font-bold text-gray-300 hover:text-white"
+                >
+                  Later
+                </button>
+                <button
+                  type="button"
+                  onClick={() => startFinalTest('Final test started. Answer all 10 questions, then submit when you are done.')}
+                  className="rounded bg-blue-400 px-4 py-2 text-sm font-bold text-black hover:bg-blue-300"
+                >
+                  Start Test
                 </button>
               </div>
             </div>

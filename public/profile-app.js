@@ -63,37 +63,37 @@ function ProfileApp() {
     if (loading) return <div className="min-h-screen flex items-center justify-center bg-darkBg text-white font-mono">LOADING PROFILE...</div>;
 
     return (
-      <div className="min-h-screen relative py-8 px-4 sm:px-6 lg:px-8" data-name="profile-app" data-file="profile-app.js">
+      <div className="min-h-screen relative w-full max-w-full overflow-x-hidden py-4 px-3 sm:py-8 sm:px-6 lg:px-8" data-name="profile-app" data-file="profile-app.js">
         
         {/* Background glow effects */}
         <div className="bg-glow fixed top-[-20%] left-[-10%] w-[50%] h-[50%] bg-neonViolet rounded-full mix-blend-screen filter blur-[120px] opacity-20 pointer-events-none"></div>
         <div className="bg-glow fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-600 rounded-full mix-blend-screen filter blur-[120px] opacity-10 pointer-events-none"></div>
         
-        <div className="max-w-7xl mx-auto relative z-10 flex flex-col gap-8">
+        <div className="w-full max-w-7xl mx-auto relative z-10 flex flex-col gap-5 sm:gap-8">
           
           {/* Header */}
-          <header className="glass-panel p-4 px-6 flex justify-between items-center sticky top-4 z-50">
-            <a href="workspace.html" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors font-mono text-sm uppercase tracking-wider group">
+          <header className="glass-panel profile-hero p-4 sm:px-6 flex items-center justify-between gap-3 sticky top-3 sm:top-4 z-50 overflow-hidden">
+            <a href="workspace.html" className="shrink-0 flex items-center gap-2 text-gray-400 hover:text-white transition-colors font-mono text-xs sm:text-sm uppercase tracking-wider group">
               <div className="icon-arrow-left group-hover:-translate-x-1 transition-transform"></div> Workspace
             </a>
-            <h1 className="font-mono text-xl font-bold tracking-widest text-white flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-neonViolet animate-pulse shadow-[0_0_8px_#b026ff]"></div>
+            <h1 className="min-w-0 font-mono text-2xl sm:text-xl font-bold tracking-[0.18em] sm:tracking-widest text-white flex items-center justify-end sm:justify-center gap-2 sm:gap-3 text-right leading-tight">
+              <div className="hidden sm:block w-2 h-2 rounded-full bg-neonViolet animate-pulse shadow-[0_0_8px_#b026ff] shrink-0"></div>
               USER EVOLUTION
             </h1>
             <div className="w-24 hidden sm:block"></div> {/* Spacer for centering */}
           </header>
 
-          <main className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <main className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8 min-w-0">
             
             {/* Left Column */}
-            <div className="lg:col-span-5 flex flex-col gap-8">
+            <div className="lg:col-span-5 flex flex-col gap-5 sm:gap-8 min-w-0">
               <AvatarSection user={user} />
               <CourseSelector />
               <RecentBadges />
             </div>
 
             {/* Right Column */}
-            <div className="lg:col-span-7 flex flex-col gap-8">
+            <div className="lg:col-span-7 flex flex-col gap-5 sm:gap-8 min-w-0">
               <StatsGrid />
               <SkillTree />
             </div>

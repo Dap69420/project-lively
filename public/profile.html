@@ -44,6 +44,13 @@
 
     <style type="text/tailwindcss">
     @layer base {
+        html,
+        body,
+        #root {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
         body {
             @apply font-sans antialiased overflow-x-hidden min-h-screen;
         }
@@ -69,9 +76,19 @@
     body.theme-brutal .shadow-\[0_0_12px_\#b026ff\] { @apply shadow-[4px_4px_0px_#ccff00] !important; }
     body.theme-brutal .bg-glow { @apply hidden !important; }
 
+    @media (max-width: 640px) {
+        body.theme-brutal .glass-panel {
+            @apply border-2 p-4 shadow-[4px_4px_0px_#ccff00] !important;
+        }
+        body.theme-brutal .profile-hero {
+            @apply shadow-[3px_3px_0px_#ccff00] !important;
+        }
+    }
+
     @layer components {
         .glass-panel {
             @apply bg-glassBg border border-glassBorder backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300;
+            max-width: 100%;
         }
         .glass-panel:hover {
             @apply border-white/20 bg-white/[0.05];

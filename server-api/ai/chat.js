@@ -284,53 +284,48 @@ function buildHintResponse(courseContext = {}) {
 
   if (/\balgebraic identit/.test(lowerObjective) || /\bidentity|identities|algebra/.test(`${lowerObjective} ${topic}`.toLowerCase())) {
     return [
-      `Hint for ${objective}: I am expecting you to show how an identity works, not only define it.`,
-      'Try this structure:',
-      '1. Say: an algebraic identity is an equation true for every value of the variable.',
-      '2. Give one identity, like (a + b)^2 = a^2 + 2ab + b^2.',
-      '3. Prove it with numbers: if a = 2 and b = 3, both sides become 25.',
-      '4. Finish with: this shows the identity is a reliable shortcut because both forms give the same value.'
+      `Hint for checkpoint ${objectiveIndex + 1}: pick one identity and test it yourself.`,
+      'Do not copy an example. Choose your own small numbers, put them into both sides, and check whether both sides match.',
+      'Ask yourself: what stayed equal, and why does that make the rule useful?'
     ].join('\n');
   }
 
   if (/\bsolve|word problem|calculation|formula/.test(lowerObjective)) {
     return [
-      `Hint for ${objective}: I am expecting a solved setup, not just the final answer.`,
-      'Use: Given -> Formula -> Substitute -> Answer -> Meaning.',
-      'Example frame: Given speed = 5 m/s and time = 12 s. Formula: distance = speed x time. Substitute: d = 5 x 12 = 60 m. Meaning: the object travels 60 meters in a straight line.'
+      `Hint for checkpoint ${objectiveIndex + 1}: show your path, not just the destination.`,
+      'Write the known values first, then choose the formula before calculating.',
+      'After the number, add one sentence explaining what the unit means in the story.'
     ].join('\n');
   }
 
   if (/\b3 laws|three laws|newton|first law|second law|third law/.test(lowerObjective)) {
     return [
-      `Hint for ${objective}: I am expecting each law to have its own tiny explanation and example.`,
-      'Use this frame for each missing law: Law name -> simple meaning -> everyday example.',
-      'Example: Second Law means F = ma, so a heavier shopping cart needs more force to get the same acceleration.'
+      `Hint for checkpoint ${objectiveIndex + 1}: separate the laws so they do not blur together.`,
+      'For each missing law, ask: what changes, what stays the same, and what real object could show it?',
+      'Use your own everyday example for each one.'
     ].join('\n');
   }
 
   if (/\bdifferentiate|compare|contrast|difference/.test(lowerObjective)) {
     return [
-      `Hint for ${objective}: I am expecting both sides of the comparison.`,
-      `Write one sentence for each side, then one sentence that directly contrasts them.`,
-      `Example frame: Acids __, while bases __. A clear example of an acid is __ because __. A clear example of a base is __ because __.`
+      `Hint for checkpoint ${objectiveIndex + 1}: make the contrast visible.`,
+      'Name one feature of the first thing and one feature of the second thing.',
+      'Then explain the difference using your own example, not a copied sentence frame.'
     ].join('\n');
   }
 
   if (/\bph\b|acid|base|neutralization|reactants|products/.test(`${lowerObjective} ${topic}`.toLowerCase())) {
     return [
-      `Hint for ${objective}: I am expecting the key chemistry terms plus one example.`,
-      'Use a because sentence. Example: pH shows acid/base strength because lower pH means more acidic and higher pH means more basic.',
-      latest ? `Your last answer started with: "${latest.slice(0, 90)}${latest.length > 90 ? '...' : ''}". Add the missing example or because sentence.` : ''
+      `Hint for checkpoint ${objectiveIndex + 1}: connect the observation to the chemistry word.`,
+      'If you mention pH, litmus, reactants, or products, explain what that detail proves.',
+      latest ? `Your last answer started with: "${latest.slice(0, 70)}${latest.length > 70 ? '...' : ''}". What proof or example can you add in your own words?` : ''
     ].filter(Boolean).join('\n');
   }
 
   return [
-    `Hint for ${objective}: I am expecting three parts.`,
-    `1. Explain the idea in your own words.`,
-    `2. Add one specific example from ${topic}.`,
-    '3. Add a because/so sentence that proves why your example fits.',
-    latest ? `Your last answer is a start. Now add the example and the because/so sentence.` : ''
+    `Hint for checkpoint ${objectiveIndex + 1}: think in three parts.`,
+    'What is the idea? What is one example you can invent? Why does your example prove the idea?',
+    latest ? 'Your last answer is a start. Add the missing part in your own words.' : ''
   ].filter(Boolean).join('\n');
 }
 
@@ -602,7 +597,9 @@ module.exports = async (req, res) => {
       const prompt = [
         'You are Buddy_AI giving a paid hint.',
         'Do not complete the objective for the student. Do not give a quiz.',
-        'Give a concrete hint about what answer structure you expect, with one starter example or sentence frame.',
+        'Give a thinking nudge, not a sentence the student can copy.',
+        'Do not include complete example answers, complete calculations, sentence frames with blanks, or exact final wording.',
+        'Ask 1-2 guiding questions and name the kind of evidence expected.',
         'Keep it short, friendly, and useful for a student.',
         `Course: ${courseContext.title || courseContext.topic || ''}`,
         `Current objective: ${objective}`,

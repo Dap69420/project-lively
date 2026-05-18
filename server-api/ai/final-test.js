@@ -2,7 +2,7 @@ const { getSambaNovaConfig, readJsonBody, sendJson } = require('../_shared');
 
 function hasMetaOptions(question) {
   const text = Array.isArray(question?.options) ? question.options.join(' ').toLowerCase() : '';
-  return /\bclear explanation\b|\bphrase about\b|\bunrelated fact\b|\bguess\b|\bstrong answer\b|\bno reasoning\b|\bmain idea\b|\bstudent understands\b/.test(text);
+  return /\bclear explanation\b|\bphrase about\b|\bunrelated fact\b|\bguess\b|\bstrong answer\b|\bno reasoning\b|\bmain idea\b|\bstudent understands\b|\bignore the course\b|\brepeat only\b|\bgive no reasoning\b|\bdifferent subject\b/.test(text);
 }
 
 function normalizeQuestion(item, index, fallbackTopic) {
@@ -134,6 +134,35 @@ function topicQuestionSet(objective, topic, objectiveIndex) {
   }
 
   if (/\bsolve|word problem|formula|calculate|calculation\b/.test(lowerObjective)) {
+    if (/\balgebra|identity|identit|expand|factor|quadratic|polynomial\b/.test(lower)) {
+      return [
+        {
+          question: 'Which expansion of (a + b)^2 is correct?',
+          options: ['a^2 + 2ab + b^2', 'a^2 + b^2', 'a^2 - 2ab + b^2', '2a + 2b'],
+          correct_index: 0,
+          explanation: '(a + b)^2 expands to a^2 + 2ab + b^2.'
+        },
+        {
+          question: 'If a = 2 and b = 3, what is (a + b)^2?',
+          options: ['25', '13', '10', '5'],
+          correct_index: 0,
+          explanation: '(2 + 3)^2 = 5^2 = 25.'
+        },
+        {
+          question: 'Which identity helps expand (x - y)^2?',
+          options: ['x^2 - 2xy + y^2', 'x^2 + 2xy + y^2', 'x^2 - y^2', '2x - 2y'],
+          correct_index: 0,
+          explanation: '(x - y)^2 = x^2 - 2xy + y^2.'
+        },
+        {
+          question: 'What is 7^2 using (a + b)^2 with 7 = 5 + 2?',
+          options: ['5^2 + 2(5)(2) + 2^2', '5^2 + 2^2 only', '5 + 2^2', '2(5 + 2)'],
+          correct_index: 0,
+          explanation: 'Substitute a = 5 and b = 2 into (a + b)^2.'
+        }
+      ];
+    }
+
     return [
       {
         question: 'A cyclist travels at 5 m/s for 12 s. What distance is covered?',
@@ -203,17 +232,46 @@ function topicQuestionSet(objective, topic, objectiveIndex) {
     ];
   }
 
+  if (/\balgebra|identity|identit|expand|factor|quadratic|polynomial\b/.test(lower)) {
+    return [
+      {
+        question: 'What makes an algebraic identity different from an ordinary equation?',
+        options: ['It is true for every valid value of its variables.', 'It is true only when x equals 1.', 'It never uses variables.', 'It is always a word problem.'],
+        correct_index: 0,
+        explanation: 'An identity stays true for all valid variable values.'
+      },
+      {
+        question: 'Which expression is equal to (x + 4)^2?',
+        options: ['x^2 + 8x + 16', 'x^2 + 16', 'x^2 + 4x + 4', '2x + 8'],
+        correct_index: 0,
+        explanation: '(x + 4)^2 = x^2 + 2(x)(4) + 4^2.'
+      },
+      {
+        question: 'Which identity matches a^2 - b^2?',
+        options: ['(a + b)(a - b)', '(a + b)^2', '(a - b)^2', 'a^2 + b^2'],
+        correct_index: 0,
+        explanation: 'The difference of squares factors as (a + b)(a - b).'
+      },
+      {
+        question: 'Why do students use algebraic identities?',
+        options: ['To rewrite expressions faster while keeping the same value.', 'To avoid variables completely.', 'To make an expression unrelated to the original.', 'To change every answer into zero.'],
+        correct_index: 0,
+        explanation: 'Identities are shortcuts that preserve equality.'
+      }
+    ];
+  }
+
   return [
     {
-      question: `Which statement correctly applies checkpoint ${objectiveIndex + 1} to ${topic}?`,
+      question: `Which answer best matches ${topic}?`,
       options: [
-        `It explains ${objective} using a specific example from ${topic}.`,
-        `It repeats ${objective} without any example.`,
-        'It switches to a different subject.',
-        'It says the answer is finished without showing why.'
+        `A correct fact about ${topic}.`,
+        `A statement about a different topic.`,
+        `A sentence that only says "${String(objective || topic).slice(0, 40)}".`,
+        'A claim with no connection to the course.'
       ],
       correct_index: 0,
-      explanation: 'A strong answer applies the checkpoint to the course topic with evidence.'
+      explanation: `The correct option stays focused on ${topic}.`
     }
   ];
 }
@@ -243,15 +301,15 @@ function buildFallbackFinalTest(courseContext = {}, attempt = 1) {
   while (questions.length < 10) {
     const number = questions.length + 1;
     questions.push(shuffleQuestion({
-      question: `${number}. Which answer best applies ${topic} in a real course problem?`,
+      question: `${number}. Which statement belongs in a ${topic} answer?`,
       options: [
-        `Use a correct ${topic} idea with values, evidence, or an example.`,
-        `Ignore the course topic and guess.`,
-        `Repeat only the title of the checkpoint.`,
-        `Give no reasoning or evidence.`
+        `A true ${topic} statement connected to the lesson.`,
+        'A fact from an unrelated subject.',
+        'A sentence that says only that the student is finished.',
+        'A random number with no unit or explanation.'
       ],
       correct_index: 0,
-      explanation: `The correct answer applies ${topic} with evidence.`
+      explanation: `The correct answer stays inside ${topic}.`
     }, number + Number(attempt || 1)));
   }
 
