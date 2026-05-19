@@ -1,4 +1,5 @@
 const { query } = require('./lib/db');
+const crypto = require('crypto');
 
 function normalizeUsername(value) {
   return String(value || '')
@@ -16,6 +17,10 @@ function fallbackUsername(email, userId) {
 
 function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
+}
+
+function makeJoinCode() {
+  return crypto.randomBytes(4).toString('hex').toUpperCase();
 }
 
 async function ensureProfile(userId, email = '') {
@@ -253,6 +258,164 @@ async function getSpectateData(parentId, childId, courseId = '') {
   };
 }
 
+async function getEducatorData(educatorId) {
+  const [classroomsResult, coursesResult] = await Promise.all([
+    query(
+      `SELECT ec.*,
+              (SELECT COUNT(*)::int FROM classroom_students WHERE classroom_id = ec.id AND status = 'active') AS student_count,
+              (SELECT COUNT(*)::int FROM classroom_courses WHERE classroom_id = ec.id) AS course_count
+       FROM educator_classrooms ec
+       WHERE ec.educator_id = $1
+       ORDER BY ec.created_at DESC`,
+      [educatorId]
+    ),
+    query(
+      `SELECT c.*,
+              (SELECT COUNT(*)::int FROM classroom_courses WHERE course_id = c.id) AS assigned_count
+       FROM courses c
+       WHERE c.created_by = $1 AND c.is_active = true
+       ORDER BY c.created_at DESC`,
+      [educatorId]
+    ).catch(() => ({ rows: [] }))
+  ]);
+
+  const classrooms = [];
+  for (const classroom of classroomsResult.rows) {
+    const [studentsResult, assignedCoursesResult] = await Promise.all([
+      query(
+        `SELECT cs.*, up.username, up.display_name, up.avatar_url, prog.total_xp, prog.global_level, prog.current_streak, prog.total_courses_completed
+         FROM classroom_students cs
+         LEFT JOIN user_profiles up ON up.user_id = cs.student_id
+         LEFT JOIN user_progression prog ON prog.user_id = cs.student_id
+         WHERE cs.classroom_id = $1 AND cs.status = 'active'
+         ORDER BY cs.created_at DESC`,
+        [classroom.id]
+      ).catch(() => ({ rows: [] })),
+      query(
+        `SELECT cc.*, c.title, c.subject, c.grade, c.topic
+         FROM classroom_courses cc
+         JOIN courses c ON c.id = cc.course_id
+         WHERE cc.classroom_id = $1
+         ORDER BY cc.created_at DESC`,
+        [classroom.id]
+      ).catch(() => ({ rows: [] }))
+    ]);
+
+    classrooms.push(Object.assign({}, classroom, {
+      students: studentsResult.rows,
+      courses: assignedCoursesResult.rows
+    }));
+  }
+
+  return {
+    classrooms,
+    courses: coursesResult.rows
+  };
+}
+
+async function getStudentClassroomData(userId) {
+  const result = await query(
+    `SELECT cs.*, ec.name, ec.description, ec.join_code,
+            up.username AS educator_username,
+            up.display_name AS educator_display_name
+     FROM classroom_students cs
+     JOIN educator_classrooms ec ON ec.id = cs.classroom_id
+     LEFT JOIN user_profiles up ON up.user_id = ec.educator_id
+     WHERE cs.student_id = $1 AND cs.status = 'active'
+     ORDER BY cs.created_at DESC`,
+    [userId]
+  ).catch(() => ({ rows: [] }));
+
+  return { classrooms: result.rows };
+}
+
+async function createEducatorCourse(educatorId, body = {}) {
+  const objectives = Array.isArray(body.objectives) ? body.objectives : String(body.objectivesText || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const tests = Array.isArray(body.tests) ? body.tests : [];
+  const aiSettings = Object.assign({}, body.ai_settings || {}, {
+    educator_tests: tests,
+    quiz_enabled: body.quiz_enabled !== false,
+    quiz_frequency: body.quiz_frequency || 'after_objective',
+    quiz_difficulty: body.quiz_difficulty || 'mixed',
+    quiz_style: 'mcq'
+  });
+
+  if (!body.title || !body.subject || !body.grade || !body.topic || !body.ai_prompt) {
+    const error = new Error('Title, subject, grade, topic, and AI prompt are required.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const result = await query(
+    `INSERT INTO courses (
+      title, description, subject, grade, topic, difficulty,
+      ai_prompt, ai_aim, completion_xp, completion_coins,
+      thumbnail_url, objectives, card_style, ai_settings, created_by
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+    RETURNING *`,
+    [
+      body.title,
+      body.description || '',
+      body.subject,
+      String(body.grade),
+      body.topic,
+      body.difficulty || 'intermediate',
+      body.ai_prompt,
+      body.ai_aim || '',
+      Number(body.completion_xp || 250),
+      Number(body.completion_coins || 50),
+      body.thumbnail_url || '',
+      JSON.stringify(objectives),
+      JSON.stringify(body.card_style || {}),
+      JSON.stringify(aiSettings),
+      educatorId
+    ]
+  );
+
+  return result.rows[0];
+}
+
+async function joinClassroomByCode(userId, email, code, addedBy = null) {
+  const normalizedCode = String(code || '').trim().toUpperCase();
+  const classroomResult = await query('SELECT * FROM educator_classrooms WHERE join_code = $1', [normalizedCode]);
+  if (!classroomResult.rows.length) {
+    const error = new Error('Classroom code not found.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const classroom = classroomResult.rows[0];
+  const linkResult = await query(
+    `INSERT INTO classroom_students (classroom_id, student_id, student_email, added_by, status)
+     VALUES ($1, $2, $3, $4, 'active')
+     ON CONFLICT (classroom_id, student_id)
+     DO UPDATE SET status = 'active',
+                   student_email = EXCLUDED.student_email,
+                   updated_at = CURRENT_TIMESTAMP
+     RETURNING *`,
+    [classroom.id, userId, normalizeEmail(email), addedBy]
+  );
+
+  const courseRows = await query(
+    `SELECT course_id FROM classroom_courses WHERE classroom_id = $1`,
+    [classroom.id]
+  ).catch(() => ({ rows: [] }));
+
+  for (const row of courseRows.rows) {
+    await query(
+      `INSERT INTO user_courses (user_id, course_id)
+       VALUES ($1, $2)
+       ON CONFLICT (user_id, course_id) DO NOTHING`,
+      [userId, row.course_id]
+    ).catch(() => null);
+  }
+
+  return { classroom, membership: linkResult.rows[0] };
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Content-Type', 'application/json');
 
@@ -267,6 +430,14 @@ module.exports = async (req, res) => {
       if (req.query.mode === 'spectate') {
         const spectate = await getSpectateData(userId, req.query.childId, req.query.courseId || '');
         return res.status(200).json({ success: true, data: { profile, spectate } });
+      }
+      if (req.query.mode === 'educator') {
+        const educator = await getEducatorData(userId);
+        return res.status(200).json({ success: true, data: { profile, educator } });
+      }
+      if (req.query.mode === 'student_classrooms') {
+        const studentClassrooms = await getStudentClassroomData(userId);
+        return res.status(200).json({ success: true, data: { profile, studentClassrooms } });
       }
       if (req.query.mode === 'family') {
         const family = await getFamilyData(userId, email);
@@ -373,6 +544,108 @@ module.exports = async (req, res) => {
       }
 
       return res.status(400).json({ success: false, error: 'Unknown family action.' });
+    }
+
+    if (req.method === 'POST' && req.query.mode === 'educator') {
+      const action = String(req.body?.action || '').trim();
+
+      if (action === 'create_classroom') {
+        const name = String(req.body?.name || '').trim();
+        if (!name) {
+          return res.status(400).json({ success: false, error: 'Classroom name is required.' });
+        }
+
+        let result = null;
+        for (let attempt = 0; attempt < 5; attempt += 1) {
+          try {
+            result = await query(
+              `INSERT INTO educator_classrooms (educator_id, name, description, join_code)
+               VALUES ($1, $2, $3, $4)
+               RETURNING *`,
+              [userId, name.slice(0, 160), String(req.body?.description || '').slice(0, 500), makeJoinCode()]
+            );
+            break;
+          } catch (error) {
+            if (error?.code !== '23505') throw error;
+          }
+        }
+
+        if (!result) {
+          throw new Error('Unable to create a unique classroom code.');
+        }
+
+        return res.status(201).json({ success: true, data: result.rows[0] });
+      }
+
+      if (action === 'create_course') {
+        const course = await createEducatorCourse(userId, req.body || {});
+        return res.status(201).json({ success: true, data: course });
+      }
+
+      if (action === 'assign_course') {
+        const classroomId = req.body?.classroomId;
+        const courseId = req.body?.courseId;
+        const ownsClassroom = await query('SELECT id FROM educator_classrooms WHERE id = $1 AND educator_id = $2', [classroomId, userId]);
+        if (!ownsClassroom.rows.length) {
+          return res.status(404).json({ success: false, error: 'Classroom not found.' });
+        }
+
+        const ownsCourse = await query('SELECT id FROM courses WHERE id = $1 AND created_by = $2 AND is_active = true', [courseId, userId]);
+        if (!ownsCourse.rows.length) {
+          return res.status(404).json({ success: false, error: 'Educator course not found.' });
+        }
+
+        const result = await query(
+          `INSERT INTO classroom_courses (classroom_id, course_id, assigned_by)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (classroom_id, course_id) DO NOTHING
+           RETURNING *`,
+          [classroomId, courseId, userId]
+        );
+
+        const students = await query('SELECT student_id FROM classroom_students WHERE classroom_id = $1 AND status = $2', [classroomId, 'active']).catch(() => ({ rows: [] }));
+        for (const student of students.rows) {
+          await query(
+            `INSERT INTO user_courses (user_id, course_id)
+             VALUES ($1, $2)
+             ON CONFLICT (user_id, course_id) DO NOTHING`,
+            [student.student_id, courseId]
+          ).catch(() => null);
+        }
+
+        return res.status(200).json({ success: true, data: result.rows[0] || null });
+      }
+
+      return res.status(400).json({ success: false, error: 'Unknown educator action.' });
+    }
+
+    if (req.method === 'POST' && req.query.mode === 'classroom') {
+      const action = String(req.body?.action || '').trim();
+
+      if (action === 'join_by_code') {
+        const joined = await joinClassroomByCode(userId, email, req.body?.joinCode, userId);
+        return res.status(200).json({ success: true, data: joined });
+      }
+
+      if (action === 'parent_add_child') {
+        const childId = req.body?.childId;
+        const linkResult = await query(
+          `SELECT child_email
+           FROM parent_child_links
+           WHERE parent_id = $1 AND child_id = $2 AND status = 'accepted'
+           LIMIT 1`,
+          [userId, childId]
+        );
+
+        if (!linkResult.rows.length) {
+          return res.status(403).json({ success: false, error: 'That child is not connected to your parent account.' });
+        }
+
+        const joined = await joinClassroomByCode(childId, linkResult.rows[0].child_email, req.body?.joinCode, userId);
+        return res.status(200).json({ success: true, data: joined });
+      }
+
+      return res.status(400).json({ success: false, error: 'Unknown classroom action.' });
     }
 
     if (req.method === 'PATCH') {

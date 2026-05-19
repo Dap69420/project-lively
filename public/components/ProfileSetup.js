@@ -8,8 +8,9 @@ function ProfileSetup({ user, onComplete }) {
     const grades = ['6', '7', '8', '9'];
 
     const handleComplete = async () => {
-      if (!userType || (userType !== 'parent' && !grade)) {
-        setError(userType === 'parent' ? 'Please select a role' : 'Please select both user type and grade');
+      const needsGrade = userType === 'student';
+      if (!userType || (needsGrade && !grade)) {
+        setError(needsGrade ? 'Please select both user type and grade' : 'Please select a role');
         return;
       }
 
@@ -21,7 +22,7 @@ function ProfileSetup({ user, onComplete }) {
           const { error: updateError } = await supabaseClient.auth.updateUser({
             data: {
               userType,
-              grade: userType === 'parent' ? '' : grade,
+              grade: userType === 'student' ? grade : '',
               alias: user?.user_metadata?.alias || user?.email?.split('@')[0] || 'RECRUIT',
               setupComplete: true
             }
@@ -83,7 +84,7 @@ function ProfileSetup({ user, onComplete }) {
           </div>
 
           {/* Grade Selection */}
-          {userType !== 'parent' ? (
+          {userType === 'student' ? (
             <div className="space-y-3">
               <label className="text-sm font-mono uppercase tracking-wider text-gray-300">Grade Level</label>
               <div className="grid grid-cols-4 gap-2">
@@ -117,7 +118,7 @@ function ProfileSetup({ user, onComplete }) {
           {/* Complete Button */}
           <button
             onClick={handleComplete}
-            disabled={!userType || (userType !== 'parent' && !grade) || loading}
+            disabled={!userType || (userType === 'student' && !grade) || loading}
             className="w-full py-3 rounded-lg bg-neonViolet text-black font-mono font-bold uppercase tracking-wider transition-all hover:shadow-[0_0_15px_rgba(176,38,255,0.4)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Setting up...' : 'Get Started'}

@@ -62,6 +62,7 @@ function ProfileApp() {
 
     if (loading) return <div className="min-h-screen flex items-center justify-center bg-darkBg text-white font-mono">LOADING PROFILE...</div>;
     const isParent = user?.user_metadata?.userType === 'parent';
+    const isEducator = user?.user_metadata?.userType === 'educator';
 
     return (
       <div className="min-h-screen relative w-full max-w-full overflow-x-hidden py-4 px-3 sm:py-8 sm:px-6 lg:px-8" data-name="profile-app" data-file="profile-app.js">
@@ -74,20 +75,23 @@ function ProfileApp() {
           
           {/* Header */}
           <header className="glass-panel profile-hero p-4 sm:px-6 flex items-center justify-between gap-3 sticky top-3 sm:top-4 z-50 overflow-hidden">
-            <a href={isParent ? 'index.html' : 'workspace.html'} className="shrink-0 flex items-center gap-2 text-gray-400 hover:text-white transition-colors font-mono text-xs sm:text-sm uppercase tracking-wider group">
-              <div className="icon-arrow-left group-hover:-translate-x-1 transition-transform"></div> {isParent ? 'Home' : 'Workspace'}
+            <a href={(isParent || isEducator) ? 'index.html' : 'workspace.html'} className="shrink-0 flex items-center gap-2 text-gray-400 hover:text-white transition-colors font-mono text-xs sm:text-sm uppercase tracking-wider group">
+              <div className="icon-arrow-left group-hover:-translate-x-1 transition-transform"></div> {(isParent || isEducator) ? 'Home' : 'Workspace'}
             </a>
             <h1 className="min-w-0 font-mono text-2xl sm:text-xl font-bold tracking-[0.18em] sm:tracking-widest text-white flex items-center justify-end sm:justify-center gap-2 sm:gap-3 text-right leading-tight">
               <div className="hidden sm:block w-2 h-2 rounded-full bg-neonViolet animate-pulse shadow-[0_0_8px_#b026ff] shrink-0"></div>
-              {isParent ? 'PARENT DASHBOARD' : 'USER EVOLUTION'}
+              {isParent ? 'PARENT DASHBOARD' : isEducator ? 'EDUCATOR STUDIO' : 'USER EVOLUTION'}
             </h1>
             <div className="w-24 hidden sm:block"></div> {/* Spacer for centering */}
           </header>
 
           {isParent ? (
             <ParentDashboard user={user} />
+          ) : isEducator ? (
+            <EducatorDashboard user={user} />
           ) : (
             <>
+              <ClassroomJoinCard user={user} />
               <FamilyRequests user={user} />
 
               <main className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8 min-w-0">

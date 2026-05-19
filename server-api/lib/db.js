@@ -139,6 +139,37 @@ if (!connectionString) {
       UNIQUE(parent_id, child_email)
     );
 
+    CREATE TABLE IF NOT EXISTS educator_classrooms (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      educator_id UUID NOT NULL,
+      name VARCHAR(160) NOT NULL,
+      description TEXT DEFAULT '',
+      join_code VARCHAR(16) UNIQUE NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS classroom_students (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      classroom_id UUID NOT NULL REFERENCES educator_classrooms(id) ON DELETE CASCADE,
+      student_id UUID NOT NULL,
+      student_email TEXT DEFAULT '',
+      added_by UUID,
+      status VARCHAR(20) DEFAULT 'active',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(classroom_id, student_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS classroom_courses (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      classroom_id UUID NOT NULL REFERENCES educator_classrooms(id) ON DELETE CASCADE,
+      course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+      assigned_by UUID NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(classroom_id, course_id)
+    );
+
     CREATE TABLE IF NOT EXISTS achievements (
       id VARCHAR(100) PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
@@ -182,6 +213,10 @@ if (!connectionString) {
     CREATE INDEX IF NOT EXISTS idx_parent_child_links_parent_id ON parent_child_links(parent_id);
     CREATE INDEX IF NOT EXISTS idx_parent_child_links_child_id ON parent_child_links(child_id);
     CREATE INDEX IF NOT EXISTS idx_parent_child_links_child_email ON parent_child_links(lower(child_email));
+    CREATE INDEX IF NOT EXISTS idx_educator_classrooms_educator_id ON educator_classrooms(educator_id);
+    CREATE INDEX IF NOT EXISTS idx_classroom_students_student_id ON classroom_students(student_id);
+    CREATE INDEX IF NOT EXISTS idx_classroom_students_classroom_id ON classroom_students(classroom_id);
+    CREATE INDEX IF NOT EXISTS idx_classroom_courses_classroom_id ON classroom_courses(classroom_id);
     CREATE INDEX IF NOT EXISTS idx_achievements_sort_index ON achievements(sort_index);
     CREATE INDEX IF NOT EXISTS idx_user_achievements_user_id ON user_achievements(user_id);
   `;

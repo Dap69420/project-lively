@@ -749,7 +749,10 @@
     saveState(next);
 
     try {
-      const query = normalizedGrade ? `?grade=${encodeURIComponent(normalizedGrade)}` : '';
+      const params = new URLSearchParams();
+      if (normalizedGrade) params.set('grade', normalizedGrade);
+      if (currentState.userId) params.set('userId', currentState.userId);
+      const query = params.toString() ? `?${params.toString()}` : '';
       const response = await fetch(`/api/courses${query}`);
       const text = await response.text();
       let payload;
@@ -908,7 +911,7 @@
 
       const [progressResult, coursesResult, userCoursesResult, achievementsResult, profileResult] = await Promise.all([
         apiJson(`/api/progress?userId=${encodeURIComponent(userId)}`),
-        user?.user_metadata?.grade ? apiJson(`/api/courses?grade=${encodeURIComponent(user.user_metadata.grade)}`) : Promise.resolve({ success: true, data: [] }),
+        user?.user_metadata?.grade ? apiJson(`/api/courses?grade=${encodeURIComponent(user.user_metadata.grade)}&userId=${encodeURIComponent(userId)}`) : Promise.resolve({ success: true, data: [] }),
         apiJson(`/api/user/courses?userId=${encodeURIComponent(userId)}`),
         apiJson(`/api/achievements?userId=${encodeURIComponent(userId)}`).catch(() => ({ success: true, data: [] })),
         apiJson(`/api/profile?userId=${encodeURIComponent(userId)}&email=${encodeURIComponent(user.email || '')}`).catch(() => ({ success: true, data: null }))

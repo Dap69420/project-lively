@@ -55,19 +55,45 @@ function useFamilyLinks(user) {
     }
   }, [user?.id, user?.email, loadFamily]);
 
+  const runClassroomAction = React.useCallback(async (body, successMessage) => {
+    if (!user?.id) return;
+    setState((current) => Object.assign({}, current, { saving: true, error: '', notice: '' }));
+
+    try {
+      const response = await fetch(`/api/profile?mode=classroom&userId=${encodeURIComponent(user.id)}&email=${encodeURIComponent(user.email || '')}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || 'Classroom action failed.');
+      }
+
+      setState((current) => Object.assign({}, current, { saving: false, notice: successMessage || 'Saved.' }));
+      await loadFamily();
+    } catch (error) {
+      setState((current) => Object.assign({}, current, {
+        saving: false,
+        error: error?.message || 'Classroom action failed.'
+      }));
+    }
+  }, [user?.id, user?.email, loadFamily]);
+
   React.useEffect(() => {
     loadFamily();
   }, [loadFamily]);
 
-  return { state, loadFamily, runAction };
+  return { state, loadFamily, runAction, runClassroomAction };
 }
 
 function ParentDashboard({ user }) {
   try {
-    const { state, runAction } = useFamilyLinks(user);
+    const { state, runAction, runClassroomAction } = useFamilyLinks(user);
     const [childEmail, setChildEmail] = React.useState('');
     const [selectedChild, setSelectedChild] = React.useState(null);
     const [detailTab, setDetailTab] = React.useState('courses');
+    const [joinCodes, setJoinCodes] = React.useState({});
     const parentLinks = state.family?.parentLinks || [];
     const children = state.family?.children || [];
     const limit = state.family?.limits || { maxChildren: 3, usedChildren: parentLinks.length };
@@ -220,6 +246,32 @@ function ParentDashboard({ user }) {
                       </button>
                     </div>
                   </div>
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      runClassroomAction({
+                        action: 'parent_add_child',
+                        childId: link.child_id,
+                        joinCode: joinCodes[link.id] || ''
+                      }, 'Child joined classroom.');
+                      setJoinCodes((current) => Object.assign({}, current, { [link.id]: '' }));
+                    }}
+                    className="mt-3 flex flex-col sm:flex-row gap-2"
+                  >
+                    <input
+                      value={joinCodes[link.id] || ''}
+                      onChange={(event) => setJoinCodes((current) => Object.assign({}, current, { [link.id]: event.target.value.toUpperCase() }))}
+                      placeholder="Force join classroom code"
+                      className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/30 px-4 py-2 font-mono text-sm text-white outline-none focus:border-neonViolet"
+                    />
+                    <button
+                      type="submit"
+                      disabled={state.saving || !String(joinCodes[link.id] || '').trim()}
+                      className="rounded-xl border border-neonViolet/40 bg-neonViolet/10 px-4 py-2 font-mono text-xs font-bold uppercase text-neonViolet disabled:opacity-50"
+                    >
+                      Add to Class
+                    </button>
+                  </form>
                 </article>
               );
             })}

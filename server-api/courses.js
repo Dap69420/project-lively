@@ -5,12 +5,29 @@ module.exports = async (req, res) => {
   
   try {
     const { method } = req;
-    const { id, subject, grade } = req.query;
+    const { id, subject, grade, userId } = req.query;
 
     // GET /api/courses - List all courses (with optional filters)
     if (method === 'GET' && !id) {
       let sql = 'SELECT * FROM courses WHERE is_active = true';
       const params = [];
+
+      if (userId) {
+        sql += ` AND (
+          created_by IS NULL
+          OR EXISTS (
+            SELECT 1
+            FROM classroom_courses cc
+            JOIN classroom_students cs ON cs.classroom_id = cc.classroom_id
+            WHERE cc.course_id = courses.id
+              AND cs.student_id = $${params.length + 1}
+              AND cs.status = 'active'
+          )
+        )`;
+        params.push(userId);
+      } else {
+        sql += ' AND created_by IS NULL';
+      }
 
       if (subject) {
         sql += ' AND subject = $' + (params.length + 1);
