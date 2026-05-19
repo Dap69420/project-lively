@@ -326,7 +326,21 @@ async function getStudentClassroomData(userId) {
     [userId]
   ).catch(() => ({ rows: [] }));
 
-  return { classrooms: result.rows };
+  const classrooms = [];
+  for (const room of result.rows) {
+    const coursesResult = await query(
+      `SELECT c.*, cc.created_at AS assigned_at, uc.progress_percentage, uc.completed, uc.xp_in_course, uc.stats
+       FROM classroom_courses cc
+       JOIN courses c ON c.id = cc.course_id
+       LEFT JOIN user_courses uc ON uc.course_id = c.id AND uc.user_id = $2
+       WHERE cc.classroom_id = $1 AND c.is_active = true
+       ORDER BY cc.created_at DESC`,
+      [room.classroom_id, userId]
+    ).catch(() => ({ rows: [] }));
+    classrooms.push(Object.assign({}, room, { courses: coursesResult.rows }));
+  }
+
+  return { classrooms };
 }
 
 async function createEducatorCourse(educatorId, body = {}) {
@@ -335,8 +349,13 @@ async function createEducatorCourse(educatorId, body = {}) {
     .map((line) => line.trim())
     .filter(Boolean);
   const tests = Array.isArray(body.tests) ? body.tests : [];
+  const objectiveQuizzes = Array.isArray(body.objective_quizzes) ? body.objective_quizzes : [];
   const aiSettings = Object.assign({}, body.ai_settings || {}, {
     educator_tests: tests,
+    educator_objective_quizzes: objectiveQuizzes,
+    educator_pass_score: Number(body.pass_score || body.passScore || Math.ceil(Math.max(1, tests.length) * 0.4)),
+    no_rewards: true,
+    hints_allowed: body.hints_allowed !== false,
     quiz_enabled: body.quiz_enabled !== false,
     quiz_frequency: body.quiz_frequency || 'after_objective',
     quiz_difficulty: body.quiz_difficulty || 'mixed',

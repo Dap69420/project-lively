@@ -144,6 +144,7 @@
       objectives: Array.isArray(course.objectives) ? course.objectives : [],
       cardStyle: course.card_style && typeof course.card_style === 'object' ? course.card_style : (course.cardStyle && typeof course.cardStyle === 'object' ? course.cardStyle : {}),
       aiSettings: course.ai_settings && typeof course.ai_settings === 'object' ? course.ai_settings : (course.aiSettings && typeof course.aiSettings === 'object' ? course.aiSettings : {}),
+      createdBy: String(course.created_by || course.createdBy || ''),
       icon: decoration.icon,
       tone: decoration.tone,
       completionXp: Number(course.completion_xp || 0),
@@ -444,8 +445,9 @@
       })
     });
 
-    applyXpGainWithLevelReset(next, course.completionXp || 0);
-    if (course.completionCoins) {
+    const givesRewards = !course.aiSettings?.no_rewards && !course.createdBy;
+    applyXpGainWithLevelReset(next, givesRewards ? (course.completionXp || 0) : 0);
+    if (givesRewards && course.completionCoins) {
       next.coins += course.completionCoins;
     }
 
@@ -468,7 +470,7 @@
           }
         });
 
-        if (course.completionXp || course.completionCoins) {
+        if (givesRewards && (course.completionXp || course.completionCoins)) {
           await apiJson(`/api/progress?userId=${encodeURIComponent(currentState.userId)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -692,6 +694,11 @@
     const award = Object.assign({ xp: 0, coins: 0, correct: false, courseId: currentState.selectedCourse, source: 'ai' }, payload || {});
     const today = new Date().toISOString().slice(0, 10);
     const next = normalizeState(currentState);
+    const selected = getCourseById(award.courseId);
+    if (selected?.aiSettings?.no_rewards || selected?.createdBy) {
+      award.xp = 0;
+      award.coins = 0;
+    }
 
     if (award.correct) {
       next.correctAnswers += 1;

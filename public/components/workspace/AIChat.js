@@ -546,6 +546,23 @@ ${displayMathLines.join('\n')}
 
     const handleHintRequest = () => {
       if (isCourseCompleted) return;
+      if (selectedCourse.aiSettings?.hints_allowed === false) {
+        const msg = {
+          role: 'ai',
+          text: 'Hints are disabled for this classroom course by the educator.',
+          time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+          metadata: { type: 'hint_disabled' }
+        };
+        setMessages((prev) => [...prev, msg]);
+        window.LivelyProgress.addChatMessage({
+          role: msg.role,
+          text: msg.text,
+          time: msg.time,
+          courseId: selectedCourseId,
+          metadata: msg.metadata
+        });
+        return;
+      }
       const info = getCurrentObjectiveInfo();
       if (info.index >= 0 && hintUsedObjectiveIndexes.includes(info.index)) {
         const msg = {
@@ -630,7 +647,7 @@ ${displayMathLines.join('\n')}
 
     const announceFinalTestReady = (introText = '') => {
       if (finalTestPrompt || finalTestPromptDismissed || activeFinalTest || finalTestLoading || isCourseCompleted) return;
-      const text = `${introText || `All objectives are cleared for ${selectedCourse.name}.`} When you are ready, start the 10-question final test. You need at least 4/10 to complete the course.`;
+      const text = `${introText || `All objectives are cleared for ${selectedCourse.name}.`} When you are ready, start the final test. You need to meet the pass score to complete the course.`;
       const msg = {
         role: 'ai',
         text,
@@ -673,8 +690,8 @@ ${displayMathLines.join('\n')}
         const normalizedTest = {
           title: test.title || `${selectedCourse.name} Final Test`,
           passScore: Number(test.pass_score || test.passScore || 4),
-          questions: test.questions.slice(0, 10),
-          answers: Array(10).fill(null),
+          questions: test.questions,
+          answers: Array(test.questions.length).fill(null),
           attempt
         };
         setActiveFinalTest(normalizedTest);
@@ -684,7 +701,7 @@ ${displayMathLines.join('\n')}
 
         const msg = {
           role: 'ai',
-          text: reasonText || `All objectives are cleared. Final test time: answer 10 questions. You need at least ${normalizedTest.passScore}/10 to complete the course.`,
+          text: reasonText || `All objectives are cleared. Final test time: answer ${normalizedTest.questions.length} questions. You need at least ${normalizedTest.passScore}/${normalizedTest.questions.length} to complete the course.`,
           time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
           metadata: { type: 'final_test_started', attempt, passScore: normalizedTest.passScore }
         };
@@ -738,9 +755,10 @@ ${displayMathLines.join('\n')}
         const correctIndex = Number(question.correct_index ?? question.correctIndex ?? 0);
         return `${index + 1}. Your answer: ${question.options?.[selectedIndex] || 'No answer'} | Correct: ${question.options?.[correctIndex] || 'Unknown'}`;
       });
+      const total = questions.length;
       const resultText = passed
-        ? `Final test passed: ${score}/10. Course completed.`
-        : `Final test failed: ${score}/10. You need ${passScore}/10, so I made a note and you need another test.`;
+        ? `Final test passed: ${score}/${total}. Course completed.`
+        : `Final test failed: ${score}/${total}. You need ${passScore}/${total}, so I made a note and you need another test.`;
       const resultMsg = {
         role: 'ai',
         text: `${resultText}\n\n${summaryLines.join('\n')}`,
@@ -799,7 +817,7 @@ ${displayMathLines.join('\n')}
         if (typeof window.LivelyProgress.clearFinalTestDraft === 'function') {
           window.LivelyProgress.clearFinalTestDraft(selectedCourseId);
         }
-        startFinalTest(`You scored ${score}/10. Let's run another final test so you can try again.`, { force: true });
+        startFinalTest(`You scored ${score}/${questions.length}. Let's run another final test so you can try again.`, { force: true });
       }
     };
 
@@ -824,7 +842,7 @@ ${displayMathLines.join('\n')}
       if (objectivesClearedForSend && !currentStateForSend.completed && !currentStateForSend.stats?.finalTest?.passed && /\b(start|take|begin|open|give)\b.{0,20}\b(final\s*)?test\b|\bfinal\s*test\b/i.test(userText)) {
         setInput('');
         setFinalTestPromptDismissed(false);
-        startFinalTest('Final test started. Answer all 10 questions, then submit when you are done.');
+        startFinalTest('Final test started. Answer every question, then submit when you are done.');
         return;
       }
       const normalizeForComparison = (value) => String(value || '').toLowerCase().replace(/\s+/g, ' ').replace(/[^a-z0-9 ]/g, '').trim();
@@ -1188,7 +1206,7 @@ ${displayMathLines.join('\n')}
               <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.22em] text-blue-300">Final Test Ready</div>
               <div className="text-xl font-bold text-white">All checkpoints cleared</div>
               <p className="mt-2 text-sm leading-relaxed text-gray-300">
-                Start the 10-question final test when you are ready. You need at least 4/10 to complete this course.
+                Start the final test when you are ready. Educator-authored tests use the educator's question count and pass score.
               </p>
               <div className="mt-5 flex justify-end gap-2">
                 <button
@@ -1203,7 +1221,7 @@ ${displayMathLines.join('\n')}
                 </button>
                 <button
                   type="button"
-                  onClick={() => startFinalTest('Final test started. Answer all 10 questions, then submit when you are done.')}
+                  onClick={() => startFinalTest('Final test started. Answer every question, then submit when you are done.')}
                   className="rounded bg-blue-400 px-4 py-2 text-sm font-bold text-black hover:bg-blue-300"
                 >
                   Start Test
@@ -1261,7 +1279,7 @@ ${displayMathLines.join('\n')}
                   <div className="text-sm font-bold text-gray-100">{activeFinalTest.title}</div>
                 </div>
                 <div className="rounded border border-blue-400/40 bg-blue-400/10 px-3 py-1 text-xs font-mono text-blue-200">
-                  Pass: {activeFinalTest.passScore}/10
+                  Pass: {activeFinalTest.passScore}/{activeFinalTest.questions.length}
                 </div>
               </div>
               <div className="flex-1 space-y-4 overflow-y-auto p-4 custom-scrollbar">
@@ -1291,7 +1309,7 @@ ${displayMathLines.join('\n')}
               </div>
               <div className="flex items-center justify-between border-t border-gray-700 px-4 py-3">
                 <span className="text-xs font-mono text-gray-400">
-                  {activeFinalTest.answers.filter((answer) => answer !== null).length}/10 answered
+                  {activeFinalTest.answers.filter((answer) => answer !== null).length}/{activeFinalTest.questions.length} answered
                 </span>
                 <button
                   type="button"

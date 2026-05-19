@@ -261,6 +261,41 @@ function topicQuestionSet(objective, topic, objectiveIndex) {
     ];
   }
 
+  if (/\bfraction|fractions|numerator|denominator|equivalent|simplify\b/.test(lower)) {
+    return [
+      {
+        question: 'What does the denominator of a fraction show?',
+        options: ['How many equal parts make one whole.', 'How many wholes are always present.', 'The answer after multiplying.', 'Only the largest number in the problem.'],
+        correct_index: 0,
+        explanation: 'The denominator names the number of equal parts in the whole.'
+      },
+      {
+        question: 'Which fraction is equivalent to 1/2?',
+        options: ['2/4', '1/4', '3/4', '2/3'],
+        correct_index: 0,
+        explanation: 'Multiplying numerator and denominator of 1/2 by 2 gives 2/4.'
+      },
+      {
+        question: 'What is 1/4 + 1/4?',
+        options: ['2/4, which simplifies to 1/2.', '1/8.', '2/8 only.', '1/16.'],
+        correct_index: 0,
+        explanation: 'Same denominators can be added by adding numerators: 1 + 1 = 2.'
+      },
+      {
+        question: 'Which is the simplified form of 3/6?',
+        options: ['1/2', '1/3', '2/3', '6/3'],
+        correct_index: 0,
+        explanation: 'Divide numerator and denominator by 3 to get 1/2.'
+      },
+      {
+        question: 'Which comparison is true?',
+        options: ['3/4 is greater than 1/2.', '1/4 is greater than 3/4.', '1/2 is greater than 2/2.', '2/3 is equal to 2/5.'],
+        correct_index: 0,
+        explanation: '3/4 is 0.75, while 1/2 is 0.5.'
+      }
+    ];
+  }
+
   return [
     {
       question: `Which answer best matches ${topic}?`,
@@ -320,6 +355,30 @@ function buildFallbackFinalTest(courseContext = {}, attempt = 1) {
   };
 }
 
+function buildAuthoredQuestion(item, index, fallbackTopic) {
+  const question = normalizeQuestion(item, index, fallbackTopic);
+  const validOptions = question.options.filter((option) => option && !/^option\s+\d+$/i.test(option));
+  if (!question.question || validOptions.length < 4) return null;
+  return question;
+}
+
+function buildAuthoredFinalTest(courseContext = {}, attempt = 1) {
+  const aiSettings = courseContext.aiSettings && typeof courseContext.aiSettings === 'object' ? courseContext.aiSettings : {};
+  const authored = Array.isArray(aiSettings.educator_tests) ? aiSettings.educator_tests : [];
+  const questions = authored
+    .map((item, index) => buildAuthoredQuestion(item, index, courseContext.topic || courseContext.title || 'this course'))
+    .filter(Boolean)
+    .map((question, index) => shuffleQuestion(question, index + Number(attempt || 1)));
+
+  if (!questions.length) return null;
+
+  return {
+    title: `${courseContext.title || courseContext.topic || 'Class Course'} Final Test`,
+    pass_score: Math.min(questions.length, Math.max(1, Number(aiSettings.educator_pass_score || Math.ceil(questions.length * 0.4)))),
+    questions
+  };
+}
+
 function extractJsonObject(text) {
   const raw = String(text || '').trim();
   const start = raw.indexOf('{');
@@ -339,6 +398,11 @@ module.exports = async (req, res) => {
   }
 
   const { courseContext = {}, attempt = 1 } = await readJsonBody(req);
+  const authored = buildAuthoredFinalTest(courseContext, Number(attempt || 1));
+  if (authored) {
+    sendJson(res, 200, { success: true, provider: 'educator-authored', test: authored });
+    return;
+  }
   const fallback = buildFallbackFinalTest(courseContext, Number(attempt || 1));
   const config = getSambaNovaConfig();
 

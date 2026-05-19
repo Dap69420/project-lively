@@ -52,9 +52,12 @@ function EducatorDashboard({ user }) {
     ai_prompt: '',
     ai_aim: '',
     objectivesText: '',
-    testText: ''
+    testText: '',
+    objectiveQuizText: '',
+    hints_allowed: true
   });
   const [assignment, setAssignment] = React.useState({ classroomId: '', courseId: '' });
+  const [selectedRoom, setSelectedRoom] = React.useState(null);
   const classrooms = state.educator?.classrooms || [];
   const courses = state.educator?.courses || [];
 
@@ -67,9 +70,22 @@ function EducatorDashboard({ user }) {
   const submitCourse = (event) => {
     event.preventDefault();
     const objectives = String(course.objectivesText || '').split('\n').map((line) => line.trim()).filter(Boolean);
-    const tests = String(course.testText || '').split('\n').map((line) => line.trim()).filter(Boolean).map((question) => ({ question }));
-    runAction(Object.assign({}, course, { action: 'create_course', objectives, tests }), 'Course and test saved.');
-    setCourse((current) => Object.assign({}, current, { title: '', description: '', topic: '', ai_prompt: '', ai_aim: '', objectivesText: '', testText: '' }));
+    const parseQuestions = (text) => String(text || '').split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
+      const parts = line.split('|').map((part) => part.trim());
+      if (parts.length >= 6) {
+        return {
+          question: parts[0],
+          options: parts.slice(1, 5),
+          correct_index: Math.max(0, Math.min(3, Number(parts[5]) || 0)),
+          explanation: parts[6] || ''
+        };
+      }
+      return { question: line, options: [], correct_index: 0, explanation: '' };
+    });
+    const tests = parseQuestions(course.testText).filter((item) => item.options.length >= 4);
+    const objective_quizzes = parseQuestions(course.objectiveQuizText).filter((item) => item.options.length >= 4);
+    runAction(Object.assign({}, course, { action: 'create_course', objectives, tests, objective_quizzes, hints_allowed: course.hints_allowed }), 'Course and test saved.');
+    setCourse((current) => Object.assign({}, current, { title: '', description: '', topic: '', ai_prompt: '', ai_aim: '', objectivesText: '', testText: '', objectiveQuizText: '' }));
   };
 
   const submitAssignment = (event) => {
@@ -105,6 +121,7 @@ function EducatorDashboard({ user }) {
                 </div>
                 <button type="button" onClick={() => navigator.clipboard?.writeText(room.join_code)} className="rounded-lg border border-neonViolet/40 bg-neonViolet/10 px-3 py-2 font-mono text-xs text-neonViolet">{room.join_code}</button>
               </div>
+              <button type="button" onClick={() => setSelectedRoom(room)} className="mt-3 w-full rounded-lg bg-neonViolet px-3 py-2 font-mono text-xs font-bold uppercase text-white">Open Class</button>
               {room.students?.length ? (
                 <div className="mt-3 space-y-2">
                   {room.students.slice(0, 4).map((student) => (
@@ -135,7 +152,12 @@ function EducatorDashboard({ user }) {
           <input value={course.topic} onChange={(e) => setCourse((c) => Object.assign({}, c, { topic: e.target.value }))} placeholder="Topic" className="field" />
           <textarea value={course.ai_prompt} onChange={(e) => setCourse((c) => Object.assign({}, c, { ai_prompt: e.target.value }))} placeholder="Buddy_AI tutor instructions" rows="4" className="field font-mono text-xs" />
           <textarea value={course.objectivesText} onChange={(e) => setCourse((c) => Object.assign({}, c, { objectivesText: e.target.value }))} placeholder="Objectives, one per line" rows="4" className="field font-mono text-xs" />
-          <textarea value={course.testText} onChange={(e) => setCourse((c) => Object.assign({}, c, { testText: e.target.value }))} placeholder="Test questions, one per line" rows="4" className="field font-mono text-xs" />
+          <textarea value={course.objectiveQuizText} onChange={(e) => setCourse((c) => Object.assign({}, c, { objectiveQuizText: e.target.value }))} placeholder="After-objective quizzes: Question | A | B | C | D | correct number 0-3 | explanation" rows="4" className="field font-mono text-xs" />
+          <textarea value={course.testText} onChange={(e) => setCourse((c) => Object.assign({}, c, { testText: e.target.value }))} placeholder="Final test: Question | A | B | C | D | correct number 0-3 | explanation" rows="4" className="field font-mono text-xs" />
+          <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-gray-300">
+            <input type="checkbox" checked={course.hints_allowed} onChange={(e) => setCourse((c) => Object.assign({}, c, { hints_allowed: e.target.checked }))} className="h-4 w-4 accent-neonViolet" />
+            Allow hints for this classroom course
+          </label>
           <button disabled={state.saving || !course.title.trim()} className="w-full rounded-xl bg-neonViolet px-4 py-3 font-mono text-sm font-bold uppercase text-white disabled:opacity-50">Save Course</button>
         </form>
       </section>
@@ -166,8 +188,79 @@ function EducatorDashboard({ user }) {
           ))}
         </div>
       </section>
+
+      {selectedRoom ? <EducatorClassModal room={selectedRoom} onClose={() => setSelectedRoom(null)} /> : null}
     </div>
   );
+}
+
+function EducatorClassModal({ room, onClose }) {
+  const students = room.students || [];
+  const courses = room.courses || [];
+  const alerts = [];
+  if (!students.length) alerts.push('No students have joined this class yet.');
+  if (!courses.length) alerts.push('No courses assigned to this class yet.');
+  students.forEach((student) => {
+    if (Number(student.total_courses_completed || 0) === 0 && courses.length) {
+      alerts.push(`${student.display_name || student.username || student.student_email || 'A student'} has not completed any assigned course yet.`);
+    }
+  });
+
+  return ReactDOM.createPortal((
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="max-h-[86vh] w-full max-w-5xl overflow-hidden rounded-2xl border border-white/10 bg-darkBg shadow-[0_20px_70px_rgba(0,0,0,0.6)]" onClick={(event) => event.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-white/10 p-5">
+          <div>
+            <div className="font-mono text-xs uppercase tracking-[0.25em] text-neonViolet">Classroom Stats</div>
+            <h2 className="text-2xl font-bold">{room.name}</h2>
+          </div>
+          <button onClick={onClose} className="rounded-lg bg-white/10 p-3 text-gray-300 hover:text-white"><div className="icon-x"></div></button>
+        </div>
+        <div className="max-h-[calc(86vh-86px)] overflow-y-auto p-5 custom-scrollbar">
+          <section className="mb-5 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4">
+            <div className="mb-2 font-mono text-xs uppercase tracking-wider text-yellow-200">Teacher Notifications</div>
+            {alerts.length ? alerts.slice(0, 6).map((alert) => <div key={alert} className="text-sm text-yellow-100">- {alert}</div>) : <div className="text-sm text-yellow-100">No urgent classroom signals right now.</div>}
+          </section>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <section className="rounded-xl border border-white/10 bg-black/20 p-4">
+              <h3 className="mb-3 font-bold">Students</h3>
+              <div className="space-y-2">
+                {students.map((student) => (
+                  <div key={student.id} className="rounded-lg bg-white/[0.03] p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="truncate font-bold">{student.display_name || student.username || student.student_email || student.student_id}</div>
+                        <div className="font-mono text-xs text-gray-500">{student.student_email}</div>
+                      </div>
+                      <div className="font-mono text-xs text-gray-400">LVL {student.global_level || 1}</div>
+                    </div>
+                    <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+                      <Metric label="XP" value={student.total_xp || 0} />
+                      <Metric label="Done" value={student.total_courses_completed || 0} />
+                      <Metric label="Streak" value={student.current_streak || 0} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-white/10 bg-black/20 p-4">
+              <h3 className="mb-3 font-bold">Assigned Courses</h3>
+              <div className="space-y-2">
+                {courses.map((course) => (
+                  <div key={course.id} className="rounded-lg bg-white/[0.03] p-3">
+                    <div className="font-bold">{course.title}</div>
+                    <div className="font-mono text-xs text-gray-500">{course.topic || course.subject}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  ), document.body);
 }
 
 function ClassroomJoinCard({ user }) {

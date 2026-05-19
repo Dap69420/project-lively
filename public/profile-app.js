@@ -32,6 +32,7 @@ function ProfileApp() {
   try {
     const [user, setUser] = React.useState(null);
     const [loading, setLoading] = React.useState(true);
+    const [joinOpen, setJoinOpen] = React.useState(false);
     const progress = window.LivelyProgress.useProgress();
 
     React.useEffect(() => {
@@ -80,9 +81,18 @@ function ProfileApp() {
             </a>
             <h1 className="min-w-0 font-mono text-2xl sm:text-xl font-bold tracking-[0.18em] sm:tracking-widest text-white flex items-center justify-end sm:justify-center gap-2 sm:gap-3 text-right leading-tight">
               <div className="hidden sm:block w-2 h-2 rounded-full bg-neonViolet animate-pulse shadow-[0_0_8px_#b026ff] shrink-0"></div>
-              {isParent ? 'PARENT DASHBOARD' : isEducator ? 'EDUCATOR STUDIO' : 'USER EVOLUTION'}
+              {isParent ? 'PARENT DASHBOARD' : isEducator ? 'EDUCATOR STUDIO' : 'PROFILE'}
             </h1>
-            <div className="w-24 hidden sm:block"></div> {/* Spacer for centering */}
+            {!isParent && !isEducator ? (
+              <div className="flex shrink-0 items-center gap-2">
+                <a href="classrooms.html" className="hidden sm:flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 font-mono text-xs uppercase text-gray-300 hover:text-white">Classes</a>
+                <button onClick={() => setJoinOpen(true)} className="flex h-10 w-10 items-center justify-center rounded-xl border border-neonViolet/40 bg-neonViolet/15 text-neonViolet hover:bg-neonViolet/25" title="Join classroom">
+                  <div className="icon-plus"></div>
+                </button>
+              </div>
+            ) : (
+              <div className="w-24 hidden sm:block"></div>
+            )}
           </header>
 
           {isParent ? (
@@ -91,7 +101,6 @@ function ProfileApp() {
             <EducatorDashboard user={user} />
           ) : (
             <>
-              <ClassroomJoinCard user={user} />
               <FamilyRequests user={user} />
 
               <main className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8 min-w-0">
@@ -116,6 +125,13 @@ function ProfileApp() {
         </div>
         
         <ThemeToggle />
+        {joinOpen ? ReactDOM.createPortal((
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" onClick={() => setJoinOpen(false)}>
+            <div className="w-full max-w-lg" onClick={(event) => event.stopPropagation()}>
+              <ClassroomJoinCard user={user} />
+            </div>
+          </div>
+        ), document.body) : null}
       </div>
     );
   } catch (error) {

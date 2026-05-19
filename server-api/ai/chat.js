@@ -33,6 +33,19 @@ function extractJsonObject(text) {
 }
 
 function getQuizTemplate(courseContext, objectives, objectiveIndex) {
+  const authoredQuizzes = Array.isArray(courseContext?.aiSettings?.educator_objective_quizzes)
+    ? courseContext.aiSettings.educator_objective_quizzes
+    : [];
+  const authored = authoredQuizzes[objectiveIndex] || authoredQuizzes.find((quiz) => Number(quiz.objective_index ?? quiz.objectiveIndex) === Number(objectiveIndex));
+  if (authored && Array.isArray(authored.options) && authored.options.length >= 2) {
+    return {
+      question: String(authored.question || `Checkpoint ${objectiveIndex + 1} quiz`).trim(),
+      options: authored.options.slice(0, 4).map((option) => String(option || '').trim()).filter(Boolean),
+      correct_index: Math.max(0, Math.min(3, Number(authored.correct_index ?? authored.correctIndex ?? 0))),
+      explanation: String(authored.explanation || '').trim()
+    };
+  }
+
   const rawTopic = [
     objectives[objectiveIndex],
     courseContext.topic,
