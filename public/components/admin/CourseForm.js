@@ -31,7 +31,10 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
     const [loading, setLoading] = React.useState(false);
     const [success, setSuccess] = React.useState('');
     const [error, setError] = React.useState('');
+    const [previewOpen, setPreviewOpen] = React.useState(false);
     const isEditing = Boolean(editingCourse?.id);
+    const draftKey = `lively_admin_course_draft_${editingCourse?.id || 'new'}`;
+    const loadedFormJsonRef = React.useRef('');
 
     const subjects = ['Mathematics', 'Science', 'English', 'History', 'Physics', 'Chemistry', 'Biology'];
     const grades = ['6', '7', '8', '9'];
@@ -73,11 +76,50 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
       }
     };
 
+    const normalizeEducatorTests = (items) => normalizeJsonArray(items).map((item) => ({
+      question: String(item?.question || ''),
+      options: Array.from({ length: 4 }, (_option, index) => String(item?.options?.[index] || '')),
+      correct_index: Math.max(0, Math.min(3, Number(item?.correct_index ?? item?.correctIndex ?? 0))),
+      explanation: String(item?.explanation || '')
+    }));
+
+    const readDraft = (key) => {
+      try {
+        if (!window.localStorage) return null;
+        const raw = window.localStorage.getItem(key);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed?.formData && typeof parsed.formData === 'object' ? parsed.formData : null;
+      } catch (_error) {
+        return null;
+      }
+    };
+
+    const clearDraft = () => {
+      try {
+        window.localStorage?.removeItem(draftKey);
+      } catch (_error) {
+        // Ignore local draft cleanup failures.
+      }
+    };
+
+    const hasDraftContent = (data) => Boolean(
+      String(data?.title || data?.description || data?.topic || data?.ai_prompt || data?.objectivesText || '').trim()
+      || (Array.isArray(data?.educatorTests) && data.educatorTests.length > 0)
+    );
+
     React.useEffect(() => {
+      const draft = readDraft(draftKey);
       if (!editingCourse) {
-        setFormData(initialState);
+        const nextFormData = draft ? Object.assign({}, initialState, draft, {
+          educatorTests: normalizeEducatorTests(draft.educatorTests),
+          educatorPassScore: Math.max(1, Number(draft.educatorPassScore || initialState.educatorPassScore))
+        }) : initialState;
+        loadedFormJsonRef.current = draft ? '' : JSON.stringify(nextFormData);
+        setFormData(nextFormData);
         setSuccess('');
         setError('');
+        if (draft) setSuccess('Unsaved draft restored.');
         return;
       }
 
@@ -85,7 +127,7 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
       const cardStyle = normalizeJsonObject(editingCourse.card_style);
       const aiSettings = normalizeJsonObject(editingCourse.ai_settings);
 
-      setFormData({
+      const nextFormData = {
         title: editingCourse.title || '',
         description: editingCourse.description || '',
         subject: editingCourse.subject || 'Mathematics',
@@ -108,17 +150,34 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
         quizFrequency: aiSettings.quiz_frequency || 'after_objective',
         quizDifficulty: aiSettings.quiz_difficulty || 'mixed',
         quizStyle: aiSettings.quiz_style || 'mcq',
-        educatorTests: normalizeJsonArray(aiSettings.educator_tests).map((item) => ({
-          question: String(item?.question || ''),
-          options: Array.from({ length: 4 }, (_option, index) => String(item?.options?.[index] || '')),
-          correct_index: Math.max(0, Math.min(3, Number(item?.correct_index ?? item?.correctIndex ?? 0))),
-          explanation: String(item?.explanation || '')
-        })),
+        educatorTests: normalizeEducatorTests(aiSettings.educator_tests),
         educatorPassScore: Math.max(1, Number(aiSettings.educator_pass_score || 4))
-      });
+      };
+      const hydratedFormData = draft ? Object.assign({}, nextFormData, draft, {
+        educatorTests: normalizeEducatorTests(draft.educatorTests),
+        educatorPassScore: Math.max(1, Number(draft.educatorPassScore || nextFormData.educatorPassScore))
+      }) : nextFormData;
+      loadedFormJsonRef.current = draft ? '' : JSON.stringify(hydratedFormData);
+      setFormData(hydratedFormData);
       setSuccess('');
       setError('');
+      if (draft) setSuccess('Unsaved draft restored.');
     }, [editingCourse?.id]);
+
+    React.useEffect(() => {
+      try {
+        if (!window.localStorage) return;
+        const serializedForm = JSON.stringify(formData);
+        if (serializedForm === loadedFormJsonRef.current) return;
+        if (!isEditing && !hasDraftContent(formData)) {
+          window.localStorage.removeItem(draftKey);
+          return;
+        }
+        window.localStorage.setItem(draftKey, JSON.stringify({ savedAt: new Date().toISOString(), formData }));
+      } catch (_error) {
+        // Local drafts are best-effort only.
+      }
+    }, [draftKey, formData]);
 
     const handleChange = (e) => {
       const { name, value } = e.target;
@@ -176,19 +235,21 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
       });
     };
 
+    const previewQuestions = () => (formData.educatorTests || [])
+      .map((item) => ({
+        question: String(item.question || '').trim(),
+        options: Array.from({ length: 4 }, (_option, index) => String(item.options?.[index] || '').trim()),
+        correct_index: Math.max(0, Math.min(3, Math.floor(Number(item.correct_index || 0)))),
+        explanation: String(item.explanation || '').trim()
+      }))
+      .filter((item) => item.question && item.options.every(Boolean));
+
     const buildCoursePayload = () => {
       const objectives = String(formData.objectivesText || '')
         .split('\n')
         .map((line) => line.trim())
         .filter(Boolean);
-      const educatorTests = (formData.educatorTests || [])
-        .map((item) => ({
-          question: String(item.question || '').trim(),
-          options: Array.from({ length: 4 }, (_option, index) => String(item.options?.[index] || '').trim()),
-          correct_index: Math.max(0, Math.min(3, Math.floor(Number(item.correct_index || 0)))),
-          explanation: String(item.explanation || '').trim()
-        }))
-        .filter((item) => item.question && item.options.filter(Boolean).length === 4);
+      const educatorTests = previewQuestions();
 
       return {
         title: formData.title,
@@ -290,6 +351,8 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
         }
 
         setSuccess(`Course "${formData.title}" ${isEditing ? 'updated' : 'created'} successfully.`);
+        loadedFormJsonRef.current = JSON.stringify(formData);
+        clearDraft();
         if (!isEditing) {
           setFormData(initialState);
         }
@@ -303,7 +366,10 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
       }
     };
 
+    const finalPreviewQuestions = previewQuestions();
+
     return (
+      <React.Fragment>
       <div className="w-full max-w-3xl mx-auto p-6" data-name="course-form" data-file="components/admin/CourseForm.js">
         <div className="glass-panel p-8">
           <div className="mb-8">
@@ -311,7 +377,19 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
               <div>
                 <h2 className="text-3xl font-bold tracking-tight mb-2">{isEditing ? 'Edit Course' : 'Create New Course'}</h2>
                 <p className="text-gray-400 font-mono text-sm">{isEditing ? 'Update this learning path' : 'Add a course to the learning platform'}</p>
+                <p className="mt-2 text-[11px] font-mono uppercase tracking-wider text-mcGreen">Draft autosaves on this device</p>
               </div>
+              <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => {
+                  clearDraft();
+                  setSuccess('Local draft cleared.');
+                }}
+                className="px-3 py-2 rounded-lg bg-white/10 border border-white/10 text-gray-300 font-mono text-xs uppercase tracking-wider hover:bg-white/20 transition-colors"
+              >
+                Clear Draft
+              </button>
               {isEditing ? (
                 <button
                   type="button"
@@ -321,6 +399,7 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
                   Cancel
                 </button>
               ) : null}
+              </div>
             </div>
           </div>
 
@@ -579,6 +658,13 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
                 >
                   Add Question
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewOpen(true)}
+                  className="shrink-0 rounded-lg border border-blue-400/50 bg-blue-400/10 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-blue-300 transition-colors hover:bg-blue-400 hover:text-black"
+                >
+                  Preview Test
+                </button>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px] gap-4">
@@ -748,6 +834,42 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
           </div>
         </div>
       </div>
+      {previewOpen ? (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" onClick={() => setPreviewOpen(false)}>
+          <div className="max-h-[86vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-[#080a10] shadow-[0_20px_70px_rgba(0,0,0,0.6)]" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-white/10 p-5">
+              <div>
+                <div className="font-mono text-xs uppercase tracking-[0.25em] text-blue-300">Final Test Preview</div>
+                <h2 className="text-2xl font-bold text-white">{formData.title || 'Untitled Course'} Final Test</h2>
+                <p className="mt-1 text-xs font-mono text-gray-400">Pass score: {Math.max(1, Math.min(finalPreviewQuestions.length || 1, Number(formData.educatorPassScore || 4)))}/{finalPreviewQuestions.length || 1}</p>
+              </div>
+              <button type="button" onClick={() => setPreviewOpen(false)} className="rounded-lg bg-white/10 px-3 py-2 text-gray-300 hover:text-white">Close</button>
+            </div>
+            <div className="max-h-[calc(86vh-96px)] overflow-y-auto p-5 custom-scrollbar">
+              {finalPreviewQuestions.length ? (
+                <div className="space-y-4">
+                  {finalPreviewQuestions.map((question, questionIndex) => (
+                    <div key={`admin-preview-${questionIndex}`} className="rounded-xl border border-white/10 bg-black/25 p-4">
+                      <div className="mb-3 font-bold text-white">{questionIndex + 1}. {question.question}</div>
+                      <div className="space-y-2">
+                        {question.options.map((option, optionIndex) => (
+                          <div key={`admin-preview-${questionIndex}-${optionIndex}`} className={`rounded-lg border px-3 py-2 text-sm ${question.correct_index === optionIndex ? 'border-mcGreen/60 bg-mcGreen/10 text-mcGreen' : 'border-white/10 bg-white/5 text-gray-200'}`}>
+                            <span className="mr-2 font-mono font-bold">{String.fromCharCode(65 + optionIndex)}</span>{option}
+                          </div>
+                        ))}
+                      </div>
+                      {question.explanation ? <div className="mt-3 text-xs text-gray-400">Explanation: {question.explanation}</div> : null}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-white/20 bg-white/[0.03] p-8 text-center text-gray-300">Add at least one complete final-test question to preview the student test.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+      </React.Fragment>
     );
   } catch (error) {
     console.error('CourseForm error:', error);
