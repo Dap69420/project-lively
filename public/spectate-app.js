@@ -84,7 +84,7 @@ function SpectateApp() {
   const childName = child.profile?.display_name || child.profile?.username || child.email || 'Child account';
 
   return (
-    <div className="min-h-screen bg-darkBg text-white">
+    <div className="h-[100dvh] overflow-hidden bg-darkBg text-white flex flex-col">
       <header className="sticky top-0 z-30 border-b border-white/10 bg-darkBg/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 flex items-center gap-3">
@@ -105,10 +105,10 @@ function SpectateApp() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-7xl grid-cols-1 gap-4 p-4 lg:grid-cols-[18rem_minmax(0,1fr)_minmax(22rem,34rem)]">
-        <aside className="rounded-2xl border border-white/10 bg-panel p-4">
+      <main className="mx-auto grid w-full max-w-7xl min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto p-4 custom-scrollbar lg:grid-cols-[18rem_minmax(0,1fr)_minmax(22rem,34rem)] lg:overflow-hidden">
+        <aside className="flex min-h-0 max-h-[28dvh] flex-col rounded-2xl border border-white/10 bg-panel p-4 lg:max-h-none">
           <div className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-gray-400">Courses</div>
-          <div className="space-y-2">
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1 custom-scrollbar">
             {courses.length === 0 ? (
               <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-gray-500">No course activity yet.</div>
             ) : null}
@@ -129,7 +129,7 @@ function SpectateApp() {
           </div>
         </aside>
 
-        <section className="rounded-2xl border border-white/10 bg-panel p-4">
+        <section className="min-h-[42dvh] overflow-y-auto rounded-2xl border border-white/10 bg-panel p-4 custom-scrollbar lg:min-h-0">
           <div className="mb-4 flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="font-mono text-xs uppercase tracking-[0.2em] text-neonViolet">Workspace</div>
@@ -169,7 +169,7 @@ function SpectateApp() {
           </div>
         </section>
 
-        <section className="min-h-[70vh] rounded-2xl border border-white/10 bg-panel flex flex-col">
+        <section className="min-h-[55dvh] rounded-2xl border border-white/10 bg-panel flex flex-col overflow-hidden lg:min-h-0">
           <div className="flex items-center justify-between border-b border-white/10 p-4">
             <div>
               <div className="font-mono text-xs uppercase tracking-[0.2em] text-neonViolet">Buddy_AI Chat</div>
