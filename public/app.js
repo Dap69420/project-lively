@@ -157,8 +157,8 @@ function App() {
             {user ? (
               <div className="ml-4 flex items-center gap-3">
                 <a href="profile.html" className="max-w-36 truncate text-lime hover:underline" title={alias}>@{alias}</a>
-                <a href={(isParent || isEducator) ? 'profile.html' : 'workspace.html'} className="bg-lime text-black px-4 py-1.5 border-2 border-black font-bold shadow-[2px_2px_0px_#ff00ff] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all">
-                  {isParent ? 'PARENT DASHBOARD' : isEducator ? 'EDUCATOR STUDIO' : 'OPEN APP'}
+                <a href="profile.html" className="bg-lime text-black px-4 py-1.5 border-2 border-black font-bold shadow-[2px_2px_0px_#ff00ff] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all">
+                  {(isParent || isEducator) ? 'OPEN DASHBOARD' : 'OPEN PROFILE'}
                 </a>
               </div>
             ) : (

@@ -15,10 +15,11 @@ function Hero() {
     }, []);
 
     const isSignedIn = Boolean(user);
+    const userType = String(user?.user_metadata?.userType || 'student').toLowerCase();
+    const isDashboardUser = userType === 'educator' || userType === 'parent';
     const primaryHref = isSignedIn ? 'workspace.html' : 'login.html';
     const primaryText = isSignedIn ? 'CONTINUE LEARNING' : 'JOIN THE BETA';
-    const secondaryHref = isSignedIn ? 'profile.html' : 'login.html';
-    const secondaryText = isSignedIn ? `LVL ${progress.level || 1} PROFILE` : 'BECOME A TESTER';
+    const secondaryText = isDashboardUser ? 'OPEN DASHBOARD' : 'OPEN PROFILE';
 
     return (
       <section className="w-full max-w-6xl mx-auto px-6 py-20 md:py-32 flex flex-col lg:flex-row items-center gap-12" data-name="hero" data-file="components/Hero.js">
@@ -43,9 +44,11 @@ function Hero() {
             <a href={primaryHref} className="brutal-btn-lime flex items-center justify-center gap-2 text-lg no-underline inline-flex">
               {primaryText} <div className="icon-arrow-right"></div>
             </a>
-            <a href={secondaryHref} className="brutal-btn-pink flex items-center justify-center gap-2 text-lg no-underline inline-flex">
-              <div className={isSignedIn ? 'icon-user-round' : 'icon-flask-conical'}></div> {secondaryText}
-            </a>
+            {isSignedIn ? (
+              <a href="profile.html" className="brutal-btn-pink flex items-center justify-center gap-2 text-lg no-underline inline-flex">
+                <div className={isDashboardUser ? 'icon-layout-dashboard' : 'icon-user-round'}></div> {secondaryText}
+              </a>
+            ) : null}
           </div>
         </div>
 
