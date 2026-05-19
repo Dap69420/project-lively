@@ -225,7 +225,7 @@ function CourseSelector() {
           </a>
         </div>
 
-        {browserOpen ? (
+        {browserOpen ? ReactDOM.createPortal((
           <div className="fixed inset-0 z-[10000] bg-black/75 backdrop-blur-sm" onClick={() => setBrowserOpen(false)}>
             <div className="absolute left-1/2 top-1/2 w-[min(94vw,64rem)] max-h-[82vh] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/10 bg-darkBg shadow-[0_20px_70px_rgba(0,0,0,0.55)]" onClick={(event) => event.stopPropagation()}>
               <div className="flex items-center justify-between gap-3 border-b border-white/10 p-4 sm:p-5">
@@ -296,7 +296,7 @@ function CourseSelector() {
               </div>
             </div>
           </div>
-        ) : null}
+        ), document.body) : null}
       </div>
     );
   } catch (error) {
