@@ -164,6 +164,95 @@ async function getFamilyData(userId, email) {
   };
 }
 
+async function getSpectateData(parentId, childId, courseId = '') {
+  if (!childId) {
+    const error = new Error('Missing childId for spectate mode.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const linkResult = await query(
+    `SELECT *
+     FROM parent_child_links
+     WHERE parent_id = $1
+       AND child_id = $2
+       AND status = 'accepted'
+     LIMIT 1`,
+    [parentId, childId]
+  );
+
+  if (!linkResult.rows.length) {
+    const error = new Error('This child account is not connected to your parent account.');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const childProgress = await getChildProgress(childId);
+  const coursesResult = await query(
+    `SELECT uc.course_id,
+            uc.progress_percentage,
+            uc.level,
+            uc.xp_in_course,
+            uc.coins_earned,
+            uc.completed,
+            uc.completed_at,
+            uc.updated_at,
+            uc.stats,
+            c.title,
+            c.description,
+            c.subject,
+            c.grade,
+            c.topic,
+            c.ai_aim,
+            c.objectives,
+            c.lessons,
+            c.card_style
+     FROM user_courses uc
+     JOIN courses c ON uc.course_id = c.id
+     WHERE uc.user_id = $1
+     ORDER BY uc.updated_at DESC`,
+    [childId]
+  );
+
+  const courses = coursesResult.rows;
+  const selectedCourseId = courseId && courses.some((course) => String(course.course_id) === String(courseId))
+    ? courseId
+    : (courses[0]?.course_id || '');
+
+  const [notesResult, chatResult] = selectedCourseId
+    ? await Promise.all([
+        query(
+          `SELECT id, content, created_at, updated_at
+           FROM course_notes
+           WHERE user_id = $1 AND course_id = $2
+           LIMIT 1`,
+          [childId, selectedCourseId]
+        ).catch(() => ({ rows: [] })),
+        query(
+          `SELECT id, role, text, metadata, created_at
+           FROM chat_messages
+           WHERE user_id = $1 AND course_id = $2
+           ORDER BY created_at ASC
+           LIMIT 200`,
+          [childId, selectedCourseId]
+        ).catch(() => ({ rows: [] }))
+      ])
+    : [{ rows: [] }, { rows: [] }];
+
+  return {
+    child: {
+      id: childId,
+      email: linkResult.rows[0].child_email,
+      profile: childProgress.profile,
+      totals: childProgress.totals
+    },
+    courses,
+    selectedCourseId,
+    notes: notesResult.rows[0] || null,
+    messages: chatResult.rows
+  };
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Content-Type', 'application/json');
 
@@ -175,6 +264,10 @@ module.exports = async (req, res) => {
 
     if (req.method === 'GET') {
       const profile = await ensureProfile(userId, email);
+      if (req.query.mode === 'spectate') {
+        const spectate = await getSpectateData(userId, req.query.childId, req.query.courseId || '');
+        return res.status(200).json({ success: true, data: { profile, spectate } });
+      }
       if (req.query.mode === 'family') {
         const family = await getFamilyData(userId, email);
         return res.status(200).json({ success: true, data: { profile, family } });
@@ -312,6 +405,10 @@ module.exports = async (req, res) => {
   } catch (error) {
     if (error?.code === '23505') {
       return res.status(409).json({ success: false, error: 'That username is already taken.' });
+    }
+
+    if (error?.statusCode) {
+      return res.status(error.statusCode).json({ success: false, error: error.message });
     }
 
     console.error('Profile API error:', error);

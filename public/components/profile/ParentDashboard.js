@@ -201,16 +201,24 @@ function ParentDashboard({ user }) {
                       <span className="text-white font-bold">{totals.startedCourses || 0}</span> started courses,
                       {' '}<span className="text-white font-bold">{totals.coins || 0}</span> coins earned.
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedChild(link);
-                        setDetailTab('courses');
-                      }}
-                      className="rounded-lg bg-neonViolet px-4 py-2 text-xs font-mono font-bold uppercase text-white hover:brightness-110"
-                    >
-                      Show More
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <a
+                        href={`spectate.html?childId=${encodeURIComponent(link.child_id || '')}`}
+                        className="rounded-lg border border-neonViolet/40 bg-neonViolet/10 px-4 py-2 text-xs font-mono font-bold uppercase text-neonViolet hover:bg-neonViolet/20"
+                      >
+                        Spectate Workspace
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedChild(link);
+                          setDetailTab('courses');
+                        }}
+                        className="rounded-lg bg-neonViolet px-4 py-2 text-xs font-mono font-bold uppercase text-white hover:brightness-110"
+                      >
+                        Show More
+                      </button>
+                    </div>
                   </div>
                 </article>
               );
@@ -276,9 +284,17 @@ function ChildDetailModal({ child, activeTab, setActiveTab, onClose }) {
               <p className="truncate font-mono text-xs text-gray-500">{child.child_email}</p>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg bg-white/10 p-3 text-gray-300 hover:text-white">
-            <div className="icon-x"></div>
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <a
+              href={`spectate.html?childId=${encodeURIComponent(child.child_id || '')}`}
+              className="hidden sm:inline-flex rounded-lg border border-neonViolet/40 bg-neonViolet/10 px-3 py-2 font-mono text-xs uppercase text-neonViolet hover:bg-neonViolet/20"
+            >
+              Spectate
+            </a>
+            <button type="button" onClick={onClose} className="rounded-lg bg-white/10 p-3 text-gray-300 hover:text-white">
+              <div className="icon-x"></div>
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 border-b border-white/10 p-4">
