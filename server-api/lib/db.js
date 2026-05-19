@@ -127,6 +127,18 @@ if (!connectionString) {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS parent_child_links (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      parent_id UUID NOT NULL,
+      parent_email TEXT DEFAULT '',
+      child_id UUID,
+      child_email TEXT NOT NULL,
+      status VARCHAR(20) DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(parent_id, child_email)
+    );
+
     CREATE TABLE IF NOT EXISTS achievements (
       id VARCHAR(100) PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
@@ -167,6 +179,9 @@ if (!connectionString) {
     CREATE INDEX IF NOT EXISTS idx_courses_subject_grade ON courses(subject, grade);
     CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_user_profiles_username ON user_profiles(username);
+    CREATE INDEX IF NOT EXISTS idx_parent_child_links_parent_id ON parent_child_links(parent_id);
+    CREATE INDEX IF NOT EXISTS idx_parent_child_links_child_id ON parent_child_links(child_id);
+    CREATE INDEX IF NOT EXISTS idx_parent_child_links_child_email ON parent_child_links(lower(child_email));
     CREATE INDEX IF NOT EXISTS idx_achievements_sort_index ON achievements(sort_index);
     CREATE INDEX IF NOT EXISTS idx_user_achievements_user_id ON user_achievements(user_id);
   `;

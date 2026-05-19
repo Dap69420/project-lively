@@ -61,6 +61,7 @@ function ProfileApp() {
     }, [user]);
 
     if (loading) return <div className="min-h-screen flex items-center justify-center bg-darkBg text-white font-mono">LOADING PROFILE...</div>;
+    const isParent = user?.user_metadata?.userType === 'parent';
 
     return (
       <div className="min-h-screen relative w-full max-w-full overflow-x-hidden py-4 px-3 sm:py-8 sm:px-6 lg:px-8" data-name="profile-app" data-file="profile-app.js">
@@ -73,32 +74,40 @@ function ProfileApp() {
           
           {/* Header */}
           <header className="glass-panel profile-hero p-4 sm:px-6 flex items-center justify-between gap-3 sticky top-3 sm:top-4 z-50 overflow-hidden">
-            <a href="workspace.html" className="shrink-0 flex items-center gap-2 text-gray-400 hover:text-white transition-colors font-mono text-xs sm:text-sm uppercase tracking-wider group">
-              <div className="icon-arrow-left group-hover:-translate-x-1 transition-transform"></div> Workspace
+            <a href={isParent ? 'index.html' : 'workspace.html'} className="shrink-0 flex items-center gap-2 text-gray-400 hover:text-white transition-colors font-mono text-xs sm:text-sm uppercase tracking-wider group">
+              <div className="icon-arrow-left group-hover:-translate-x-1 transition-transform"></div> {isParent ? 'Home' : 'Workspace'}
             </a>
             <h1 className="min-w-0 font-mono text-2xl sm:text-xl font-bold tracking-[0.18em] sm:tracking-widest text-white flex items-center justify-end sm:justify-center gap-2 sm:gap-3 text-right leading-tight">
               <div className="hidden sm:block w-2 h-2 rounded-full bg-neonViolet animate-pulse shadow-[0_0_8px_#b026ff] shrink-0"></div>
-              USER EVOLUTION
+              {isParent ? 'PARENT DASHBOARD' : 'USER EVOLUTION'}
             </h1>
             <div className="w-24 hidden sm:block"></div> {/* Spacer for centering */}
           </header>
 
-          <main className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8 min-w-0">
+          {isParent ? (
+            <ParentDashboard user={user} />
+          ) : (
+            <>
+              <FamilyRequests user={user} />
+
+              <main className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8 min-w-0">
             
-            {/* Left Column */}
-            <div className="lg:col-span-5 flex flex-col gap-5 sm:gap-8 min-w-0">
-              <AvatarSection user={user} />
-              <CourseSelector />
-              <RecentBadges />
-            </div>
+                {/* Left Column */}
+                <div className="lg:col-span-5 flex flex-col gap-5 sm:gap-8 min-w-0">
+                  <AvatarSection user={user} />
+                  <CourseSelector />
+                  <RecentBadges />
+                </div>
 
-            {/* Right Column */}
-            <div className="lg:col-span-7 flex flex-col gap-5 sm:gap-8 min-w-0">
-              <StatsGrid />
-              <SkillTree />
-            </div>
+                {/* Right Column */}
+                <div className="lg:col-span-7 flex flex-col gap-5 sm:gap-8 min-w-0">
+                  <StatsGrid />
+                  <SkillTree />
+                </div>
 
-          </main>
+              </main>
+            </>
+          )}
 
         </div>
         

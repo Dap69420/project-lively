@@ -8,8 +8,8 @@ function ProfileSetup({ user, onComplete }) {
     const grades = ['6', '7', '8', '9'];
 
     const handleComplete = async () => {
-      if (!userType || !grade) {
-        setError('Please select both user type and grade');
+      if (!userType || (userType !== 'parent' && !grade)) {
+        setError(userType === 'parent' ? 'Please select a role' : 'Please select both user type and grade');
         return;
       }
 
@@ -21,7 +21,7 @@ function ProfileSetup({ user, onComplete }) {
           const { error: updateError } = await supabaseClient.auth.updateUser({
             data: {
               userType,
-              grade,
+              grade: userType === 'parent' ? '' : grade,
               alias: user?.user_metadata?.alias || user?.email?.split('@')[0] || 'RECRUIT',
               setupComplete: true
             }
@@ -83,30 +83,32 @@ function ProfileSetup({ user, onComplete }) {
           </div>
 
           {/* Grade Selection */}
-          <div className="space-y-3">
-            <label className="text-sm font-mono uppercase tracking-wider text-gray-300">Grade Level</label>
-            <div className="grid grid-cols-4 gap-2">
-              {grades.map((g) => (
-                <button
-                  key={g}
-                  onClick={() => setGrade(g)}
-                  className={`p-3 rounded-lg border-2 transition-all font-mono font-bold text-lg ${
-                    grade === g
-                      ? 'bg-neonViolet text-black border-neonViolet shadow-[0_0_15px_rgba(176,38,255,0.4)]'
-                      : 'bg-white/5 text-gray-300 border-white/10 hover:border-white/20 hover:bg-white/10'
-                  }`}
-                >
-                  {g}
-                </button>
-              ))}
+          {userType !== 'parent' ? (
+            <div className="space-y-3">
+              <label className="text-sm font-mono uppercase tracking-wider text-gray-300">Grade Level</label>
+              <div className="grid grid-cols-4 gap-2">
+                {grades.map((g) => (
+                  <button
+                    key={g}
+                    onClick={() => setGrade(g)}
+                    className={`p-3 rounded-lg border-2 transition-all font-mono font-bold text-lg ${
+                      grade === g
+                        ? 'bg-neonViolet text-black border-neonViolet shadow-[0_0_15px_rgba(176,38,255,0.4)]'
+                        : 'bg-white/5 text-gray-300 border-white/10 hover:border-white/20 hover:bg-white/10'
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : null}
 
           {/* Description */}
           <div className="p-4 rounded-lg bg-black/20 border border-white/10">
             <p className="text-xs text-gray-400 leading-relaxed">
-              {userType === 'student' && 'As a student, you\'ll track your progress, earn XP, and access personalized learning paths.'}
-              {userType === 'parent' && 'As a parent, you\'ll monitor your child\'s learning progress and achievements.'}
+            {userType === 'student' && 'As a student, you\'ll track your progress, earn XP, and access personalized learning paths.'}
+              {userType === 'parent' && 'As a parent, you\'ll connect child accounts, monitor progress, and stay out of the student course flow.'}
               {userType === 'educator' && 'As an educator, you\'ll create content, manage learning paths, and track student progress.'}
               {!userType && 'Select your role to get started.'}
             </p>
@@ -115,7 +117,7 @@ function ProfileSetup({ user, onComplete }) {
           {/* Complete Button */}
           <button
             onClick={handleComplete}
-            disabled={!userType || !grade || loading}
+            disabled={!userType || (userType !== 'parent' && !grade) || loading}
             className="w-full py-3 rounded-lg bg-neonViolet text-black font-mono font-bold uppercase tracking-wider transition-all hover:shadow-[0_0_15px_rgba(176,38,255,0.4)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Setting up...' : 'Get Started'}

@@ -53,6 +53,8 @@ function WorkspaceApp() {
       supabaseClient.auth.getSession().then(({ data: { session } }) => {
         if (!session) {
           window.location.href = 'login.html';
+        } else if (session.user?.user_metadata?.userType === 'parent') {
+          window.location.href = 'profile.html';
         } else {
           setUser(session.user);
         }
@@ -61,6 +63,7 @@ function WorkspaceApp() {
 
       const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((_event, session) => {
         if (!session) window.location.href = 'login.html';
+        else if (session.user?.user_metadata?.userType === 'parent') window.location.href = 'profile.html';
         else setUser(session.user);
       });
 
