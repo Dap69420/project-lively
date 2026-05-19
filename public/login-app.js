@@ -35,11 +35,7 @@ class ErrorBoundary extends React.Component {
 
 function LoginApp() {
   try {
-    const [isLogin, setIsLogin] = React.useState(true);
     const [isLoading, setIsLoading] = React.useState(false);
-    const [email, setEmail] = React.useState('');
-    const [password, setPassword] = React.useState('');
-    const [alias, setAlias] = React.useState('');
     const [errorMsg, setErrorMsg] = React.useState('');
     const [currentUser, setCurrentUser] = React.useState(null);
     const [showSetup, setShowSetup] = React.useState(false);
@@ -164,36 +160,6 @@ function LoginApp() {
       };
     }, []);
 
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      if (!supabaseClient) return;
-      setErrorMsg('');
-      setIsLoading(true);
-
-      try {
-        if (isLogin) {
-          const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-          if (error) throw error;
-          checkSetupCompletion(data.user);
-        } else {
-          const { data, error } = await supabaseClient.auth.signUp({
-            email,
-            password,
-            options: {
-              data: { alias: alias || email.split('@')[0] }
-            }
-          });
-          if (error) throw error;
-          checkSetupCompletion(data.user);
-        }
-      } catch (err) {
-        console.error(err);
-        setErrorMsg(err.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     const handleGoogleLogin = async () => {
       if (!supabaseClient) return;
       try {
@@ -263,27 +229,12 @@ function LoginApp() {
           <div className="brutal-card brutal-card-pink bg-black">
             <div className="flex justify-between items-center mb-8 border-b-4 border-white/20 pb-4">
               <div>
-                <h2 className="text-2xl text-lime">{nativeMode ? 'MOBILE ACCESS' : (isLogin ? 'ACCESS GRANTED' : 'NEW RECRUIT')}</h2>
-                {nativeMode ? (
-                  <p className="mt-2 font-mono text-xs uppercase tracking-wider text-gray-400">Use Google to continue in the app</p>
-                ) : null}
+                <h2 className="text-2xl text-lime">{nativeMode ? 'MOBILE ACCESS' : 'ACCESS PORTAL'}</h2>
+                <p className="mt-2 font-mono text-xs uppercase tracking-wider text-gray-400">Use Google to continue with Project Lively</p>
               </div>
-              {!nativeMode ? (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setIsLogin(true)}
-                    className={`font-mono font-bold text-sm px-2 py-1 ${isLogin ? 'bg-hotpink text-white border-2 border-white' : 'text-gray-500 hover:text-white'}`}
-                  >
-                    LOGIN
-                  </button>
-                  <button
-                    onClick={() => setIsLogin(false)}
-                    className={`font-mono font-bold text-sm px-2 py-1 ${!isLogin ? 'bg-hotpink text-white border-2 border-white' : 'text-gray-500 hover:text-white'}`}
-                  >
-                    SIGN UP
-                  </button>
-                </div>
-              ) : null}
+              <div className="h-10 w-10 bg-lime border-2 border-black flex items-center justify-center shadow-[3px_3px_0px_#ff00ff]">
+                <div className="icon-key-round text-black"></div>
+              </div>
             </div>
 
             {errorMsg && (
@@ -292,59 +243,11 @@ function LoginApp() {
               </div>
             )}
 
-            {!nativeMode ? (
-            <>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {!isLogin && (
-                <div className="space-y-2">
-                  <label className="font-mono font-bold text-sm text-gray-300 uppercase">Agent Alias</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <div className="icon-user text-gray-500"></div>
-                    </div>
-                    <input type="text" required value={alias} onChange={e => setAlias(e.target.value)} className="brutal-input pl-10" placeholder="e.g. PhysicsNinja" />
-                  </div>
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <label className="font-mono font-bold text-sm text-gray-300 uppercase">Comm Link (Email)</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <div className="icon-mail text-gray-500"></div>
-                  </div>
-                  <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="brutal-input pl-10" placeholder="student@school.edu" />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="font-mono font-bold text-sm text-gray-300 uppercase">Secret Passcode</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <div className="icon-lock text-gray-500"></div>
-                  </div>
-                  <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="brutal-input pl-10" placeholder="••••••••" />
-                </div>
-              </div>
-
-              <button type="submit" disabled={isLoading} className="brutal-btn-lime w-full flex justify-center items-center gap-2 mt-4 text-xl disabled:opacity-50">
-                {isLoading ? 'PROCESSING...' : (isLogin ? 'INITIALIZE SESSION' : 'CREATE AVATAR')} <div className="icon-arrow-right"></div>
-              </button>
-            </form>
-
-            <div className="mt-6 flex items-center justify-between">
-              <div className="w-full h-1 bg-white/20"></div>
-              <span className="px-4 font-mono text-sm text-gray-400 font-bold uppercase">OR</span>
-              <div className="w-full h-1 bg-white/20"></div>
-            </div>
-            </>
-            ) : null}
-
             <button 
               type="button" 
               onClick={handleGoogleLogin} 
               disabled={isLoading}
-              className="w-full bg-white text-black font-bold uppercase border-4 border-black px-6 py-3 shadow-[6px_6px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_#000] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none transition-all flex justify-center items-center gap-3 mt-6"
+              className="w-full bg-white text-black font-bold uppercase border-4 border-black px-6 py-3 shadow-[6px_6px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_#000] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none transition-all flex justify-center items-center gap-3"
             >
               <div className="icon-globe text-xl"></div>
               {isLoading ? 'CONNECTING...' : 'CONTINUE WITH GOOGLE'}

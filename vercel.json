@@ -1,6 +1,23 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/download/android",
+      "destination": "/downloads/project-lively.apk",
+      "permanent": false
+    },
+    {
+      "source": "/download/windows",
+      "destination": "https://github.com/Dap69420/project-lively/releases/download/Installer/Project.Lively.Setup.1.0.0.exe",
+      "permanent": false
+    },
+    {
+      "source": "/app-download",
+      "destination": "/download",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/:path*",
@@ -23,8 +40,8 @@
       "destination": "/login.html"
     },
     {
-      "source": "/app-download",
-      "destination": "/app-download.html"
+      "source": "/download",
+      "destination": "/download.html"
     },
     {
       "source": "/profile",

@@ -38,7 +38,7 @@ function App() {
   try {
     const [user, setUser] = React.useState(null);
     const [authChecked, setAuthChecked] = React.useState(false);
-    const [showMobileInstall, setShowMobileInstall] = React.useState(false);
+    const [downloadPrompt, setDownloadPrompt] = React.useState(null);
 
     React.useEffect(() => {
       if (!window.supabaseClient) {
@@ -69,18 +69,42 @@ function App() {
     React.useEffect(() => {
       const isNativeApp = () => {
         if (new URLSearchParams(window.location.search || '').get('app') === '1') return true;
+        if (new URLSearchParams(window.location.search || '').get('desktop') === '1') return true;
         if (window.Capacitor?.isNativePlatform?.()) return true;
         if (window.Capacitor?.getPlatform && window.Capacitor.getPlatform() !== 'web') return true;
+        if (/Electron/i.test(navigator.userAgent || '')) return true;
         return /\bwv\b/i.test(navigator.userAgent || '');
       };
-      const isMobileBrowser = window.matchMedia?.('(max-width: 768px), (pointer: coarse)')?.matches;
-      const dismissed = localStorage.getItem('lively-app-download-dismissed') === 'true';
-      setShowMobileInstall(Boolean(isMobileBrowser && !isNativeApp() && !dismissed));
+      if (isNativeApp()) return;
+
+      const userAgent = navigator.userAgent || '';
+      const isAndroid = /Android/i.test(userAgent);
+      const isDesktop = !window.matchMedia?.('(max-width: 768px), (pointer: coarse)')?.matches;
+      if (isAndroid) {
+        setDownloadPrompt({
+          type: 'android',
+          icon: 'icon-smartphone',
+          eyebrow: 'Android App Available',
+          title: 'Download Project Lively',
+          text: 'The Android app gives the workspace a cleaner full-screen mobile feel.',
+          href: '/download/android',
+          cta: 'Get APK'
+        });
+      } else if (isDesktop) {
+        setDownloadPrompt({
+          type: 'windows',
+          icon: 'icon-monitor-down',
+          eyebrow: 'Windows App Available',
+          title: 'Install Project Lively',
+          text: 'The Windows app opens Project Lively like a real desktop app with no browser tabs.',
+          href: '/download/windows',
+          cta: 'Get Installer'
+        });
+      }
     }, []);
 
-    const dismissMobileInstall = () => {
-      localStorage.setItem('lively-app-download-dismissed', 'true');
-      setShowMobileInstall(false);
+    const dismissDownloadPrompt = () => {
+      setDownloadPrompt(null);
     };
 
     const progress = window.LivelyProgress?.useProgress ? window.LivelyProgress.useProgress() : {};
@@ -88,21 +112,21 @@ function App() {
 
     return (
       <div className="min-h-screen flex flex-col items-center overflow-x-hidden relative" data-name="app" data-file="app.js">
-        {showMobileInstall ? (
-          <div className="fixed inset-x-3 top-3 z-[9995] border-4 border-white bg-dark p-4 shadow-[6px_6px_0px_#ccff00] md:hidden">
+        {downloadPrompt ? (
+          <div className="fixed inset-x-3 top-3 z-[9995] border-4 border-white bg-dark p-4 shadow-[6px_6px_0px_#ccff00] md:left-auto md:right-6 md:top-6 md:w-[360px]">
             <div className="flex items-start gap-3">
               <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center border-2 border-black bg-lime text-black shadow-[2px_2px_0px_#ff00ff]">
-                <div className="icon-smartphone text-xl"></div>
+                <div className={`${downloadPrompt.icon} text-xl`}></div>
               </div>
               <div className="min-w-0 flex-1">
-                <div className="font-mono text-xs uppercase tracking-[0.2em] text-lime">Mobile App Available</div>
-                <div className="mt-1 text-lg font-black uppercase leading-tight">Download Project Lively</div>
-                <p className="mt-1 text-xs font-mono text-white/70">The app gives the workspace a cleaner full-screen mobile feel.</p>
+                <div className="font-mono text-xs uppercase tracking-[0.2em] text-lime">{downloadPrompt.eyebrow}</div>
+                <div className="mt-1 text-lg font-black uppercase leading-tight">{downloadPrompt.title}</div>
+                <p className="mt-1 text-xs font-mono text-white/70">{downloadPrompt.text}</p>
                 <div className="mt-3 flex gap-2">
-                  <a href="app-download" className="flex-1 bg-lime px-3 py-2 text-center text-xs font-black uppercase text-black">
-                    Get APK
+                  <a href={downloadPrompt.href} className="flex-1 bg-lime px-3 py-2 text-center text-xs font-black uppercase text-black">
+                    {downloadPrompt.cta}
                   </a>
-                  <button onClick={dismissMobileInstall} className="border border-white/20 px-3 py-2 text-xs font-mono uppercase text-white/70">
+                  <button onClick={dismissDownloadPrompt} className="border border-white/20 px-3 py-2 text-xs font-mono uppercase text-white/70">
                     Later
                   </button>
                 </div>
@@ -126,7 +150,7 @@ function App() {
           <nav className="hidden md:flex items-center gap-6 font-mono text-sm">
             <a href="#features" className="hover:text-lime transition-colors">FEATURES</a>
             <a href="#roadmap" className="hover:text-hotpink transition-colors">ROADMAP</a>
-            <a href="app-download" className="hover:text-lime transition-colors">APP</a>
+            <a href="download" className="hover:text-lime transition-colors">DOWNLOAD</a>
             <a href="#donate" className="hover:text-lime transition-colors">SUPPORT US</a>
             {user ? (
               <div className="ml-4 flex items-center gap-3">

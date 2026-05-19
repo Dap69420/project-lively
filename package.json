@@ -1,12 +1,14 @@
 {
   "name": "project-proj_2ewqw4gyabx",
   "version": "1.0.0",
-  "description": "",
+  "description": "Project Lively desktop app.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
     "preview": "node server.js --port 4173",
+    "desktop:dev": "electron desktop/main.js",
+    "desktop:build": "electron-builder --win nsis portable",
     "cap:sync": "cap sync android",
     "cap:open": "cap open android",
     "android:add": "cap add android",
@@ -14,9 +16,35 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "Dap Media",
   "license": "ISC",
   "type": "commonjs",
+  "build": {
+    "appId": "com.dapmedia.projectlively",
+    "productName": "Project Lively",
+    "copyright": "Copyright © 2026 Dap Media",
+    "extraMetadata": {
+      "main": "desktop/main.js"
+    },
+    "files": [
+      "desktop/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Project Lively"
+    }
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
     "dotenv": "^16.4.5",
@@ -29,6 +57,8 @@
     "@capacitor/browser": "^8.0.3",
     "@capacitor/cli": "^8.3.4",
     "@capacitor/core": "^8.3.4",
+    "electron": "^42.1.0",
+    "electron-builder": "^26.8.1",
     "serve": "^14.2.4"
   }
 }

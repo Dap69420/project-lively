@@ -4,3 +4,5 @@ android/.gradle
 android/app/build
 android/build
 android/local.properties
+dist/
+public/downloads/*.exe
