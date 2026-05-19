@@ -22,7 +22,9 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
       quizEnabled: true,
       quizFrequency: 'after_objective',
       quizDifficulty: 'mixed',
-      quizStyle: 'mcq'
+      quizStyle: 'mcq',
+      educatorTests: [],
+      educatorPassScore: 4
     };
 
     const [formData, setFormData] = React.useState(initialState);
@@ -42,6 +44,12 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
       { value: 'every_5_messages', label: 'Every 5 student messages' }
     ];
     const quizDifficulties = ['easy', 'mixed', 'hard'];
+    const emptyTestQuestion = () => ({
+      question: '',
+      options: ['', '', '', ''],
+      correct_index: 0,
+      explanation: ''
+    });
 
     const normalizeJsonArray = (value) => {
       if (Array.isArray(value)) return value;
@@ -99,7 +107,14 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
         quizEnabled: aiSettings.quiz_enabled !== false && aiSettings.quiz_frequency !== 'off',
         quizFrequency: aiSettings.quiz_frequency || 'after_objective',
         quizDifficulty: aiSettings.quiz_difficulty || 'mixed',
-        quizStyle: aiSettings.quiz_style || 'mcq'
+        quizStyle: aiSettings.quiz_style || 'mcq',
+        educatorTests: normalizeJsonArray(aiSettings.educator_tests).map((item) => ({
+          question: String(item?.question || ''),
+          options: Array.from({ length: 4 }, (_option, index) => String(item?.options?.[index] || '')),
+          correct_index: Math.max(0, Math.min(3, Number(item?.correct_index ?? item?.correctIndex ?? 0))),
+          explanation: String(item?.explanation || '')
+        })),
+        educatorPassScore: Math.max(1, Number(aiSettings.educator_pass_score || 4))
       });
       setSuccess('');
       setError('');
@@ -109,8 +124,56 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
       const { name, value } = e.target;
       setFormData((prev) => ({
         ...prev,
-        [name]: e.target.type === 'checkbox' ? e.target.checked : ['completion_xp', 'completion_coins', 'cardRotation'].includes(name) ? parseInt(value || '0', 10) : value
+        [name]: e.target.type === 'checkbox' ? e.target.checked : ['completion_xp', 'completion_coins', 'cardRotation', 'educatorPassScore'].includes(name) ? parseInt(value || '0', 10) : value
       }));
+    };
+
+    const updateEducatorTest = (questionIndex, patch) => {
+      setFormData((prev) => ({
+        ...prev,
+        educatorTests: (prev.educatorTests || []).map((question, index) => (
+          index === questionIndex ? Object.assign({}, question, patch) : question
+        ))
+      }));
+    };
+
+    const updateEducatorTestOption = (questionIndex, optionIndex, value) => {
+      setFormData((prev) => ({
+        ...prev,
+        educatorTests: (prev.educatorTests || []).map((question, index) => {
+          if (index !== questionIndex) return question;
+          const options = Array.from({ length: 4 }, (_option, currentIndex) => String(question.options?.[currentIndex] || ''));
+          options[optionIndex] = value;
+          return Object.assign({}, question, { options });
+        })
+      }));
+    };
+
+    const addEducatorTest = () => {
+      setFormData((prev) => ({
+        ...prev,
+        educatorTests: [...(prev.educatorTests || []), emptyTestQuestion()]
+      }));
+    };
+
+    const removeEducatorTest = (questionIndex) => {
+      setFormData((prev) => ({
+        ...prev,
+        educatorTests: (prev.educatorTests || []).filter((_question, index) => index !== questionIndex),
+        educatorPassScore: Math.max(1, Math.min(Number(prev.educatorPassScore || 1), Math.max(1, (prev.educatorTests || []).length - 1)))
+      }));
+    };
+
+    const moveEducatorTest = (questionIndex, direction) => {
+      setFormData((prev) => {
+        const tests = [...(prev.educatorTests || [])];
+        const nextIndex = questionIndex + direction;
+        if (nextIndex < 0 || nextIndex >= tests.length) return prev;
+        const current = tests[questionIndex];
+        tests[questionIndex] = tests[nextIndex];
+        tests[nextIndex] = current;
+        return Object.assign({}, prev, { educatorTests: tests });
+      });
     };
 
     const buildCoursePayload = () => {
@@ -118,6 +181,14 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
         .split('\n')
         .map((line) => line.trim())
         .filter(Boolean);
+      const educatorTests = (formData.educatorTests || [])
+        .map((item) => ({
+          question: String(item.question || '').trim(),
+          options: Array.from({ length: 4 }, (_option, index) => String(item.options?.[index] || '').trim()),
+          correct_index: Math.max(0, Math.min(3, Math.floor(Number(item.correct_index || 0)))),
+          explanation: String(item.explanation || '').trim()
+        }))
+        .filter((item) => item.question && item.options.filter(Boolean).length === 4);
 
       return {
         title: formData.title,
@@ -144,7 +215,9 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
           quiz_enabled: Boolean(formData.quizEnabled) && formData.quizFrequency !== 'off',
           quiz_frequency: formData.quizEnabled ? formData.quizFrequency : 'off',
           quiz_difficulty: formData.quizDifficulty || 'mixed',
-          quiz_style: formData.quizStyle || 'mcq'
+          quiz_style: formData.quizStyle || 'mcq',
+          educator_tests: educatorTests,
+          educator_pass_score: Math.max(1, Math.min(educatorTests.length || 1, Number(formData.educatorPassScore || 4)))
         }
       };
     };
@@ -175,6 +248,18 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
 
       if (!formData.topic.trim()) {
         setError('Topic is required');
+        setLoading(false);
+        return;
+      }
+
+      const incompleteTestQuestion = (formData.educatorTests || []).find((item) => {
+        const hasAnyText = String(item.question || '').trim() || (item.options || []).some((option) => String(option || '').trim()) || String(item.explanation || '').trim();
+        const hasAllOptions = Array.from({ length: 4 }, (_option, index) => String(item.options?.[index] || '').trim()).every(Boolean);
+        return hasAnyText && (!String(item.question || '').trim() || !hasAllOptions);
+      });
+
+      if (incompleteTestQuestion) {
+        setError('Every authored final-test question needs question text and all 4 options.');
         setLoading(false);
         return;
       }
@@ -219,7 +304,7 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
     };
 
     return (
-      <div className="w-full max-w-2xl mx-auto p-6" data-name="course-form" data-file="components/admin/CourseForm.js">
+      <div className="w-full max-w-3xl mx-auto p-6" data-name="course-form" data-file="components/admin/CourseForm.js">
         <div className="glass-panel p-8">
           <div className="mb-8">
             <div className="flex items-start justify-between gap-4">
@@ -479,6 +564,135 @@ function CourseForm({ accessToken, editingCourse, onCancelEdit, onSuccess }) {
                 rows="5"
                 className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-neonViolet focus:outline-none transition-colors resize-none font-mono text-xs"
               />
+            </div>
+
+            <div className="space-y-4 rounded-xl border border-white/10 bg-black/20 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h3 className="text-lg font-bold tracking-tight mb-1">Educator Final Test</h3>
+                  <p className="text-xs text-gray-400 font-mono">Build MCQs here. These questions replace generated final-test questions for this course.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={addEducatorTest}
+                  className="shrink-0 rounded-lg border border-neonViolet/50 bg-neonViolet/15 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-neonViolet transition-colors hover:bg-neonViolet hover:text-black"
+                >
+                  Add Question
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px] gap-4">
+                <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3">
+                  <div className="text-xs font-mono uppercase tracking-wider text-gray-400">Question Count</div>
+                  <div className="mt-1 text-2xl font-bold text-white">{(formData.educatorTests || []).length}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-mono font-bold text-gray-300 uppercase tracking-wider mb-2">Pass Score</label>
+                  <input
+                    type="number"
+                    name="educatorPassScore"
+                    value={formData.educatorPassScore}
+                    onChange={handleChange}
+                    min="1"
+                    max={Math.max(1, (formData.educatorTests || []).length)}
+                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:border-neonViolet focus:outline-none transition-colors"
+                  />
+                </div>
+              </div>
+
+              {(formData.educatorTests || []).length === 0 ? (
+                <button
+                  type="button"
+                  onClick={addEducatorTest}
+                  className="w-full rounded-lg border border-dashed border-white/20 bg-white/5 px-4 py-6 text-left transition-colors hover:border-neonViolet/60 hover:bg-neonViolet/10"
+                >
+                  <div className="font-bold text-white">No authored questions yet</div>
+                  <div className="mt-1 text-xs font-mono text-gray-400">Add one question with four options to make the final test feel intentional.</div>
+                </button>
+              ) : null}
+
+              <div className="space-y-4">
+                {(formData.educatorTests || []).map((testQuestion, questionIndex) => (
+                  <div key={`educator-test-${questionIndex}`} className="rounded-xl border border-white/10 bg-[#0b0d14] p-4 shadow-[0_12px_30px_rgba(0,0,0,0.22)]">
+                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-neonViolet">Question {questionIndex + 1}</div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => moveEducatorTest(questionIndex, -1)}
+                          disabled={questionIndex === 0}
+                          className="rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs font-mono text-gray-300 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          Up
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveEducatorTest(questionIndex, 1)}
+                          disabled={questionIndex === (formData.educatorTests || []).length - 1}
+                          className="rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs font-mono text-gray-300 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          Down
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeEducatorTest(questionIndex)}
+                          className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-mono text-red-300 transition-colors hover:bg-red-500 hover:text-black"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+
+                    <label className="block text-sm font-mono font-bold text-gray-300 uppercase tracking-wider mb-2">Question</label>
+                    <textarea
+                      value={testQuestion.question}
+                      onChange={(e) => updateEducatorTest(questionIndex, { question: e.target.value })}
+                      placeholder="e.g., Which fraction is equivalent to 1/2?"
+                      rows="2"
+                      className="mb-4 w-full resize-none rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white placeholder-gray-500 transition-colors focus:border-neonViolet focus:outline-none"
+                    />
+
+                    <div className="grid grid-cols-1 gap-3">
+                      {Array.from({ length: 4 }, (_option, optionIndex) => {
+                        const selected = Number(testQuestion.correct_index || 0) === optionIndex;
+                        return (
+                          <div
+                            key={`educator-test-${questionIndex}-option-${optionIndex}`}
+                            className={`grid grid-cols-[44px_1fr] items-center gap-3 rounded-lg border p-2 transition-colors ${selected ? 'border-mcGreen/70 bg-mcGreen/10' : 'border-white/10 bg-white/5'}`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => updateEducatorTest(questionIndex, { correct_index: optionIndex })}
+                              className={`h-10 w-10 rounded-md border font-mono text-sm font-bold transition-colors ${selected ? 'border-mcGreen bg-mcGreen text-black' : 'border-white/10 bg-black/30 text-gray-300 hover:border-mcGreen/60 hover:text-mcGreen'}`}
+                              title="Mark as correct answer"
+                            >
+                              {String.fromCharCode(65 + optionIndex)}
+                            </button>
+                            <input
+                              type="text"
+                              value={testQuestion.options?.[optionIndex] || ''}
+                              onChange={(e) => updateEducatorTestOption(questionIndex, optionIndex, e.target.value)}
+                              placeholder={`Option ${String.fromCharCode(65 + optionIndex)}`}
+                              className="w-full rounded-md border border-white/10 bg-black/25 px-3 py-2 text-sm text-white placeholder-gray-500 transition-colors focus:border-neonViolet focus:outline-none"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-4">
+                      <label className="block text-sm font-mono font-bold text-gray-300 uppercase tracking-wider mb-2">Explanation</label>
+                      <input
+                        type="text"
+                        value={testQuestion.explanation}
+                        onChange={(e) => updateEducatorTest(questionIndex, { explanation: e.target.value })}
+                        placeholder="Shown after the test is checked."
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white placeholder-gray-500 transition-colors focus:border-neonViolet focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

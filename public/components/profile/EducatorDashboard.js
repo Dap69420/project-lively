@@ -52,10 +52,12 @@ function EducatorDashboard({ user }) {
     ai_prompt: '',
     ai_aim: '',
     objectivesText: '',
-    testText: '',
-    objectiveQuizText: '',
+    tests: [],
+    objectiveQuizzes: [],
+    passScore: 4,
     hints_allowed: true
   });
+  const [courseError, setCourseError] = React.useState('');
   const [assignment, setAssignment] = React.useState({ classroomId: '', courseId: '' });
   const [selectedRoom, setSelectedRoom] = React.useState(null);
   const classrooms = state.educator?.classrooms || [];
@@ -69,23 +71,102 @@ function EducatorDashboard({ user }) {
 
   const submitCourse = (event) => {
     event.preventDefault();
+    setCourseError('');
     const objectives = String(course.objectivesText || '').split('\n').map((line) => line.trim()).filter(Boolean);
-    const parseQuestions = (text) => String(text || '').split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
-      const parts = line.split('|').map((part) => part.trim());
-      if (parts.length >= 6) {
-        return {
-          question: parts[0],
-          options: parts.slice(1, 5),
-          correct_index: Math.max(0, Math.min(3, Number(parts[5]) || 0)),
-          explanation: parts[6] || ''
-        };
-      }
-      return { question: line, options: [], correct_index: 0, explanation: '' };
+    const hasIncompleteQuestion = (items) => (Array.isArray(items) ? items : []).some((item) => {
+      const hasAnyText = String(item.question || '').trim() || String(item.explanation || '').trim() || (item.options || []).some((option) => String(option || '').trim());
+      const hasAllOptions = Array.from({ length: 4 }, (_option, index) => String(item.options?.[index] || '').trim()).every(Boolean);
+      return hasAnyText && (!String(item.question || '').trim() || !hasAllOptions);
     });
-    const tests = parseQuestions(course.testText).filter((item) => item.options.length >= 4);
-    const objective_quizzes = parseQuestions(course.objectiveQuizText).filter((item) => item.options.length >= 4);
-    runAction(Object.assign({}, course, { action: 'create_course', objectives, tests, objective_quizzes, hints_allowed: course.hints_allowed }), 'Course and test saved.');
-    setCourse((current) => Object.assign({}, current, { title: '', description: '', topic: '', ai_prompt: '', ai_aim: '', objectivesText: '', testText: '', objectiveQuizText: '' }));
+    if (hasIncompleteQuestion(course.tests) || hasIncompleteQuestion(course.objectiveQuizzes)) {
+      setCourseError('Each quiz question needs question text and all 4 options.');
+      return;
+    }
+    const normalizeQuestions = (items) => (Array.isArray(items) ? items : [])
+      .map((item) => ({
+        question: String(item.question || '').trim(),
+        options: Array.from({ length: 4 }, (_option, index) => String(item.options?.[index] || '').trim()),
+        correct_index: Math.max(0, Math.min(3, Number(item.correct_index || 0))),
+        explanation: String(item.explanation || '').trim()
+      }))
+      .filter((item) => item.question && item.options.every(Boolean));
+    const tests = normalizeQuestions(course.tests);
+    const objective_quizzes = normalizeQuestions(course.objectiveQuizzes);
+    runAction(Object.assign({}, course, { action: 'create_course', objectives, tests, objective_quizzes, pass_score: course.passScore, hints_allowed: course.hints_allowed }), 'Course and test saved.');
+    setCourse((current) => Object.assign({}, current, { title: '', description: '', topic: '', ai_prompt: '', ai_aim: '', objectivesText: '', tests: [], objectiveQuizzes: [], passScore: 4 }));
+    setCourseError('');
+  };
+
+  const emptyQuestion = () => ({ question: '', options: ['', '', '', ''], correct_index: 0, explanation: '' });
+
+  const updateQuestionList = (key, updater) => {
+    setCourse((current) => Object.assign({}, current, { [key]: updater(current[key] || []) }));
+  };
+
+  const addQuestion = (key) => {
+    updateQuestionList(key, (items) => [...items, emptyQuestion()]);
+  };
+
+  const removeQuestion = (key, questionIndex) => {
+    updateQuestionList(key, (items) => items.filter((_item, index) => index !== questionIndex));
+  };
+
+  const updateQuestion = (key, questionIndex, patch) => {
+    updateQuestionList(key, (items) => items.map((item, index) => index === questionIndex ? Object.assign({}, item, patch) : item));
+  };
+
+  const updateQuestionOption = (key, questionIndex, optionIndex, value) => {
+    updateQuestionList(key, (items) => items.map((item, index) => {
+      if (index !== questionIndex) return item;
+      const options = Array.from({ length: 4 }, (_option, currentIndex) => String(item.options?.[currentIndex] || ''));
+      options[optionIndex] = value;
+      return Object.assign({}, item, { options });
+    }));
+  };
+
+  const renderQuestionBuilder = (title, description, stateKey) => {
+    const questions = course[stateKey] || [];
+    return (
+      <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div>
+            <div className="font-mono text-xs uppercase tracking-[0.2em] text-neonViolet">{title}</div>
+            <p className="mt-1 text-xs text-gray-400">{description}</p>
+          </div>
+          <button type="button" onClick={() => addQuestion(stateKey)} className="rounded-lg border border-neonViolet/40 bg-neonViolet/10 px-3 py-2 font-mono text-xs font-bold uppercase text-neonViolet">Add</button>
+        </div>
+
+        {!questions.length ? (
+          <button type="button" onClick={() => addQuestion(stateKey)} className="w-full rounded-lg border border-dashed border-white/20 bg-white/[0.03] px-3 py-4 text-left text-sm text-gray-300">
+            Add a question with 4 clickable options.
+          </button>
+        ) : null}
+
+        <div className="space-y-3">
+          {questions.map((item, questionIndex) => (
+            <div key={`${stateKey}-${questionIndex}`} className="rounded-xl border border-white/10 bg-black/30 p-3">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <div className="font-mono text-[11px] uppercase tracking-wider text-gray-400">Question {questionIndex + 1}</div>
+                <button type="button" onClick={() => removeQuestion(stateKey, questionIndex)} className="rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 font-mono text-[11px] text-red-300">Delete</button>
+              </div>
+              <textarea value={item.question} onChange={(e) => updateQuestion(stateKey, questionIndex, { question: e.target.value })} placeholder="Question" rows="2" className="field mb-2" />
+              <div className="space-y-2">
+                {Array.from({ length: 4 }, (_option, optionIndex) => {
+                  const selected = Number(item.correct_index || 0) === optionIndex;
+                  return (
+                    <div key={`${stateKey}-${questionIndex}-${optionIndex}`} className={`grid grid-cols-[38px_1fr] gap-2 rounded-lg border p-2 ${selected ? 'border-mcGreen/60 bg-mcGreen/10' : 'border-white/10 bg-white/[0.03]'}`}>
+                      <button type="button" onClick={() => updateQuestion(stateKey, questionIndex, { correct_index: optionIndex })} className={`rounded-md font-mono text-xs font-bold ${selected ? 'bg-mcGreen text-black' : 'bg-black/40 text-gray-300'}`}>{String.fromCharCode(65 + optionIndex)}</button>
+                      <input value={item.options?.[optionIndex] || ''} onChange={(e) => updateQuestionOption(stateKey, questionIndex, optionIndex, e.target.value)} placeholder={`Option ${String.fromCharCode(65 + optionIndex)}`} className="field py-2" />
+                    </div>
+                  );
+                })}
+              </div>
+              <input value={item.explanation} onChange={(e) => updateQuestion(stateKey, questionIndex, { explanation: e.target.value })} placeholder="Explanation" className="field mt-2" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   const submitAssignment = (event) => {
@@ -143,6 +224,7 @@ function EducatorDashboard({ user }) {
           <h2 className="mt-2 text-2xl font-bold">Create Course + Test</h2>
         </div>
         <form onSubmit={submitCourse} className="space-y-3">
+          {courseError ? <Notice tone="error" text={courseError} /> : null}
           <input value={course.title} onChange={(e) => setCourse((c) => Object.assign({}, c, { title: e.target.value }))} placeholder="Course title" className="field" />
           <textarea value={course.description} onChange={(e) => setCourse((c) => Object.assign({}, c, { description: e.target.value }))} placeholder="Description" rows="2" className="field" />
           <div className="grid grid-cols-2 gap-3">
@@ -152,8 +234,12 @@ function EducatorDashboard({ user }) {
           <input value={course.topic} onChange={(e) => setCourse((c) => Object.assign({}, c, { topic: e.target.value }))} placeholder="Topic" className="field" />
           <textarea value={course.ai_prompt} onChange={(e) => setCourse((c) => Object.assign({}, c, { ai_prompt: e.target.value }))} placeholder="Buddy_AI tutor instructions" rows="4" className="field font-mono text-xs" />
           <textarea value={course.objectivesText} onChange={(e) => setCourse((c) => Object.assign({}, c, { objectivesText: e.target.value }))} placeholder="Objectives, one per line" rows="4" className="field font-mono text-xs" />
-          <textarea value={course.objectiveQuizText} onChange={(e) => setCourse((c) => Object.assign({}, c, { objectiveQuizText: e.target.value }))} placeholder="After-objective quizzes: Question | A | B | C | D | correct number 0-3 | explanation" rows="4" className="field font-mono text-xs" />
-          <textarea value={course.testText} onChange={(e) => setCourse((c) => Object.assign({}, c, { testText: e.target.value }))} placeholder="Final test: Question | A | B | C | D | correct number 0-3 | explanation" rows="4" className="field font-mono text-xs" />
+          {renderQuestionBuilder('After-Objective Quizzes', 'Optional quick checks Buddy_AI can drop into chat.', 'objectiveQuizzes')}
+          {renderQuestionBuilder('Final Test Questions', 'Students answer these after completing all objectives.', 'tests')}
+          <div className="grid grid-cols-2 gap-3">
+            <input type="number" min="1" max={Math.max(1, course.tests.length)} value={course.passScore} onChange={(e) => setCourse((c) => Object.assign({}, c, { passScore: Number(e.target.value || 1) }))} placeholder="Pass score" className="field" />
+            <div className="rounded-xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-gray-400">{course.tests.length} final questions</div>
+          </div>
           <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-gray-300">
             <input type="checkbox" checked={course.hints_allowed} onChange={(e) => setCourse((c) => Object.assign({}, c, { hints_allowed: e.target.checked }))} className="h-4 w-4 accent-neonViolet" />
             Allow hints for this classroom course
