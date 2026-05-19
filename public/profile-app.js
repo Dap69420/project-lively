@@ -64,6 +64,10 @@ function ProfileApp() {
     if (loading) return <div className="min-h-screen flex items-center justify-center bg-darkBg text-white font-mono">LOADING PROFILE...</div>;
     const isParent = user?.user_metadata?.userType === 'parent';
     const isEducator = user?.user_metadata?.userType === 'educator';
+    const adminAllowlist = Array.isArray(window.__APP_CONFIG__?.ADMIN_ALLOWED_EMAILS)
+      ? window.__APP_CONFIG__.ADMIN_ALLOWED_EMAILS.map((email) => String(email || '').trim().toLowerCase())
+      : [];
+    const isAdmin = adminAllowlist.includes(String(user?.email || '').trim().toLowerCase());
 
     return (
       <div className="min-h-screen relative w-full max-w-full overflow-x-hidden py-4 px-3 sm:py-8 sm:px-6 lg:px-8" data-name="profile-app" data-file="profile-app.js">
@@ -83,6 +87,12 @@ function ProfileApp() {
               <div className="hidden sm:block w-2 h-2 rounded-full bg-neonViolet animate-pulse shadow-[0_0_8px_#b026ff] shrink-0"></div>
               {isParent ? 'PARENT DASHBOARD' : isEducator ? 'EDUCATOR STUDIO' : 'PROFILE'}
             </h1>
+            <div className="flex shrink-0 items-center gap-2">
+            {isAdmin ? (
+              <a href="admin.html" className="hidden sm:flex h-10 items-center justify-center rounded-xl border border-neonViolet/40 bg-neonViolet/15 px-3 font-mono text-xs uppercase text-neonViolet hover:bg-neonViolet/25">
+                Admin
+              </a>
+            ) : null}
             {!isParent && !isEducator ? (
               <div className="flex shrink-0 items-center gap-2">
                 <a href="classrooms.html" className="hidden sm:flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 font-mono text-xs uppercase text-gray-300 hover:text-white">Classes</a>
@@ -91,8 +101,14 @@ function ProfileApp() {
                 </button>
               </div>
             ) : (
-              <div className="w-24 hidden sm:block"></div>
+              !isAdmin ? <div className="w-24 hidden sm:block"></div> : null
             )}
+            {isAdmin ? (
+              <a href="admin.html" className="flex h-10 w-10 items-center justify-center rounded-xl border border-neonViolet/40 bg-neonViolet/15 text-neonViolet hover:bg-neonViolet/25 sm:hidden" title="Admin panel">
+                <div className="icon-shield"></div>
+              </a>
+            ) : null}
+            </div>
           </header>
 
           {isParent ? (
