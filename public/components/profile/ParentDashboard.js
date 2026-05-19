@@ -98,6 +98,12 @@ function ParentDashboard({ user }) {
     const children = state.family?.children || [];
     const limit = state.family?.limits || { maxChildren: 3, usedChildren: parentLinks.length };
     const remaining = Math.max(0, Number(limit.maxChildren || 3) - Number(limit.usedChildren || 0));
+    const handleLogout = async () => {
+      if (supabaseClient) {
+        await supabaseClient.auth.signOut();
+      }
+      window.location.href = 'index.html';
+    };
 
     const addChild = async (event) => {
       event.preventDefault();
@@ -116,6 +122,22 @@ function ParentDashboard({ user }) {
             </div>
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-neonViolet/40 bg-neonViolet/15 text-neonViolet">
               <div className="icon-shield-check text-2xl"></div>
+            </div>
+          </div>
+
+          <div className="mb-5 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="font-mono text-xs uppercase tracking-wider text-red-300">Parent Session</div>
+                <p className="mt-1 text-sm text-gray-400">Sign out of this parent account when you are done checking progress.</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="shrink-0 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2 font-mono text-xs font-bold uppercase text-red-300 hover:bg-red-500/20"
+              >
+                Logout
+              </button>
             </div>
           </div>
 
