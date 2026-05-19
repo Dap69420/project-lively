@@ -66,6 +66,8 @@ function ParentDashboard({ user }) {
   try {
     const { state, runAction } = useFamilyLinks(user);
     const [childEmail, setChildEmail] = React.useState('');
+    const [selectedChild, setSelectedChild] = React.useState(null);
+    const [detailTab, setDetailTab] = React.useState('courses');
     const parentLinks = state.family?.parentLinks || [];
     const children = state.family?.children || [];
     const limit = state.family?.limits || { maxChildren: 3, usedChildren: parentLinks.length };
@@ -168,7 +170,6 @@ function ParentDashboard({ user }) {
               const progress = link.progress || {};
               const childProfile = progress.profile || {};
               const totals = progress.totals || {};
-              const courses = progress.courses || [];
               const displayName = childProfile.display_name || childProfile.username || link.child_email;
 
               return (
@@ -195,30 +196,36 @@ function ParentDashboard({ user }) {
                     </div>
                   </div>
 
-                  <div className="mt-4 space-y-2">
-                    {courses.length === 0 ? (
-                      <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-gray-500 font-mono">No course activity yet.</div>
-                    ) : null}
-                    {courses.map((course) => (
-                      <div key={course.course_id} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-bold text-white">{course.title}</div>
-                            <div className="truncate font-mono text-xs text-gray-500">{course.topic || course.subject}</div>
-                          </div>
-                          <div className="shrink-0 font-mono text-xs text-gray-400">{course.completed ? 'Completed' : `${Number(course.progress_percentage || 0)}%`}</div>
-                        </div>
-                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/40">
-                          <div className="h-full bg-neonViolet" style={{ width: `${course.completed ? 100 : Math.min(100, Number(course.progress_percentage || 0))}%` }}></div>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                    <div className="min-w-0 text-sm text-gray-400">
+                      <span className="text-white font-bold">{totals.startedCourses || 0}</span> started courses,
+                      {' '}<span className="text-white font-bold">{totals.coins || 0}</span> coins earned.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedChild(link);
+                        setDetailTab('courses');
+                      }}
+                      className="rounded-lg bg-neonViolet px-4 py-2 text-xs font-mono font-bold uppercase text-white hover:brightness-110"
+                    >
+                      Show More
+                    </button>
                   </div>
                 </article>
               );
             })}
           </div>
         </section>
+
+        {selectedChild ? (
+          <ChildDetailModal
+            child={selectedChild}
+            activeTab={detailTab}
+            setActiveTab={setDetailTab}
+            onClose={() => setSelectedChild(null)}
+          />
+        ) : null}
       </div>
     );
   } catch (error) {
@@ -232,6 +239,164 @@ function Metric({ label, value }) {
     <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
       <div className="font-mono text-[10px] uppercase text-gray-500">{label}</div>
       <div className="font-bold text-white">{value}</div>
+    </div>
+  );
+}
+
+function ChildDetailModal({ child, activeTab, setActiveTab, onClose }) {
+  const progress = child.progress || {};
+  const childProfile = progress.profile || {};
+  const totals = progress.totals || {};
+  const courses = progress.courses || [];
+  const achievements = progress.achievements || [];
+  const chats = progress.chats || [];
+  const displayName = childProfile.display_name || childProfile.username || child.child_email;
+
+  const tabs = [
+    { id: 'courses', label: 'Courses', count: courses.length },
+    { id: 'achievements', label: 'Achievements', count: achievements.length },
+    { id: 'chats', label: 'AI Chats', count: chats.length }
+  ];
+
+  return ReactDOM.createPortal((
+    <div className="fixed inset-0 z-[10000] bg-black/75 backdrop-blur-sm" onClick={onClose}>
+      <div className="absolute left-1/2 top-1/2 w-[min(94vw,68rem)] max-h-[86vh] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/10 bg-darkBg shadow-[0_20px_70px_rgba(0,0,0,0.6)]" onClick={(event) => event.stopPropagation()}>
+        <div className="flex items-start justify-between gap-4 border-b border-white/10 p-4 sm:p-5">
+          <div className="min-w-0 flex items-center gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-neonViolet/15">
+              {childProfile.avatar_url ? (
+                <img src={childProfile.avatar_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className="icon-user text-xl text-neonViolet"></div>
+              )}
+            </div>
+            <div className="min-w-0">
+              <div className="font-mono text-xs uppercase tracking-[0.25em] text-neonViolet">Child Report</div>
+              <h2 className="truncate text-xl sm:text-2xl font-bold text-white">{displayName}</h2>
+              <p className="truncate font-mono text-xs text-gray-500">{child.child_email}</p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-lg bg-white/10 p-3 text-gray-300 hover:text-white">
+            <div className="icon-x"></div>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 border-b border-white/10 p-4">
+          <Metric label="Level" value={totals.level || 1} />
+          <Metric label="XP" value={totals.xp || 0} />
+          <Metric label="Courses" value={totals.completedCourses || 0} />
+          <Metric label="Streak" value={totals.streak || 0} />
+        </div>
+
+        <div className="border-b border-white/10 p-3 sm:p-4">
+          <div className="grid grid-cols-3 gap-1 rounded-xl border border-white/10 bg-black/20 p-1">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`min-w-0 rounded-lg px-2 sm:px-3 py-2 text-[10px] sm:text-xs font-mono uppercase tracking-wide transition-colors ${activeTab === tab.id ? 'bg-neonViolet text-black' : 'text-gray-400 hover:text-white'}`}
+              >
+                {tab.label} <span className="opacity-70">({tab.count})</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="max-h-[calc(86vh-238px)] overflow-y-auto custom-scrollbar p-4">
+          {activeTab === 'courses' ? <ChildCourses courses={courses} /> : null}
+          {activeTab === 'achievements' ? <ChildAchievements achievements={achievements} /> : null}
+          {activeTab === 'chats' ? <ChildChats chats={chats} /> : null}
+        </div>
+      </div>
+    </div>
+  ), document.body);
+}
+
+function ChildCourses({ courses }) {
+  if (!courses.length) {
+    return <EmptyDetail icon="icon-book-open" text="No course activity yet." />;
+  }
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {courses.map((course) => (
+        <div key={course.course_id} className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="truncate text-base font-bold text-white">{course.title}</div>
+              <div className="truncate font-mono text-xs text-gray-500">{course.topic || course.subject}</div>
+            </div>
+            <div className="shrink-0 rounded-full border border-white/10 bg-black/30 px-2 py-1 font-mono text-[10px] text-gray-300">
+              {course.completed ? 'Completed' : `${Number(course.progress_percentage || 0)}%`}
+            </div>
+          </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/40">
+            <div className="h-full bg-neonViolet" style={{ width: `${course.completed ? 100 : Math.min(100, Number(course.progress_percentage || 0))}%` }}></div>
+          </div>
+          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+            <Metric label="Course XP" value={course.xp_in_course || 0} />
+            <Metric label="Coins" value={course.coins_earned || 0} />
+            <Metric label="Level" value={course.level || 1} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ChildAchievements({ achievements }) {
+  if (!achievements.length) {
+    return <EmptyDetail icon="icon-trophy" text="No achievements unlocked yet." />;
+  }
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {achievements.map((achievement) => (
+        <div key={achievement.id} className="rounded-xl border border-neonViolet/30 bg-neonViolet/10 p-4">
+          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-neonViolet/20 text-neonViolet">
+            <div className={`${achievement.icon || 'icon-award'} text-xl`}></div>
+          </div>
+          <div className="font-bold text-white">{achievement.name}</div>
+          <div className="mt-1 text-sm text-gray-400">{achievement.description}</div>
+          <div className="mt-3 font-mono text-[10px] uppercase text-green-300">
+            Unlocked {achievement.unlocked_at ? new Date(achievement.unlocked_at).toLocaleDateString() : ''}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ChildChats({ chats }) {
+  if (!chats.length) {
+    return <EmptyDetail icon="icon-message-square" text="No AI chats found yet." />;
+  }
+
+  return (
+    <div className="space-y-3">
+      {chats.map((chat) => (
+        <div key={chat.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div className="min-w-0 truncate font-mono text-xs uppercase tracking-wider text-neonViolet">
+              {chat.role === 'assistant' ? 'Buddy_AI' : 'Student'} · {chat.course_title || 'Course'}
+            </div>
+            <div className="shrink-0 font-mono text-[10px] text-gray-500">
+              {chat.created_at ? new Date(chat.created_at).toLocaleString() : ''}
+            </div>
+          </div>
+          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-gray-200">{chat.text}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyDetail({ icon, text }) {
+  return (
+    <div className="flex min-h-40 flex-col items-center justify-center rounded-2xl border border-white/10 bg-black/20 p-6 text-center">
+      <div className={`mb-3 ${icon} text-3xl text-gray-500`}></div>
+      <p className="font-mono text-sm text-gray-500">{text}</p>
     </div>
   );
 }

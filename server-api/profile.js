@@ -45,7 +45,7 @@ async function ensureProfile(userId, email = '') {
 }
 
 async function getChildProgress(childId) {
-  const [profileResult, progressionResult, coursesResult] = await Promise.all([
+  const [profileResult, progressionResult, coursesResult, achievementsResult, chatsResult] = await Promise.all([
     query('SELECT user_id, username, display_name, avatar_url FROM user_profiles WHERE user_id = $1', [childId]).catch(() => ({ rows: [] })),
     query('SELECT * FROM user_progression WHERE user_id = $1', [childId]).catch(() => ({ rows: [] })),
     query(
@@ -68,6 +68,35 @@ async function getChildProgress(childId) {
        ORDER BY uc.updated_at DESC
        LIMIT 8`,
       [childId]
+    ).catch(() => ({ rows: [] })),
+    query(
+      `SELECT a.id,
+              a.name,
+              a.description,
+              a.icon,
+              a.condition_type,
+              a.condition_value,
+              ua.unlocked_at
+       FROM user_achievements ua
+       JOIN achievements a ON a.id = ua.achievement_id
+       WHERE ua.user_id = $1
+       ORDER BY ua.unlocked_at DESC
+       LIMIT 12`,
+      [childId]
+    ).catch(() => ({ rows: [] })),
+    query(
+      `SELECT cm.id,
+              cm.course_id,
+              cm.role,
+              cm.text,
+              cm.created_at,
+              c.title AS course_title
+       FROM chat_messages cm
+       LEFT JOIN courses c ON c.id = cm.course_id
+       WHERE cm.user_id = $1
+       ORDER BY cm.created_at DESC
+       LIMIT 20`,
+      [childId]
     ).catch(() => ({ rows: [] }))
   ]);
 
@@ -76,6 +105,8 @@ async function getChildProgress(childId) {
     profile: profileResult.rows[0] || null,
     progression,
     courses: coursesResult.rows,
+    achievements: achievementsResult.rows,
+    chats: chatsResult.rows,
     totals: {
       xp: Number(progression.total_xp || 0),
       coins: Number(progression.total_coins || 0),
