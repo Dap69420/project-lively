@@ -226,8 +226,8 @@ function CourseSelector() {
         </div>
 
         {browserOpen ? (
-          <div className="fixed inset-0 z-[9997] flex items-center justify-center bg-black/75 p-3 sm:p-6 backdrop-blur-sm" onClick={() => setBrowserOpen(false)}>
-            <div className="w-full max-w-5xl max-h-[88vh] overflow-hidden rounded-2xl border border-white/10 bg-darkBg shadow-[0_20px_70px_rgba(0,0,0,0.55)]" onClick={(event) => event.stopPropagation()}>
+          <div className="fixed inset-0 z-[10000] bg-black/75 backdrop-blur-sm" onClick={() => setBrowserOpen(false)}>
+            <div className="absolute left-1/2 top-1/2 w-[min(94vw,64rem)] max-h-[82vh] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/10 bg-darkBg shadow-[0_20px_70px_rgba(0,0,0,0.55)]" onClick={(event) => event.stopPropagation()}>
               <div className="flex items-center justify-between gap-3 border-b border-white/10 p-4 sm:p-5">
                 <div>
                   <div className="font-mono text-xs uppercase tracking-[0.25em] text-neonViolet">Course Browser</div>
@@ -264,7 +264,7 @@ function CourseSelector() {
                 </div>
               </div>
 
-              <div className="max-h-[calc(88vh-156px)] overflow-y-auto custom-scrollbar p-4">
+              <div className="max-h-[calc(82vh-156px)] overflow-y-auto custom-scrollbar p-4">
                 {modalCourses.length === 0 && activeTab === 'completed' ? (
                   <div className="p-4 rounded-xl border border-white/10 bg-black/20 text-sm text-gray-400 font-mono">
                     Completed courses will appear here after every objective is checked off.

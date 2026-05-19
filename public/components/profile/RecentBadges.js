@@ -101,8 +101,8 @@ function RecentBadges() {
         </div>
 
         {indexOpen ? (
-          <div className="fixed inset-0 z-[9997] flex items-center justify-center bg-black/75 p-3 sm:p-6 backdrop-blur-sm" onClick={() => setIndexOpen(false)}>
-            <div className="w-full max-w-4xl max-h-[88vh] overflow-hidden rounded-2xl border border-white/10 bg-darkBg shadow-[0_20px_70px_rgba(0,0,0,0.55)]" onClick={(event) => event.stopPropagation()}>
+          <div className="fixed inset-0 z-[10000] bg-black/75 backdrop-blur-sm" onClick={() => setIndexOpen(false)}>
+            <div className="absolute left-1/2 top-1/2 w-[min(94vw,56rem)] max-h-[82vh] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/10 bg-darkBg shadow-[0_20px_70px_rgba(0,0,0,0.55)]" onClick={(event) => event.stopPropagation()}>
               <div className="flex items-center justify-between gap-3 border-b border-white/10 p-4 sm:p-5">
                 <div>
                   <div className="font-mono text-xs uppercase tracking-[0.25em] text-neonViolet">Collection</div>
@@ -113,7 +113,7 @@ function RecentBadges() {
                 </button>
               </div>
 
-              <div className="grid max-h-[calc(88vh-82px)] grid-cols-1 overflow-y-auto custom-scrollbar md:grid-cols-[minmax(0,1.25fr)_minmax(260px,0.75fr)]">
+              <div className="grid max-h-[calc(82vh-82px)] grid-cols-1 overflow-y-auto custom-scrollbar md:grid-cols-[minmax(0,1.25fr)_minmax(260px,0.75fr)]">
                 <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 lg:grid-cols-4">
                   {achievementIndex.map((achievement) => {
                     const owned = ownedSet.has(achievement.id);
