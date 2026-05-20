@@ -121,3 +121,193 @@ body.theme-brutal .shadow-xl,
 body.theme-brutal [class*="shadow-"] {
     box-shadow: 8px 8px 0px #ccff00 !important;
 }
+
+/* ===========================================
+   NEON MODE: New global cyber UI style
+   =========================================== */
+
+@keyframes lively-neon-drift {
+    from { background-position: 0 0, 0 0, 0 0; }
+    to { background-position: 48px 48px, -48px 48px, 0 0; }
+}
+
+@keyframes lively-panel-rise {
+    from { transform: translateY(8px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+body.theme-neon {
+    --theme-radius: 14px;
+    --theme-border: 1px;
+    --theme-blur: blur(18px);
+    --neon-cyan: #00ffd5;
+    --neon-pink: #ff00ff;
+    --neon-blue: #5ee7ff;
+    color: white;
+    background:
+        linear-gradient(rgba(0, 255, 213, 0.075) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 0, 255, 0.075) 1px, transparent 1px),
+        radial-gradient(circle at top left, rgba(0, 255, 213, 0.2), transparent 34rem),
+        radial-gradient(circle at bottom right, rgba(255, 0, 255, 0.18), transparent 34rem),
+        #05070d !important;
+    background-size: 32px 32px, 32px 32px, auto, auto, auto !important;
+    animation: lively-neon-drift 18s linear infinite;
+}
+
+body.theme-neon .glass-panel,
+body.theme-neon .brutal-card,
+body.theme-neon .comic-card,
+body.theme-neon .card,
+body.theme-neon section[class*="glass"],
+body.theme-neon [class*="bg-discordDarker"],
+body.theme-neon [class*="bg-discordDarkest"] {
+    background: rgba(5, 10, 20, 0.78) !important;
+    border: 1px solid rgba(0, 255, 213, 0.28) !important;
+    border-radius: var(--theme-radius) !important;
+    box-shadow: 0 0 0 1px rgba(255, 0, 255, 0.16), 0 18px 50px rgba(0, 0, 0, 0.42), 0 0 28px rgba(0, 255, 213, 0.12) !important;
+    backdrop-filter: blur(18px);
+}
+
+body.theme-neon .brutal-btn-lime,
+body.theme-neon .brutal-btn-pink,
+body.theme-neon a.bg-lime,
+body.theme-neon button.bg-neonViolet,
+body.theme-neon .bg-neonViolet,
+body.theme-neon .bg-mcGreen {
+    background: linear-gradient(135deg, var(--neon-cyan), var(--neon-pink)) !important;
+    color: #05070d !important;
+    border: 1px solid rgba(255, 255, 255, 0.48) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 0 20px rgba(0, 255, 213, 0.34), 0 0 28px rgba(255, 0, 255, 0.18) !important;
+}
+
+body.theme-neon .text-lime,
+body.theme-neon .text-hotpink,
+body.theme-neon .text-neonViolet,
+body.theme-neon .text-mcGreen {
+    color: var(--neon-cyan) !important;
+}
+
+body.theme-neon input,
+body.theme-neon textarea,
+body.theme-neon select {
+    background: rgba(0, 0, 0, 0.38) !important;
+    border-color: rgba(0, 255, 213, 0.28) !important;
+    color: white !important;
+}
+
+body.theme-neon:not(.animations-reduced) .glass-panel,
+body.theme-neon:not(.animations-reduced) .brutal-card,
+body.theme-neon:not(.animations-reduced) .comic-card {
+    animation: lively-panel-rise 0.36s ease both;
+}
+
+/* ===========================================
+   APP SHELL: Mobile/native/desktop EXE polish
+   =========================================== */
+
+body.app-native {
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body.app-mobile-shell {
+    touch-action: manipulation;
+}
+
+body.app-mobile-shell .glass-panel,
+body.app-mobile-shell .brutal-card,
+body.app-mobile-shell .comic-card {
+    border-radius: 18px !important;
+}
+
+body.app-mobile-shell button,
+body.app-mobile-shell a,
+body.app-mobile-shell input,
+body.app-mobile-shell select,
+body.app-mobile-shell textarea {
+    min-height: 44px;
+}
+
+body.app-mobile-shell [data-name="workspace-app"] {
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+}
+
+body.app-mobile-shell [data-name="workspace-header"] {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.app-mobile-shell [data-name="workspace-header"] h1 {
+    font-size: 1.25rem !important;
+}
+
+body.app-mobile-shell [data-name="workspace-header"] [title="Home"],
+body.app-mobile-shell [data-name="workspace-header"] [title="User Evolution Profile"] {
+    width: 2.4rem !important;
+    height: 2.4rem !important;
+}
+
+body.app-mobile-shell .workspace-tab-nav {
+    order: 2;
+    position: sticky;
+    bottom: 0;
+    padding: 0.55rem max(0.6rem, env(safe-area-inset-left)) max(0.7rem, env(safe-area-inset-bottom)) max(0.6rem, env(safe-area-inset-right)) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-bottom: 0 !important;
+    background: rgba(7, 10, 18, 0.94) !important;
+    backdrop-filter: blur(18px);
+}
+
+body.app-mobile-shell .workspace-tab-nav button {
+    flex: 1 0 auto;
+    min-width: 5.5rem;
+    border-radius: 999px !important;
+    box-shadow: none !important;
+}
+
+body.app-mobile-shell [data-name="ai-chat"],
+body.app-mobile-shell [data-name="sketch-panel"],
+body.app-mobile-shell [data-name="sidebar"] {
+    border-radius: 0 !important;
+}
+
+body.app-mobile-shell [data-name="profile-app"] {
+    padding-left: max(12px, env(safe-area-inset-left)) !important;
+    padding-right: max(12px, env(safe-area-inset-right)) !important;
+    padding-bottom: max(22px, env(safe-area-inset-bottom)) !important;
+}
+
+body.app-desktop {
+    background-color: #070a12 !important;
+}
+
+body.app-desktop [data-name="workspace-app"],
+body.app-desktop [data-name="profile-app"],
+body.app-desktop [data-name="app"] {
+    min-height: 100vh;
+}
+
+body.app-desktop .glass-panel,
+body.app-desktop .brutal-card {
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.42) !important;
+}
+
+body.ui-compact .glass-panel,
+body.ui-compact .brutal-card,
+body.ui-compact .comic-card {
+    padding: 1rem !important;
+}
+
+body.ui-compact h1,
+body.ui-compact h2 {
+    letter-spacing: 0.02em;
+}
+
+body.animations-reduced *,
+body.animations-reduced ::before,
+body.animations-reduced ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+}

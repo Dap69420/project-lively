@@ -3,8 +3,32 @@ function ThemeToggle() {
     const [theme, setTheme] = React.useState(localStorage.getItem('lively-theme') || 'brutal');
     const [animations, setAnimations] = React.useState(localStorage.getItem('lively-animations') !== 'false');
     const [sounds, setSounds] = React.useState(localStorage.getItem('lively-sounds') !== 'false');
+    const [compactUi, setCompactUi] = React.useState(localStorage.getItem('lively-compact-ui') === 'true');
     const [isOpen, setIsOpen] = React.useState(false);
     const [levelUp, setLevelUp] = React.useState(null);
+    const themes = [
+      { id: 'brutal', label: 'Brutal', icon: 'icon-box' },
+      { id: 'glass', label: 'Glass', icon: 'icon-sparkles' },
+      { id: 'neon', label: 'Neon', icon: 'icon-radio-tower' }
+    ];
+
+    const getAppModeClasses = () => {
+      const params = new URLSearchParams(window.location.search || '');
+      const userAgent = navigator.userAgent || '';
+      const isDesktopApp = params.get('desktop') === '1' || /Electron/i.test(userAgent);
+      const isNativeApp = params.get('app') === '1' || isDesktopApp ||
+        Boolean(window.Capacitor && (
+          window.Capacitor?.isNativePlatform?.() ||
+          (window.Capacitor?.getPlatform && window.Capacitor.getPlatform() !== 'web')
+        )) ||
+        /\bwv\b/i.test(userAgent);
+      const isMobileShell = isNativeApp || window.matchMedia?.('(max-width: 760px), (pointer: coarse)')?.matches;
+      return {
+        isDesktopApp,
+        isNativeApp,
+        isMobileShell
+      };
+    };
 
     const playSfx = React.useCallback((type = 'click') => {
       if (!sounds) return;
@@ -39,10 +63,18 @@ function ThemeToggle() {
     }, [sounds]);
 
     React.useEffect(() => {
-      document.body.className = `theme-${theme} ${animations ? '' : 'animations-reduced'}`.trim();
+      const mode = getAppModeClasses();
+      document.body.classList.remove('theme-brutal', 'theme-glass', 'theme-neon', 'animations-reduced', 'ui-compact', 'app-native', 'app-desktop', 'app-mobile-shell');
+      document.body.classList.add(`theme-${theme}`);
+      if (!animations) document.body.classList.add('animations-reduced');
+      if (compactUi) document.body.classList.add('ui-compact');
+      if (mode.isNativeApp) document.body.classList.add('app-native');
+      if (mode.isDesktopApp) document.body.classList.add('app-desktop');
+      if (mode.isMobileShell) document.body.classList.add('app-mobile-shell');
       window.dispatchEvent(new CustomEvent('themeChange', { detail: theme }));
       window.dispatchEvent(new CustomEvent('animationsChange', { detail: animations }));
-    }, [theme, animations]);
+      window.dispatchEvent(new CustomEvent('compactUiChange', { detail: compactUi }));
+    }, [theme, animations, compactUi]);
 
     React.useEffect(() => {
       const handleLevelUp = (event) => {
@@ -75,7 +107,8 @@ function ThemeToggle() {
     }, [playSfx]);
 
     const toggleTheme = () => {
-      const newTheme = theme === 'brutal' ? 'glass' : 'brutal';
+      const index = Math.max(0, themes.findIndex((item) => item.id === theme));
+      const newTheme = themes[(index + 1) % themes.length].id;
       setTheme(newTheme);
       localStorage.setItem('lively-theme', newTheme);
     };
@@ -93,12 +126,68 @@ function ThemeToggle() {
       if (newSounds) window.setTimeout(() => playSfx('success'), 0);
     };
 
+    const toggleCompactUi = () => {
+      const nextCompact = !compactUi;
+      setCompactUi(nextCompact);
+      localStorage.setItem('lively-compact-ui', nextCompact.toString());
+    };
+
     return (
       <div data-name="global-settings" data-file="components/ThemeToggle.js">
         <style>{`
           @keyframes slide-in-right {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
+          }
+          @keyframes neon-grid-drift {
+            from { background-position: 0 0, 0 0; }
+            to { background-position: 64px 64px, 0 0; }
+          }
+          body.theme-neon {
+            background:
+              linear-gradient(rgba(0,255,213,0.08) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255,0,255,0.08) 1px, transparent 1px),
+              radial-gradient(circle at top left, rgba(0,255,213,0.18), transparent 36rem),
+              radial-gradient(circle at bottom right, rgba(255,0,255,0.16), transparent 34rem),
+              #05070d !important;
+            background-size: 32px 32px, 32px 32px, auto, auto, auto !important;
+            color: white;
+            animation: neon-grid-drift 18s linear infinite;
+          }
+          body.theme-neon .glass-panel,
+          body.theme-neon .brutal-card {
+            background: rgba(5, 10, 20, 0.78) !important;
+            border: 1px solid rgba(0, 255, 213, 0.28) !important;
+            border-radius: 14px !important;
+            box-shadow: 0 0 0 1px rgba(255,0,255,0.16), 0 18px 50px rgba(0,0,0,0.42), 0 0 28px rgba(0,255,213,0.12) !important;
+            backdrop-filter: blur(18px);
+          }
+          body.theme-neon .brutal-btn-lime,
+          body.theme-neon .brutal-btn-pink,
+          body.theme-neon a.bg-lime,
+          body.theme-neon button.bg-neonViolet,
+          body.theme-neon .bg-neonViolet {
+            background: linear-gradient(135deg, #00ffd5, #ff00ff) !important;
+            color: #05070d !important;
+            border: 1px solid rgba(255,255,255,0.45) !important;
+            border-radius: 10px !important;
+            box-shadow: 0 0 20px rgba(0,255,213,0.34), 0 0 28px rgba(255,0,255,0.18) !important;
+          }
+          body.theme-neon .text-lime,
+          body.theme-neon .text-neonViolet,
+          body.theme-neon .text-hotpink {
+            color: #00ffd5 !important;
+          }
+          body.ui-compact .glass-panel,
+          body.ui-compact .brutal-card {
+            padding: 1rem !important;
+          }
+          body.ui-compact input,
+          body.ui-compact select,
+          body.ui-compact textarea,
+          body.ui-compact button,
+          body.ui-compact a {
+            min-height: unset;
           }
         `}</style>
         {/* Bottom Settings Button */}
@@ -139,22 +228,31 @@ function ThemeToggle() {
 
               <div className="space-y-6">
                 {/* Theme Toggle */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-mono font-bold text-sm uppercase">Interface Mode</div>
-                    <div className={`text-xs ${theme === 'brutal' ? 'text-gray-400' : 'text-gray-500'}`}>Current: {theme.toUpperCase()}</div>
+                <div>
+                  <div className="mb-3 flex items-center justify-between">
+                    <div>
+                      <div className="font-mono font-bold text-sm uppercase">Interface Mode</div>
+                      <div className={`text-xs ${theme === 'brutal' ? 'text-gray-400' : 'text-gray-500'}`}>Current: {theme.toUpperCase()}</div>
+                    </div>
+                    <button onClick={toggleTheme} className="rounded border border-white/20 px-3 py-2 font-mono text-xs uppercase text-gray-300 hover:text-white">
+                      Cycle
+                    </button>
                   </div>
-                  <button 
-                    onClick={toggleTheme}
-                    className={`relative inline-flex h-8 w-16 items-center transition-colors focus:outline-none 
-                      ${theme === 'glass' ? 'bg-neonViolet' : 'bg-gray-600'} 
-                      ${theme === 'brutal' ? 'border-2 border-white shadow-[2px_2px_0px_#ccff00]' : 'rounded-full border border-white/20'}`}
-                  >
-                    <span className={`inline-block h-6 w-6 transform transition-transform 
-                      ${theme === 'glass' ? 'translate-x-9 bg-white' : 'translate-x-1 bg-lime'} 
-                      ${theme === 'brutal' ? 'border-2 border-black' : 'rounded-full shadow-md'}`} 
-                    />
-                  </button>
+                  <div className="grid grid-cols-3 gap-2">
+                    {themes.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setTheme(item.id);
+                          localStorage.setItem('lively-theme', item.id);
+                        }}
+                        className={`rounded-lg border px-2 py-3 text-center transition-colors ${theme === item.id ? 'border-lime bg-lime text-black' : 'border-white/10 bg-white/5 text-gray-300 hover:bg-white/10'}`}
+                      >
+                        <div className={`${item.icon} mx-auto mb-1 text-lg`}></div>
+                        <div className="font-mono text-[10px] uppercase">{item.label}</div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Animations Toggle */}
@@ -191,6 +289,24 @@ function ThemeToggle() {
                     <span className={`inline-block h-6 w-6 transform transition-transform 
                       ${sounds ? 'translate-x-9' : 'translate-x-1'} 
                       ${theme === 'brutal' ? 'border-2 border-black bg-white' : 'rounded-full bg-white shadow-md'}`} 
+                    />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-mono font-bold text-sm uppercase">Compact UI</div>
+                    <div className={`text-xs ${theme === 'brutal' ? 'text-gray-400' : 'text-gray-500'}`}>Tighter panels for small screens</div>
+                  </div>
+                  <button
+                    onClick={toggleCompactUi}
+                    className={`relative inline-flex h-8 w-16 items-center transition-colors focus:outline-none
+                      ${compactUi ? (theme === 'brutal' ? 'bg-lime' : 'bg-neonViolet') : 'bg-gray-600'}
+                      ${theme === 'brutal' ? 'border-2 border-white shadow-[2px_2px_0px_#ff00ff]' : 'rounded-full border border-white/20'}`}
+                  >
+                    <span className={`inline-block h-6 w-6 transform transition-transform
+                      ${compactUi ? 'translate-x-9' : 'translate-x-1'}
+                      ${theme === 'brutal' ? 'border-2 border-black bg-white' : 'rounded-full bg-white shadow-md'}`}
                     />
                   </button>
                 </div>

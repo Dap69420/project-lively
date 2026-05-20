@@ -12,6 +12,8 @@
   <script src="/api/config"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="utils/supabase.js"></script>
+  <link rel="stylesheet" href="theme-global.css">
+  <script src="theme-bootstrap.js" defer></script>
   <script>
     tailwind.config = { theme: { extend: { colors: { neonViolet: '#b026ff', darkBg: '#0a0a0f' }, fontFamily: { mono: ['"Space Mono"', 'monospace'], sans: ['Inter', 'sans-serif'] } } } };
   </script>
@@ -21,6 +23,11 @@
 </head>
 <body class="bg-darkBg text-white">
   <div id="root"></div>
+  <div id="settings-root"></div>
+  <script type="text/babel" src="components/ThemeToggle.js"></script>
   <script type="text/babel" src="classrooms-app.js"></script>
+  <script type="text/babel">
+    ReactDOM.createRoot(document.getElementById('settings-root')).render(<ThemeToggle />);
+  </script>
 </body>
 </html>
