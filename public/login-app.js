@@ -40,7 +40,7 @@ function LoginApp() {
     const [currentUser, setCurrentUser] = React.useState(null);
     const [showSetup, setShowSetup] = React.useState(false);
     const [nativeMode, setNativeMode] = React.useState(false);
-    const nativeRedirectUrl = 'com.buddyai.lively://login';
+    const nativeRedirectUrl = 'com.dapmedia.vektra://login';
     const getCapacitorPlugin = (name) => {
       try {
         return window.Capacitor?.Plugins?.[name] || window.Capacitor?.[name] || null;
@@ -220,17 +220,15 @@ function LoginApp() {
         <div className="w-full max-w-md relative z-10">
           {/* Logo Header */}
           <div className="flex items-center justify-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-lime border-4 border-black flex items-center justify-center shadow-[4px_4px_0px_#ff00ff]">
-              <div className="icon-zap text-2xl text-black"></div>
-            </div>
-            <h1 className="text-4xl text-white tracking-tighter">LIVELY</h1>
+            <img src="assets/vektra-logo-bg.png" alt="Vektra logo" className="w-12 h-12 object-cover rounded-lg border border-white/15 shadow-[0_0_18px_rgba(0,255,213,0.25)]" />
+            <h1 className="text-4xl text-white tracking-tighter">VEKTRA</h1>
           </div>
 
           <div className="brutal-card brutal-card-pink bg-black">
             <div className="flex justify-between items-center mb-8 border-b-4 border-white/20 pb-4">
               <div>
                 <h2 className="text-2xl text-lime">{nativeMode ? 'MOBILE ACCESS' : 'ACCESS PORTAL'}</h2>
-                <p className="mt-2 font-mono text-xs uppercase tracking-wider text-gray-400">Use Google to continue with Project Lively</p>
+                <p className="mt-2 font-mono text-xs uppercase tracking-wider text-gray-400">Use Google to continue with Vektra</p>
               </div>
               <div className="h-10 w-10 bg-lime border-2 border-black flex items-center justify-center shadow-[3px_3px_0px_#ff00ff]">
                 <div className="icon-key-round text-black"></div>

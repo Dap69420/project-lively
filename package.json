@@ -1,7 +1,7 @@
 {
-  "name": "project-proj_2ewqw4gyabx",
-  "version": "1.0.0",
-  "description": "Project Lively desktop app.",
+  "name": "vektra",
+  "version": "1.0.2",
+  "description": "Vektra desktop app.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -20,8 +20,8 @@
   "license": "ISC",
   "type": "commonjs",
   "build": {
-    "appId": "com.dapmedia.projectlively",
-    "productName": "Project Lively",
+    "appId": "com.dapmedia.vektra",
+    "productName": "Vektra",
     "copyright": "Copyright © 2026 Dap Media",
     "extraMetadata": {
       "main": "desktop/main.js"
@@ -31,6 +31,7 @@
       "package.json"
     ],
     "win": {
+      "icon": "public/assets/squircle-logo.ico",
       "target": [
         "nsis",
         "portable"
@@ -42,7 +43,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Project Lively"
+      "shortcutName": "Vektra",
+      "installerIcon": "public/assets/installer.ico"
     }
   },
   "dependencies": {
