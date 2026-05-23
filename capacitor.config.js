@@ -1,4 +1,4 @@
-const liveUrl = process.env.CAPACITOR_SERVER_URL || '';
+const liveUrl = process.env.CAPACITOR_SERVER_URL || 'https://vektra.games';
 
 module.exports = {
   appId: 'com.dapmedia.vektra',

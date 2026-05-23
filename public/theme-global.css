@@ -177,17 +177,21 @@ body.theme-brutal .brutal-btn-pink,
 body.theme-brutal button,
 body.theme-brutal a.bg-lime,
 body.theme-brutal a.bg-neonViolet {
-    transition: transform 120ms steps(2, end), box-shadow 120ms steps(2, end), filter 120ms steps(2, end) !important;
+    position: relative;
+    transform: translate(0, 0) !important;
+    transition: transform 150ms steps(3, end), box-shadow 150ms steps(3, end), filter 150ms steps(3, end) !important;
 }
 
-body.theme-brutal .brutal-btn-lime:hover,
-body.theme-brutal .brutal-btn-pink:hover,
-body.theme-brutal button:hover,
-body.theme-brutal a.bg-lime:hover,
-body.theme-brutal a.bg-neonViolet:hover {
-    transform: translate(-3px, -3px) !important;
-    box-shadow: 11px 11px 0 #ff00ff !important;
-    filter: saturate(1.2) contrast(1.08);
+@media (hover: hover) and (pointer: fine) {
+    body.theme-brutal .brutal-btn-lime:hover,
+    body.theme-brutal .brutal-btn-pink:hover,
+    body.theme-brutal button:hover,
+    body.theme-brutal a.bg-lime:hover,
+    body.theme-brutal a.bg-neonViolet:hover {
+        transform: translate(6px, 6px) !important;
+        box-shadow: 0 0 0 #ff00ff !important;
+        filter: saturate(1.12) contrast(1.06);
+    }
 }
 
 body.theme-brutal .brutal-btn-lime:active,
@@ -195,8 +199,8 @@ body.theme-brutal .brutal-btn-pink:active,
 body.theme-brutal button:active,
 body.theme-brutal a.bg-lime:active,
 body.theme-brutal a.bg-neonViolet:active {
-    transform: translate(5px, 5px) !important;
-    box-shadow: 3px 3px 0 #ccff00 !important;
+    transform: translate(8px, 8px) !important;
+    box-shadow: 0 0 0 #ccff00 !important;
 }
 
 body.theme-brutal:not(.animations-reduced) {
@@ -258,6 +262,7 @@ body.theme-neon {
     --neon-yellow: #f7ff4d;
     --neon-panel: rgba(3, 8, 18, 0.82);
     color: white;
+    background-color: #05070d !important;
     background:
         linear-gradient(rgba(0, 255, 213, 0.09) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255, 0, 255, 0.065) 1px, transparent 1px),
@@ -301,8 +306,7 @@ body.theme-neon .card::before {
     background:
         linear-gradient(90deg, transparent, rgba(0, 255, 213, 0.16), transparent),
         repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0, rgba(255, 255, 255, 0.035) 1px, transparent 1px, transparent 7px);
-    opacity: 0.34;
-    mix-blend-mode: screen;
+    opacity: 0.2;
 }
 
 body.theme-neon .brutal-btn-lime,
@@ -353,8 +357,10 @@ body.theme-neon .bg-\[\#313338\] {
     background-color: rgba(4, 8, 18, 0.86) !important;
 }
 
-body.theme-neon .bg-lime,
-body.theme-neon .bg-hotpink {
+body.theme-neon .brutal-btn-lime.bg-lime,
+body.theme-neon .brutal-btn-pink.bg-hotpink,
+body.theme-neon a.bg-lime,
+body.theme-neon button.bg-lime {
     background-color: transparent !important;
     background-image: linear-gradient(135deg, var(--neon-cyan), var(--neon-pink)) !important;
 }
@@ -435,6 +441,48 @@ body.app-mobile-shell .glass-panel,
 body.app-mobile-shell .brutal-card,
 body.app-mobile-shell .comic-card {
     border-radius: 18px !important;
+}
+
+body.app-mobile-shell.theme-brutal {
+    background: #08090d !important;
+    animation: none !important;
+}
+
+body.app-mobile-shell.theme-brutal .brutal-card,
+body.app-mobile-shell.theme-brutal .glass-panel,
+body.app-mobile-shell.theme-brutal .comic-card,
+body.app-mobile-shell.theme-brutal .card,
+body.app-mobile-shell.theme-brutal [data-name="workspace-header"],
+body.app-mobile-shell.theme-brutal [data-name="profile-app"] > header,
+body.app-mobile-shell.theme-brutal [data-name="global-settings"] > button {
+    border-width: 2px !important;
+    border-radius: 14px !important;
+    box-shadow: 4px 4px 0 #ccff00 !important;
+}
+
+body.app-mobile-shell.theme-brutal .brutal-card::after,
+body.app-mobile-shell.theme-brutal .glass-panel::after,
+body.app-mobile-shell.theme-brutal .comic-card::after,
+body.app-mobile-shell.theme-brutal .card::after {
+    opacity: 0.18;
+}
+
+body.app-mobile-shell.theme-brutal button:hover,
+body.app-mobile-shell.theme-brutal a:hover {
+    transform: none !important;
+}
+
+body.app-mobile-shell.theme-neon {
+    background: #05070d !important;
+}
+
+body.app-mobile-shell.theme-neon .glass-panel,
+body.app-mobile-shell.theme-neon .brutal-card,
+body.app-mobile-shell.theme-neon .comic-card,
+body.app-mobile-shell.theme-neon .card {
+    background: rgba(5, 10, 20, 0.9) !important;
+    border-color: rgba(0, 255, 213, 0.24) !important;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.36), 0 0 18px rgba(0, 255, 213, 0.1) !important;
 }
 
 body.app-mobile-shell button,
