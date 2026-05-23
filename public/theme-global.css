@@ -45,8 +45,8 @@ body.theme-glass {
     --theme-shadow: 0_8px_32px_rgba(0,0,0,0.3);
     --theme-border: 1px;
     --theme-blur: backdrop-blur-xl;
-body.theme-neon [class*="bg-discordDarker"],
-body.theme-neon [class*="bg-discordDarkest"] {
+}
+
 body.theme-glass * {
     border-radius: var(--theme-radius) !important;
 }
@@ -64,17 +64,14 @@ body.theme-glass .rounded-full {
     border-radius: 1rem !important;
 }
 
-    background: #101010 !important;
-    border: 3px solid #ffffff !important;
-    box-shadow: 6px 6px 0 #ccff00 !important;
+/* Glass specific utilities */
+body.theme-glass .glass-card {
+    background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(10px);
     border-radius: 1rem;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
-    background: #101010 !important;
-    border: 2px solid #ffffff !important;
-    box-shadow: none !important;
 
 body.theme-glass .transition-smooth {
     transition: all 300ms ease-in-out;
