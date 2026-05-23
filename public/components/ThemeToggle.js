@@ -5,7 +5,7 @@ function ThemeToggle() {
     const isThemeLocked = () => lockedThemePages.includes(getPageName());
     const getDefaultTheme = () => 'neon';
     const getInitialTheme = () => {
-      if (isThemeLocked()) return 'neon';
+      if (isThemeLocked()) return 'glass';
       const storedTheme = localStorage.getItem('lively-theme');
       return /^(brutal|glass|neon)$/.test(storedTheme || '') ? storedTheme : getDefaultTheme();
     };
@@ -156,6 +156,10 @@ function ThemeToggle() {
     }, [playSfx]);
 
     const toggleTheme = () => {
+      if (isThemeLocked()) {
+        setTheme('glass');
+        return;
+      }
       const index = Math.max(0, themes.findIndex((item) => item.id === theme));
       const newTheme = themes[(index + 1) % themes.length].id;
       setTheme(newTheme);

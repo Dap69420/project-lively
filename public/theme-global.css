@@ -234,6 +234,46 @@ body.theme-brutal:not(.animations-reduced) .card {
     animation: none !important;
 }
 
+/* Workspace brutal overrides */
+body.theme-brutal [data-name="workspace-app"] {
+    background: #0f0f0f !important;
+    color: #ffffff;
+}
+
+body.theme-brutal [data-name="workspace-app"] .bg-discordDarkest {
+    background: #0f0f0f !important;
+}
+
+body.theme-brutal [data-name="workspace-app"] .bg-discordDarker {
+    background: #141414 !important;
+}
+
+body.theme-brutal [data-name="workspace-app"] .bg-discordDark {
+    background: #1a1a1a !important;
+}
+
+body.theme-brutal [data-name="workspace-app"] .border-gray-700,
+body.theme-brutal [data-name="workspace-app"] .border-black\/20 {
+    border-color: #ffffff !important;
+}
+
+body.theme-brutal .panel,
+body.theme-brutal .workspace-tab-nav,
+body.theme-brutal [data-name="workspace-header"],
+body.theme-brutal [data-name="sidebar"] {
+    background: #101010 !important;
+    border: 4px solid #ffffff !important;
+    box-shadow: 8px 8px 0 #ccff00 !important;
+}
+
+body.theme-brutal .workspace-tab-nav button {
+    border: 2px solid #ffffff !important;
+}
+
+body.theme-brutal .workspace-tab-nav button.bg-mcGreen {
+    box-shadow: 4px 4px 0 #ff00ff !important;
+}
+
 /* ===========================================
    NEON MODE: New global cyber UI style
    =========================================== */
