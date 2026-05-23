@@ -188,8 +188,8 @@ body.theme-brutal a.bg-neonViolet {
     body.theme-brutal button:hover,
     body.theme-brutal a.bg-lime:hover,
     body.theme-brutal a.bg-neonViolet:hover {
-        transform: translate(6px, 6px) !important;
-        box-shadow: 0 0 0 #ff00ff !important;
+        transform: translate(4px, 4px) !important;
+        box-shadow: 4px 4px 0 #ccff00 !important;
         filter: saturate(1.12) contrast(1.06);
     }
 }
@@ -201,6 +201,21 @@ body.theme-brutal a.bg-lime:active,
 body.theme-brutal a.bg-neonViolet:active {
     transform: translate(8px, 8px) !important;
     box-shadow: 0 0 0 #ccff00 !important;
+}
+
+body.theme-brutal input,
+body.theme-brutal select,
+body.theme-brutal textarea {
+    background: #fff !important;
+    color: #111 !important;
+    border: 4px solid #111 !important;
+    border-radius: 0 !important;
+    box-shadow: 4px 4px 0 #ff00ff !important;
+}
+
+body.theme-brutal input::placeholder,
+body.theme-brutal textarea::placeholder {
+    color: #555 !important;
 }
 
 body.theme-brutal:not(.animations-reduced) {
@@ -554,6 +569,163 @@ body.app-desktop [data-name="app"] {
 body.app-desktop .glass-panel,
 body.app-desktop .brutal-card {
     box-shadow: 0 18px 60px rgba(0, 0, 0, 0.42) !important;
+}
+
+/* ===========================================
+   GLOBAL PAGE NAVIGATION
+   =========================================== */
+
+.vektra-global-nav {
+    position: fixed;
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    z-index: 9988;
+    font-family: "Space Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.vektra-global-nav__toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(8, 10, 18, 0.88);
+    color: #ffffff;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.34);
+    backdrop-filter: blur(18px);
+    cursor: pointer;
+}
+
+.vektra-global-nav__toggle img {
+    width: 1.65rem;
+    height: 1.65rem;
+    object-fit: contain;
+}
+
+.vektra-global-nav__panel {
+    position: absolute;
+    right: 0;
+    bottom: 3.75rem;
+    width: min(20rem, calc(100vw - 2rem));
+    padding: 0.7rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(7, 10, 18, 0.94);
+    box-shadow: 0 22px 58px rgba(0, 0, 0, 0.48);
+    backdrop-filter: blur(20px);
+    transform: translateY(0.5rem);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.vektra-global-nav[data-open="true"] .vektra-global-nav__panel {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.vektra-global-nav__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.55rem 0.65rem 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.vektra-global-nav__brand img {
+    width: 1.55rem;
+    height: 1.55rem;
+    object-fit: contain;
+}
+
+.vektra-global-nav__links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+    padding-top: 0.65rem;
+}
+
+.vektra-global-nav__link {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 2.55rem;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.045);
+    color: rgba(255, 255, 255, 0.82);
+    text-decoration: none;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.vektra-global-nav__link:hover,
+.vektra-global-nav__link[aria-current="page"] {
+    border-color: rgba(204, 255, 0, 0.72);
+    background: rgba(204, 255, 0, 0.12);
+    color: #ffffff;
+}
+
+body.theme-brutal .vektra-global-nav__toggle,
+body.theme-brutal .vektra-global-nav__panel {
+    border: 4px solid #ffffff;
+    background: #101010;
+    box-shadow: 8px 8px 0 #ccff00;
+    backdrop-filter: none;
+}
+
+body.theme-brutal .vektra-global-nav__toggle:hover {
+    transform: translate(4px, 4px) !important;
+    box-shadow: 4px 4px 0 #ccff00 !important;
+}
+
+body.theme-brutal .vektra-global-nav__link {
+    border: 3px solid #ffffff;
+    background: #151515;
+    box-shadow: 3px 3px 0 #ff00ff;
+}
+
+body.theme-brutal .vektra-global-nav__link:hover,
+body.theme-brutal .vektra-global-nav__link[aria-current="page"] {
+    background: #ccff00;
+    color: #111111;
+    border-color: #111111;
+}
+
+body.theme-neon .vektra-global-nav__toggle,
+body.theme-neon .vektra-global-nav__panel {
+    border-color: rgba(0, 255, 213, 0.36);
+    background: rgba(4, 8, 18, 0.92);
+    box-shadow: 0 0 28px rgba(0, 255, 213, 0.14), 0 20px 52px rgba(0, 0, 0, 0.5);
+}
+
+body.theme-neon .vektra-global-nav__link:hover,
+body.theme-neon .vektra-global-nav__link[aria-current="page"] {
+    border-color: rgba(0, 255, 213, 0.64);
+    background: rgba(0, 255, 213, 0.12);
+    color: #00ffd5;
+}
+
+body.app-mobile-shell .vektra-global-nav {
+    right: max(0.75rem, env(safe-area-inset-right));
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+body.app-mobile-shell .vektra-global-nav__panel {
+    bottom: 3.55rem;
+    width: min(19rem, calc(100vw - 1.5rem));
+}
+
+body.app-mobile-shell .vektra-global-nav__links {
+    grid-template-columns: 1fr;
 }
 
 body.ui-compact .glass-panel,
