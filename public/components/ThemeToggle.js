@@ -313,7 +313,7 @@ function ThemeToggle() {
               </div>
               
               <div className="mt-8 pt-4 border-t border-white/20 text-center">
-                <span className="font-mono text-xs text-gray-500">Project Lively v1.0.0</span>
+                <span className="font-mono text-xs text-gray-500">Vektra v1.0.2</span>
               </div>
             </div>
           </div>

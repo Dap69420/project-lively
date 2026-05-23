@@ -236,5 +236,5 @@ app.post('/api/ai/vision', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Project Lively server running on http://localhost:${port}`);
+  console.log(`Vektra server running on http://localhost:${port}`);
 });

@@ -1,6 +1,6 @@
 const { app, BrowserWindow, shell } = require('electron');
 
-const APP_URL = 'https://project-lively.vercel.app/login.html?desktop=1';
+const APP_URL = 'https://vektra.games/login.html?desktop=1';
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -8,7 +8,7 @@ function createWindow() {
     height: 860,
     minWidth: 1040,
     minHeight: 680,
-    title: 'Project Lively',
+    title: 'Vektra',
     autoHideMenuBar: true,
     show: false,
     center: true,
@@ -27,7 +27,7 @@ function createWindow() {
   });
 
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('https://project-lively.vercel.app')) {
+    if (url.startsWith('https://vektra.games')) {
       return { action: 'allow' };
     }
     shell.openExternal(url);

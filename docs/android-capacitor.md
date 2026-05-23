@@ -20,7 +20,7 @@ android/app/build/outputs/apk/debug/app-debug.apk
 If you want the APK to load the deployed website so site updates appear in the app immediately, set `CAPACITOR_SERVER_URL` before syncing:
 
 ```powershell
-$env:CAPACITOR_SERVER_URL="https://project-lively.vercel.app/login.html?app=1"
+$env:CAPACITOR_SERVER_URL="https://vektra.games/login.html?app=1"
 npm run cap:sync
 npm run android:build
 ```
@@ -32,16 +32,16 @@ If `CAPACITOR_SERVER_URL` is not set, Capacitor bundles the current `public` fil
 The APK uses this native OAuth callback URL:
 
 ```text
-com.buddyai.lively://login
+com.dapmedia.vektra://login
 ```
 
 Add that URL to your Supabase project's allowed redirect URLs. The regular website URL should also stay allowed:
 
 ```text
-https://project-lively.vercel.app/login.html
+https://vektra.games/login.html
 ```
 
-For the APK, use `https://project-lively.vercel.app/login.html?app=1` as the `CAPACITOR_SERVER_URL` so mobile users land directly on the app login screen.
+For the APK, use `https://vektra.games/login.html?app=1` as the `CAPACITOR_SERVER_URL` so mobile users land directly on the app login screen.
 
 After changing login code, deploy the website first, then rebuild the APK in live website mode.
 

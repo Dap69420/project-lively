@@ -52,7 +52,7 @@ function ProfileSetup({ user, onComplete }) {
           
           {/* Header */}
           <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight text-white">Welcome to Project Lively</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-white">Welcome to Vektra</h1>
             <p className="text-sm text-gray-400 font-mono uppercase tracking-wider">Let's customize your profile</p>
           </div>
 
