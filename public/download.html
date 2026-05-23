@@ -119,61 +119,11 @@
       position: relative;
       z-index: 1;
       display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
-      gap: clamp(22px, 5vw, 42px);
+      grid-template-columns: minmax(0, 1fr);
+      gap: 18px;
       align-items: center;
     }
     .hero-copy { min-width: 0; }
-    .release-panel {
-      border: 3px solid black;
-      background: #050505;
-      box-shadow: 7px 7px 0 var(--pink);
-      padding: 18px;
-      transform: rotate(1deg);
-    }
-    .release-window {
-      border: 2px solid rgba(255,255,255,0.25);
-      background:
-        linear-gradient(135deg, rgba(0,255,213,0.14), transparent 42%),
-        linear-gradient(180deg, rgba(255,255,255,0.08), transparent),
-        #0a0d12;
-      padding: 18px;
-      min-height: 290px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .window-dots { display: flex; gap: 7px; margin-bottom: 18px; }
-    .window-dots span {
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
-      background: var(--lime);
-      box-shadow: 0 0 12px currentColor;
-    }
-    .window-dots span:nth-child(2) { background: var(--pink); }
-    .window-dots span:nth-child(3) { background: var(--cyan); }
-    .release-title {
-      margin: 0;
-      font-family: "Space Mono", monospace;
-      font-size: clamp(22px, 4vw, 34px);
-      line-height: 1.05;
-      text-transform: uppercase;
-    }
-    .release-meta {
-      margin-top: 18px;
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-    }
-    .meta-pill {
-      border: 1px solid rgba(255,255,255,0.18);
-      background: rgba(255,255,255,0.06);
-      padding: 10px;
-      font-family: "Space Mono", monospace;
-      font-size: 11px;
-      color: var(--muted);
-    }
     .eyebrow {
       display: inline-flex;
       align-items: center;
@@ -333,7 +283,7 @@
       from { transform: translateY(10px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
     }
-    .card, .warning, .step, .release-panel { animation: soft-pop 0.5s ease both; }
+    .card, .warning, .step { animation: soft-pop 0.5s ease both; }
     .card:nth-child(2) { animation-delay: 0.08s; }
     .step:nth-child(2) { animation-delay: 0.08s; }
     .step:nth-child(3) { animation-delay: 0.16s; }
@@ -342,9 +292,6 @@
       .topbar { align-items: flex-start; font-size: 11px; padding-bottom: 16px; }
       .hero { border-width: 2px; box-shadow: 4px 4px 0 var(--lime); }
       .hero-shell, .download-grid, .notes, .steps { grid-template-columns: 1fr; }
-      .release-panel { transform: none; box-shadow: 4px 4px 0 var(--pink); }
-      .release-window { min-height: 230px; }
-      .release-meta { grid-template-columns: 1fr; }
       .button { width: 100%; box-shadow: 4px 4px 0 var(--pink); }
       .button.secondary { box-shadow: 4px 4px 0 var(--lime); }
       .actions { position: static; }
@@ -383,26 +330,11 @@
       <div class="hero-shell">
         <div class="hero-copy">
           <span class="eyebrow"><span class="icon-download"></span> Downloads</span>
-          <h1>Get Vektra</h1>
+          <h1>Download Vektra</h1>
           <p class="lead">
             Install Vektra on Windows or Android for a cleaner full-screen learning experience with the same synced account, courses, XP, coins, and progress.
           </p>
         </div>
-
-        <aside class="release-panel" aria-label="Latest Windows release">
-          <div class="release-window">
-            <div>
-              <div class="window-dots" aria-hidden="true"><span></span><span></span><span></span></div>
-              <p class="release-title">Windows EXE<br>v1.0.0</p>
-            </div>
-            <div class="release-meta">
-              <div class="meta-pill">Installer<br><strong>NSIS Setup</strong></div>
-              <div class="meta-pill">Platform<br><strong>Windows</strong></div>
-              <div class="meta-pill">Account<br><strong>Synced</strong></div>
-              <div class="meta-pill">Mode<br><strong>Desktop App</strong></div>
-            </div>
-          </div>
-        </aside>
       </div>
 
       <section class="download-grid" aria-label="Downloads">

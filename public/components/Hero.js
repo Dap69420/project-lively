@@ -32,8 +32,9 @@ function Hero() {
           </div>
           
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.9] text-white" style={{ textShadow: '4px 4px 0px #ff00ff' }}>
-            SCHOOL IS <br/><span className="text-lime" style={{ textShadow: '4px 4px 0px #111111, 6px 6px 0px #ff00ff' }}>BORING.</span><br/>
-            LEARNING<br/> SHOULDN'T BE.
+            SCHOOL BUILDS<br/> THE FOUNDATION.<br/>
+            <span className="text-lime" style={{ textShadow: '4px 4px 0px #111111, 6px 6px 0px #ff00ff' }}>WE BUILD</span><br/>
+            THE EXCITEMENT.
           </h1>
           
           <p className="text-xl md:text-2xl font-mono text-gray-300 max-w-xl border-l-4 border-lime pl-4">

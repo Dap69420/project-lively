@@ -11,8 +11,9 @@
     var params = new URLSearchParams(window.location.search || '');
     var userAgent = navigator.userAgent || '';
     var pageName = normalizePath(window.location.pathname).toLowerCase();
-    var defaultTheme = pageName === 'admin.html' || pageName === 'download.html' ? 'neon' : 'brutal';
-    var theme = localStorage.getItem('lively-theme') || defaultTheme;
+    var lockedNeonPages = pageName === 'admin.html' || pageName === 'download.html';
+    var defaultTheme = 'neon';
+    var theme = lockedNeonPages ? 'neon' : (localStorage.getItem('lively-theme') || defaultTheme);
     if (!/^(brutal|glass|neon)$/.test(theme)) theme = defaultTheme;
 
     var animations = localStorage.getItem('lively-animations') !== 'false';

@@ -37,7 +37,6 @@ function AdminApp() {
     const [session, setSession] = React.useState(null);
     const [authLoading, setAuthLoading] = React.useState(true);
     const [accessDenied, setAccessDenied] = React.useState('');
-    const [designMode, setDesignMode] = React.useState('glass');
     const [editingCourse, setEditingCourse] = React.useState(null);
     const [deletingCourseId, setDeletingCourseId] = React.useState('');
     const [courseActionError, setCourseActionError] = React.useState('');
@@ -340,7 +339,7 @@ function AdminApp() {
     }
 
     return (
-      <div className={`min-h-screen bg-darkBg text-white relative overflow-hidden theme-${designMode}`}>
+      <div className="min-h-screen bg-darkBg text-white relative overflow-x-hidden">
         {/* Animated background glow */}
         <div className="fixed top-0 left-0 w-[500px] h-[500px] bg-neonViolet rounded-full mix-blend-screen filter blur-3xl opacity-10 pointer-events-none animate-pulse"></div>
         <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-blue-600 rounded-full mix-blend-screen filter blur-3xl opacity-5 pointer-events-none animate-pulse" style={{animationDelay: '2s'}}></div>
@@ -362,22 +361,6 @@ function AdminApp() {
                   </h1>
                   <p className="text-gray-400 font-mono text-sm mt-1">Manage courses and learning paths</p>
                 </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setDesignMode('glass')}
-                    className={`px-3 py-2 text-xs font-mono uppercase tracking-wider rounded border transition-colors ${designMode === 'glass' ? 'bg-neonViolet text-black border-neonViolet' : 'bg-black/30 text-gray-300 border-white/20'}`}
-                  >
-                    Glass
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDesignMode('brutal')}
-                    className={`px-3 py-2 text-xs font-mono uppercase tracking-wider rounded border transition-colors ${designMode === 'brutal' ? 'bg-neonViolet text-black border-neonViolet' : 'bg-black/30 text-gray-300 border-white/20'}`}
-                  >
-                    Brutal
-                  </button>
                 </div>
               </div>
             </div>
@@ -600,7 +583,7 @@ function AdminApp() {
             )}
 
             {/* Info Footer */}
-            <div className="mt-12 pt-8 border-t border-white/10">
+            <div className="hidden">
               <div className="glass-panel p-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>

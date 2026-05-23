@@ -1,5 +1,41 @@
 /* Global Theme Consistency System */
 
+html {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 255, 213, 0.45) rgba(5, 7, 13, 0.35);
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(5, 7, 13, 0.35);
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 213, 0.42);
+    border: 2px solid rgba(5, 7, 13, 0.95);
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover,
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 0, 255, 0.55);
+}
+
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 255, 213, 0.42) rgba(5, 7, 13, 0.35);
+}
+
 /* ===========================================
    GLASS MODE: Rounded, Modern, Smooth
    =========================================== */
@@ -66,11 +102,8 @@ body.theme-brutal {
     --theme-shadow: 8px_8px_0px_#ccff00;
     --theme-border: 4px;
     --theme-blur: none;
-    background:
-        linear-gradient(rgba(204, 255, 0, 0.045) 2px, transparent 2px),
-        linear-gradient(90deg, rgba(255, 0, 255, 0.038) 2px, transparent 2px),
-        #0b0b0b !important;
-    background-size: 28px 28px, 28px 28px, auto !important;
+    background: #111111 !important;
+    scroll-behavior: auto !important;
 }
 
 /* CRITICAL: Force all rounded corners to ZERO */
@@ -127,15 +160,9 @@ body.theme-brutal [class*="backdrop-blur"] {
     backdrop-filter: none !important;
 }
 
-/* Disable smooth scrolling in BRUTAL mode */
-body.theme-brutal {
-    scroll-behavior: auto !important;
-}
-
 /* Force shadow overwrites */
 body.theme-brutal .shadow-lg,
-body.theme-brutal .shadow-xl,
-body.theme-brutal [class*="shadow-"] {
+body.theme-brutal .shadow-xl {
     box-shadow: 8px 8px 0px #ccff00 !important;
 }
 
@@ -153,23 +180,8 @@ body.theme-brutal [data-name="global-settings"] > button {
     position: relative;
 }
 
-body.theme-brutal .brutal-card::after,
-body.theme-brutal .glass-panel::after,
-body.theme-brutal .comic-card::after,
-body.theme-brutal .card::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: repeating-linear-gradient(
-        135deg,
-        rgba(255, 255, 255, 0.045) 0,
-        rgba(255, 255, 255, 0.045) 1px,
-        transparent 1px,
-        transparent 10px
-    );
-    mix-blend-mode: screen;
-    opacity: 0.42;
+body.theme-brutal [data-name="global-settings"] > button {
+    position: fixed !important;
 }
 
 body.theme-brutal .brutal-btn-lime,
@@ -177,9 +189,8 @@ body.theme-brutal .brutal-btn-pink,
 body.theme-brutal button,
 body.theme-brutal a.bg-lime,
 body.theme-brutal a.bg-neonViolet {
-    position: relative;
     transform: translate(0, 0) !important;
-    transition: transform 150ms steps(3, end), box-shadow 150ms steps(3, end), filter 150ms steps(3, end) !important;
+    transition: transform 120ms ease, filter 120ms ease !important;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -188,9 +199,8 @@ body.theme-brutal a.bg-neonViolet {
     body.theme-brutal button:hover,
     body.theme-brutal a.bg-lime:hover,
     body.theme-brutal a.bg-neonViolet:hover {
-        transform: translate(4px, 4px) !important;
-        box-shadow: 4px 4px 0 #ccff00 !important;
-        filter: saturate(1.12) contrast(1.06);
+        transform: translate(2px, 2px) !important;
+        filter: contrast(1.06);
     }
 }
 
@@ -199,8 +209,7 @@ body.theme-brutal .brutal-btn-pink:active,
 body.theme-brutal button:active,
 body.theme-brutal a.bg-lime:active,
 body.theme-brutal a.bg-neonViolet:active {
-    transform: translate(8px, 8px) !important;
-    box-shadow: 0 0 0 #ccff00 !important;
+    transform: translate(4px, 4px) !important;
 }
 
 body.theme-brutal input,
@@ -218,28 +227,11 @@ body.theme-brutal textarea::placeholder {
     color: #555 !important;
 }
 
-body.theme-brutal:not(.animations-reduced) {
-    animation: brutal-grid-shove 10s steps(20, end) infinite;
-}
-
 body.theme-brutal:not(.animations-reduced) .brutal-card,
 body.theme-brutal:not(.animations-reduced) .glass-panel,
 body.theme-brutal:not(.animations-reduced) .comic-card,
 body.theme-brutal:not(.animations-reduced) .card {
-    animation: brutal-snap-in 260ms steps(3, end) both;
-}
-
-body.theme-brutal:not(.animations-reduced) .brutal-badge,
-body.theme-brutal:not(.animations-reduced) .bg-lime,
-body.theme-brutal:not(.animations-reduced) .bg-hotpink {
-    background-image: repeating-linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0.18) 0,
-        rgba(255, 255, 255, 0.18) 10px,
-        transparent 10px,
-        transparent 24px
-    ) !important;
-    animation: brutal-stripe-slide 900ms steps(6, end) infinite;
+    animation: none !important;
 }
 
 /* ===========================================

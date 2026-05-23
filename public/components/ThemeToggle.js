@@ -1,8 +1,11 @@
 function ThemeToggle() {
   try {
     const getPageName = () => (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
-    const getDefaultTheme = () => ['admin.html', 'download.html'].includes(getPageName()) ? 'neon' : 'brutal';
+    const lockedThemePages = ['admin.html', 'download.html'];
+    const isThemeLocked = () => lockedThemePages.includes(getPageName());
+    const getDefaultTheme = () => 'neon';
     const getInitialTheme = () => {
+      if (isThemeLocked()) return 'neon';
       const storedTheme = localStorage.getItem('lively-theme');
       return /^(brutal|glass|neon)$/.test(storedTheme || '') ? storedTheme : getDefaultTheme();
     };
@@ -15,6 +18,7 @@ function ThemeToggle() {
     const [levelUp, setLevelUp] = React.useState(null);
     const [sessionUser, setSessionUser] = React.useState(null);
     const [authReady, setAuthReady] = React.useState(!window.supabaseClient?.auth?.getSession);
+    const [showNeonWarning, setShowNeonWarning] = React.useState(() => theme === 'neon' && localStorage.getItem('lively-neon-warning-ok') !== 'true');
     const themes = [
       { id: 'brutal', label: 'Brutal', icon: 'icon-box' },
       { id: 'glass', label: 'Glass', icon: 'icon-sparkles' },
@@ -83,6 +87,9 @@ function ThemeToggle() {
       window.dispatchEvent(new CustomEvent('themeChange', { detail: theme }));
       window.dispatchEvent(new CustomEvent('animationsChange', { detail: animations }));
       window.dispatchEvent(new CustomEvent('compactUiChange', { detail: compactUi }));
+      if (theme === 'neon' && localStorage.getItem('lively-neon-warning-ok') !== 'true') {
+        setShowNeonWarning(true);
+      }
     }, [theme, animations, compactUi]);
 
     React.useEffect(() => {
@@ -175,6 +182,7 @@ function ThemeToggle() {
     };
 
     const currentPage = getPageName();
+    const themeLocked = isThemeLocked();
     const userType = String(sessionUser?.user_metadata?.userType || '').toLowerCase();
     const isSignedIn = Boolean(sessionUser);
     const adminEmails = Array.isArray(window.__APP_CONFIG__?.ADMIN_ALLOWED_EMAILS)
@@ -214,6 +222,7 @@ function ThemeToggle() {
         {/* Bottom Settings Button */}
         <button 
           onClick={() => setIsOpen(true)}
+          data-settings-toggle="true"
           className={`fixed bottom-4 left-4 z-[9990] flex items-center justify-center w-11 h-11 rounded-lg transition-all duration-300
             ${theme === 'brutal' 
               ? 'bg-black text-lime border-2 border-white shadow-[4px_4px_0px_#ff00ff] hover:translate-x-[-1px] hover:translate-y-[-1px]' 
@@ -229,7 +238,7 @@ function ThemeToggle() {
         {isOpen && (
           <div className="fixed inset-0 z-[9999] flex justify-end bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setIsOpen(false)}>
             <div 
-              className={`h-full w-full max-w-sm p-6 relative animate-[slide-in-right_0.22s_ease-out]
+              className={`h-full w-full max-w-sm p-6 relative overflow-y-auto custom-scrollbar animate-[slide-in-right_0.22s_ease-out]
                 ${theme === 'brutal' 
                   ? 'bg-dark border-l-4 border-white shadow-[-8px_0px_0px_#ccff00] rounded-none' 
                   : 'bg-darkBg/95 border-l border-glassBorder backdrop-blur-2xl shadow-[0_16px_40px_rgba(0,0,0,0.5)]'
@@ -278,6 +287,7 @@ function ThemeToggle() {
                 </div>
 
                 {/* Theme Toggle */}
+                {!themeLocked ? (
                 <div>
                   <div className="mb-3 flex items-center justify-between">
                     <div>
@@ -304,6 +314,17 @@ function ThemeToggle() {
                     ))}
                   </div>
                 </div>
+                ) : (
+                <div className="border border-cyan-300/20 bg-cyan-300/10 px-3 py-3 font-mono text-xs text-cyan-100">
+                  Neon is locked on this page for readability.
+                </div>
+                )}
+
+                {theme === 'neon' ? (
+                <div className="border border-yellow-300/30 bg-yellow-300/10 px-3 py-3 font-mono text-xs leading-relaxed text-yellow-100">
+                  Neon mode includes pulsing glow effects. Turn off Motion Effects below if flashing or movement bothers you.
+                </div>
+                ) : null}
 
                 {/* Animations Toggle */}
                 <div className="flex items-center justify-between">
@@ -362,9 +383,11 @@ function ThemeToggle() {
                 </div>
               </div>
               
-              <div className="mt-8 pt-4 border-t border-white/20 text-center">
-                <span className="font-mono text-xs text-gray-500">Vektra v1.0.2</span>
-              </div>
+              {currentPage !== 'admin.html' ? (
+                <div className="mt-8 pt-4 border-t border-white/20 text-center">
+                  <span className="font-mono text-xs text-gray-500">Vektra v1.0.2</span>
+                </div>
+              ) : null}
             </div>
           </div>
         )}
@@ -378,6 +401,37 @@ function ThemeToggle() {
                 <div className="font-pixel text-7xl text-white leading-none">{levelUp.level}</div>
                 <div className="mt-3 font-mono text-sm text-gray-300">New rank unlocked</div>
               </div>
+            </div>
+          </div>
+        ) : null}
+
+        {showNeonWarning ? (
+          <div className="fixed bottom-4 right-4 z-[10001] w-[min(22rem,calc(100vw-2rem))] border border-yellow-300/40 bg-black/90 p-4 font-mono text-xs leading-relaxed text-yellow-100 shadow-[0_0_24px_rgba(255,212,0,0.16)]">
+            <div className="mb-2 font-bold uppercase text-yellow-200">Motion Warning</div>
+            <p>Neon mode uses pulsing glow effects. Disable motion if flashing or movement bothers you.</p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.setItem('lively-neon-warning-ok', 'true');
+                  setShowNeonWarning(false);
+                }}
+                className="border border-yellow-300/40 px-3 py-2 font-bold uppercase text-yellow-100 hover:bg-yellow-300/10"
+              >
+                Okay
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAnimations(false);
+                  localStorage.setItem('lively-animations', 'false');
+                  localStorage.setItem('lively-neon-warning-ok', 'true');
+                  setShowNeonWarning(false);
+                }}
+                className="border border-cyan-300/40 px-3 py-2 font-bold uppercase text-cyan-100 hover:bg-cyan-300/10"
+              >
+                Disable Motion
+              </button>
             </div>
           </div>
         ) : null}

@@ -201,7 +201,7 @@ function LoginApp() {
           />
         ) : null}
         
-        <div className="flex-grow flex flex-col items-center justify-center p-6 relative overflow-hidden" data-name="login-app" data-file="login-app.js">
+        <div className="flex-grow flex flex-col items-center justify-center p-6 relative overflow-x-hidden" data-name="login-app" data-file="login-app.js">
         
         {/* Background glow effects */}
         <div className="bg-glow fixed top-[-20%] left-[-10%] w-[50%] h-[50%] bg-neonViolet rounded-full mix-blend-screen filter blur-[120px] opacity-20 pointer-events-none z-0"></div>
@@ -212,7 +212,7 @@ function LoginApp() {
         <div className="absolute bottom-10 right-10 text-[10rem] font-black font-mono text-white opacity-5 select-none rotate-12 pointer-events-none">ALT</div>
 
         {!nativeMode ? (
-          <a href="index.html" className="absolute top-6 left-6 flex items-center gap-2 text-white hover:text-lime transition-colors font-mono font-bold group relative z-10">
+          <a href="./index.html" onClick={(event) => { event.preventDefault(); window.location.assign('./index.html'); }} className="absolute top-6 left-6 flex items-center gap-2 text-white hover:text-lime transition-colors font-mono font-bold group relative z-10">
             <div className="icon-arrow-left transform group-hover:-translate-x-1 transition-transform"></div> BACK TO BASE
           </a>
         ) : null}
