@@ -81,11 +81,29 @@ body.theme-glass .transition-smooth {
    BRUTAL MODE: Sharp Edges, Hard Shadows, Pixelated
    =========================================== */
 
+@keyframes brutal-snap-in {
+    0% { transform: translate(-6px, -6px) rotate(-0.35deg); opacity: 0; }
+    55% { transform: translate(2px, 2px) rotate(0.2deg); opacity: 1; }
+    100% { transform: translate(0, 0) rotate(0); opacity: 1; }
+}
+
+@keyframes brutal-grid-shove {
+    from { background-position: 0 0, 0 0; }
+    to { background-position: 28px 28px, -28px 0; }
+}
+
+@keyframes brutal-stripe-slide {
+    from { background-position: 0 0; }
+    to { background-position: 48px 0; }
+}
+
 body.theme-brutal {
     --theme-radius: 0px;
     --theme-shadow: 8px_8px_0px_#ccff00;
     --theme-border: 4px;
     --theme-blur: none;
+    background: #111111 !important;
+    scroll-behavior: auto !important;
 }
 
 /* CRITICAL: Force all rounded corners to ZERO */
@@ -136,26 +154,129 @@ body.theme-brutal .glass-card {
     border-radius: 0px;
 }
 
-body.theme-brutal .transition-smooth {
-    transition: none !important;
-}
-
 /* Remove blur effects in BRUTAL mode */
 body.theme-brutal .backdrop-blur-xl,
 body.theme-brutal [class*="backdrop-blur"] {
     backdrop-filter: none !important;
 }
 
-/* Disable smooth scrolling in BRUTAL mode */
-body.theme-brutal {
-    scroll-behavior: auto !important;
-}
-
 /* Force shadow overwrites */
 body.theme-brutal .shadow-lg,
-body.theme-brutal .shadow-xl,
-body.theme-brutal [class*="shadow-"] {
+body.theme-brutal .shadow-xl {
     box-shadow: 8px 8px 0px #ccff00 !important;
+}
+
+body.theme-brutal .brutal-card,
+body.theme-brutal .glass-panel,
+body.theme-brutal .comic-card,
+body.theme-brutal .card,
+body.theme-brutal [data-name="workspace-header"],
+body.theme-brutal [data-name="profile-app"] > header,
+body.theme-brutal [data-name="global-settings"] > button {
+    background: #101010 !important;
+    border: 4px solid #ffffff !important;
+    box-shadow: 8px 8px 0 #ccff00 !important;
+    color: #ffffff;
+    position: relative;
+}
+
+body.theme-brutal [data-name="global-settings"] > button {
+    position: fixed !important;
+}
+
+body.theme-brutal .brutal-btn-lime,
+body.theme-brutal .brutal-btn-pink,
+body.theme-brutal button,
+body.theme-brutal a.bg-lime,
+body.theme-brutal a.bg-neonViolet {
+    transform: translate(0, 0) !important;
+    transition: transform 120ms ease, filter 120ms ease !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    body.theme-brutal .brutal-btn-lime:hover,
+    body.theme-brutal .brutal-btn-pink:hover,
+    body.theme-brutal button:hover,
+    body.theme-brutal a.bg-lime:hover,
+    body.theme-brutal a.bg-neonViolet:hover {
+        transform: translate(2px, 2px) !important;
+        filter: contrast(1.06);
+    }
+}
+
+body.theme-brutal .brutal-btn-lime:active,
+body.theme-brutal .brutal-btn-pink:active,
+body.theme-brutal button:active,
+body.theme-brutal a.bg-lime:active,
+body.theme-brutal a.bg-neonViolet:active {
+    transform: translate(4px, 4px) !important;
+}
+
+body.theme-brutal input,
+body.theme-brutal select,
+body.theme-brutal textarea {
+    background: #fff !important;
+    color: #111 !important;
+    border: 4px solid #111 !important;
+    border-radius: 0 !important;
+    box-shadow: 4px 4px 0 #ff00ff !important;
+}
+
+body.theme-brutal input::placeholder,
+body.theme-brutal textarea::placeholder {
+    color: #555 !important;
+}
+
+body.theme-brutal:not(.animations-reduced) .brutal-card,
+body.theme-brutal:not(.animations-reduced) .glass-panel,
+body.theme-brutal:not(.animations-reduced) .comic-card,
+body.theme-brutal:not(.animations-reduced) .card {
+    animation: none !important;
+}
+
+/* Workspace brutal overrides */
+body.theme-brutal [data-name="workspace-app"] {
+    background: #0f0f0f !important;
+    color: #ffffff;
+}
+
+body.theme-brutal [data-name="workspace-app"] .bg-discordDarkest {
+    background: #0f0f0f !important;
+}
+
+body.theme-brutal [data-name="workspace-app"] .bg-discordDarker {
+    background: #141414 !important;
+}
+
+body.theme-brutal [data-name="workspace-app"] .bg-discordDark {
+    background: #1a1a1a !important;
+}
+
+body.theme-brutal [data-name="workspace-app"] .border-gray-700,
+body.theme-brutal [data-name="workspace-app"] .border-black\/20 {
+    border-color: #ffffff !important;
+}
+
+body.theme-brutal .panel {
+    background: #101010 !important;
+    border: 3px solid #ffffff !important;
+    box-shadow: 6px 6px 0 #ccff00 !important;
+}
+
+body.theme-brutal .workspace-tab-nav,
+body.theme-brutal [data-name="workspace-header"],
+body.theme-brutal [data-name="sidebar"] {
+    background: #101010 !important;
+    border: 2px solid #ffffff !important;
+    box-shadow: none !important;
+}
+
+body.theme-brutal .workspace-tab-nav button {
+    border: 2px solid #ffffff !important;
+}
+
+body.theme-brutal .workspace-tab-nav button.bg-mcGreen {
+    box-shadow: 4px 4px 0 #ff00ff !important;
 }
 
 /* ===========================================
