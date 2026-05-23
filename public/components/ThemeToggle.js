@@ -1,7 +1,7 @@
 function ThemeToggle() {
   try {
     const getPageName = () => (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
-    const lockedThemePages = ['admin.html', 'download.html'];
+    const lockedThemePages = ['admin', 'admin.html', 'download', 'download.html'];
     const isThemeLocked = () => lockedThemePages.includes(getPageName());
     const getDefaultTheme = () => 'neon';
     const getInitialTheme = () => {
@@ -76,6 +76,10 @@ function ThemeToggle() {
     }, [sounds]);
 
     React.useEffect(() => {
+      if (isThemeLocked() && theme !== 'glass') {
+        setTheme('glass');
+        return;
+      }
       const mode = getAppModeClasses();
       document.body.classList.remove('theme-brutal', 'theme-glass', 'theme-neon', 'animations-reduced', 'ui-compact', 'app-native', 'app-desktop', 'app-mobile-shell');
       document.body.classList.add(`theme-${theme}`);
@@ -320,7 +324,7 @@ function ThemeToggle() {
                 </div>
                 ) : (
                 <div className="border border-cyan-300/20 bg-cyan-300/10 px-3 py-3 font-mono text-xs text-cyan-100">
-                  Neon is locked on this page for readability.
+                  Glass mode is locked on this page for clarity.
                 </div>
                 )}
 

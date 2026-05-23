@@ -11,7 +11,7 @@
     var params = new URLSearchParams(window.location.search || '');
     var userAgent = navigator.userAgent || '';
     var pageName = normalizePath(window.location.pathname).toLowerCase();
-    var lockedGlassPages = pageName === 'admin.html' || pageName === 'download.html';
+    var lockedGlassPages = pageName === 'admin' || pageName === 'admin.html' || pageName === 'download' || pageName === 'download.html';
     var defaultTheme = 'neon';
     var theme = lockedGlassPages ? 'glass' : (localStorage.getItem('lively-theme') || defaultTheme);
     if (!/^(brutal|glass|neon)$/.test(theme)) theme = defaultTheme;
