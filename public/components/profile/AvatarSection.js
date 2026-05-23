@@ -83,7 +83,10 @@ function AvatarSection({ user }) {
         <div className="absolute top-16 left-1/2 -translate-x-1/2 w-48 h-48 sm:w-64 sm:h-64 border border-glassBorder rounded-full border-dashed animate-[spin_20s_linear_infinite] opacity-40"></div>
         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-36 h-36 sm:w-48 sm:h-48 border border-neonViolet/30 rounded-full animate-[spin_15s_linear_infinite_reverse]"></div>
 
-        <div className="relative w-32 h-32 sm:w-56 sm:h-56 rounded-full bg-black/40 border-2 border-neonViolet flex items-center justify-center shadow-[0_0_30px_rgba(176,38,255,0.2)] group-hover:shadow-[0_0_50px_rgba(176,38,255,0.4)] transition-all duration-500 z-10">
+        <div
+          className="relative w-32 h-32 sm:w-56 sm:h-56 rounded-full bg-black/40 border-2 border-neonViolet flex items-center justify-center shadow-[0_0_30px_rgba(176,38,255,0.2)] group-hover:shadow-[0_0_50px_rgba(176,38,255,0.4)] transition-all duration-500 z-10"
+          data-avatar-shell="true"
+        >
           
           {avatarUrl ? (
             <img src={avatarUrl} alt={`${alias} profile`} className="h-full w-full rounded-full object-cover" />
@@ -165,7 +168,7 @@ function AvatarSection({ user }) {
               ) : null}
 
               <div className="mb-4 flex items-center gap-4">
-                <div className="h-20 w-20 overflow-hidden rounded-full border border-neonViolet bg-black/40 flex items-center justify-center">
+                <div className="h-20 w-20 overflow-hidden rounded-full border border-neonViolet bg-black/40 flex items-center justify-center" data-avatar-preview="true">
                   {profileForm.avatarUrl ? (
                     <img src={profileForm.avatarUrl} alt="Profile preview" className="h-full w-full object-cover" />
                   ) : (

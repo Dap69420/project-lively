@@ -123,6 +123,13 @@ body.theme-brutal .rounded-full {
     border-radius: 0px !important;
 }
 
+body.theme-brutal [data-avatar-shell="true"],
+body.theme-brutal [data-avatar-shell="true"] img,
+body.theme-brutal [data-avatar-preview="true"],
+body.theme-brutal [data-avatar-preview="true"] img {
+    border-radius: 999px !important;
+}
+
 /* Pixelated corner effect for BRUTAL mode */
 body.theme-brutal .pixelated-corner::before {
     content: '';
@@ -182,6 +189,7 @@ body.theme-brutal [data-name="global-settings"] > button {
 
 body.theme-brutal [data-name="global-settings"] > button {
     position: fixed !important;
+    border-radius: 14px !important;
 }
 
 body.theme-brutal .brutal-btn-lime,
