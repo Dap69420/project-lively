@@ -9,9 +9,37 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://resource.trickle.so/vendor_lib/unpkg/react@18/umd/react.production.min.js"></script>
+  <script src="https://resource.trickle.so/vendor_lib/unpkg/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://resource.trickle.so/vendor_lib/unpkg/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://resource.trickle.so/vendor_lib/unpkg/lucide-static@0.516.0/font/lucide.css" rel="stylesheet">
+  <script src="/api/config"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="utils/supabase.js"></script>
   <link rel="stylesheet" href="theme-global.css">
   <script src="theme-bootstrap.js" defer></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            neonViolet: '#b026ff',
+            lime: '#ccff00',
+            hotpink: '#ff00ff',
+            dark: '#111111',
+            darkBg: '#0a0a0f',
+            glassBg: 'rgba(255, 255, 255, 0.03)',
+            glassBorder: 'rgba(255, 255, 255, 0.08)'
+          },
+          fontFamily: {
+            sans: ['"Space Grotesk"', 'sans-serif'],
+            mono: ['"Space Mono"', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
   <style>
     :root {
       --lime: #ccff00;
@@ -297,34 +325,6 @@
       font-family: "Space Mono", monospace;
       font-size: 13px;
     }
-    .style-picker {
-      position: fixed;
-      left: 14px;
-      bottom: 14px;
-      z-index: 20;
-      display: flex;
-      gap: 6px;
-      border: 2px solid rgba(255,255,255,0.24);
-      background: rgba(0,0,0,0.76);
-      padding: 7px;
-      backdrop-filter: blur(14px);
-      box-shadow: 5px 5px 0 rgba(255,0,255,0.55);
-    }
-    .style-picker button {
-      border: 1px solid rgba(255,255,255,0.2);
-      background: rgba(255,255,255,0.06);
-      color: white;
-      padding: 8px 9px;
-      font-family: "Space Mono", monospace;
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      cursor: pointer;
-    }
-    .style-picker button:hover {
-      background: var(--lime);
-      color: black;
-    }
     @keyframes aurora {
       from { opacity: 0.72; transform: translate3d(0, 0, 0); }
       to { opacity: 1; transform: translate3d(0, -12px, 0); }
@@ -349,12 +349,6 @@
       .button.secondary { box-shadow: 4px 4px 0 var(--lime); }
       .actions { position: static; }
       h1 { font-size: clamp(40px, 13vw, 62px); }
-      .style-picker {
-        right: 12px;
-        left: 12px;
-        justify-content: center;
-      }
-      .style-picker button { flex: 1; }
     }
   </style>
   <script>
@@ -465,23 +459,10 @@
       <p class="publisher">App name: <strong>Vektra</strong><br>Publisher: <strong>Dap Media</strong></p>
     </main>
   </div>
-  <div class="style-picker" aria-label="UI style picker">
-    <button type="button" data-theme-choice="brutal">Brutal</button>
-    <button type="button" data-theme-choice="glass">Glass</button>
-    <button type="button" data-theme-choice="neon">Neon</button>
-  </div>
-  <script>
-    document.querySelectorAll('[data-theme-choice]').forEach(function(button) {
-      button.addEventListener('click', function() {
-        var theme = button.getAttribute('data-theme-choice');
-        if (window.LivelyTheme && typeof window.LivelyTheme.setTheme === 'function') {
-          window.LivelyTheme.setTheme(theme);
-        } else {
-          localStorage.setItem('lively-theme', theme);
-          window.location.reload();
-        }
-      });
-    });
+  <div id="settings-root"></div>
+  <script type="text/babel" src="components/ThemeToggle.js"></script>
+  <script type="text/babel">
+    ReactDOM.createRoot(document.getElementById('settings-root')).render(<ThemeToggle />);
   </script>
 </body>
 </html>

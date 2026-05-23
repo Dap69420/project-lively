@@ -1,11 +1,20 @@
 function ThemeToggle() {
   try {
-    const [theme, setTheme] = React.useState(localStorage.getItem('lively-theme') || 'brutal');
+    const getPageName = () => (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
+    const getDefaultTheme = () => ['admin.html', 'download.html'].includes(getPageName()) ? 'neon' : 'brutal';
+    const getInitialTheme = () => {
+      const storedTheme = localStorage.getItem('lively-theme');
+      return /^(brutal|glass|neon)$/.test(storedTheme || '') ? storedTheme : getDefaultTheme();
+    };
+
+    const [theme, setTheme] = React.useState(getInitialTheme);
     const [animations, setAnimations] = React.useState(localStorage.getItem('lively-animations') !== 'false');
     const [sounds, setSounds] = React.useState(localStorage.getItem('lively-sounds') !== 'false');
     const [compactUi, setCompactUi] = React.useState(localStorage.getItem('lively-compact-ui') === 'true');
     const [isOpen, setIsOpen] = React.useState(false);
     const [levelUp, setLevelUp] = React.useState(null);
+    const [sessionUser, setSessionUser] = React.useState(null);
+    const [authReady, setAuthReady] = React.useState(!window.supabaseClient?.auth?.getSession);
     const themes = [
       { id: 'brutal', label: 'Brutal', icon: 'icon-box' },
       { id: 'glass', label: 'Glass', icon: 'icon-sparkles' },
@@ -77,6 +86,39 @@ function ThemeToggle() {
     }, [theme, animations, compactUi]);
 
     React.useEffect(() => {
+      const client = window.supabaseClient;
+      let isMounted = true;
+      if (!client?.auth?.getSession) {
+        setAuthReady(true);
+        return undefined;
+      }
+
+      client.auth.getSession()
+        .then(({ data: { session } }) => {
+          if (isMounted) {
+            setSessionUser(session?.user || null);
+            setAuthReady(true);
+          }
+        })
+        .catch(() => {
+          if (isMounted) {
+            setSessionUser(null);
+            setAuthReady(true);
+          }
+        });
+
+      const authListener = client.auth.onAuthStateChange?.((_event, session) => {
+        setSessionUser(session?.user || null);
+        setAuthReady(true);
+      });
+
+      return () => {
+        isMounted = false;
+        authListener?.data?.subscription?.unsubscribe?.();
+      };
+    }, []);
+
+    React.useEffect(() => {
       const handleLevelUp = (event) => {
         const detail = event.detail || {};
         setLevelUp({
@@ -131,6 +173,24 @@ function ThemeToggle() {
       setCompactUi(nextCompact);
       localStorage.setItem('lively-compact-ui', nextCompact.toString());
     };
+
+    const currentPage = getPageName();
+    const userType = String(sessionUser?.user_metadata?.userType || '').toLowerCase();
+    const isSignedIn = Boolean(sessionUser);
+    const adminEmails = Array.isArray(window.__APP_CONFIG__?.ADMIN_ALLOWED_EMAILS)
+      ? window.__APP_CONFIG__.ADMIN_ALLOWED_EMAILS.map((email) => String(email || '').trim().toLowerCase())
+      : [];
+    const isAdmin = isSignedIn && adminEmails.includes(String(sessionUser?.email || '').trim().toLowerCase());
+    const navItems = [
+      { href: 'index.html', label: 'Home', icon: 'icon-house', show: true },
+      { href: 'workspace.html', label: 'Workspace', icon: 'icon-layout-dashboard', show: isSignedIn && userType !== 'parent' && userType !== 'educator' },
+      { href: 'profile.html', label: userType === 'parent' || userType === 'educator' ? 'Dashboard' : 'Profile', icon: 'icon-user-round', show: isSignedIn },
+      { href: 'classrooms.html', label: 'Classrooms', icon: 'icon-users', show: isSignedIn && userType !== 'parent' },
+      { href: 'admin.html', label: 'Admin', icon: 'icon-shield', show: isAdmin },
+      { href: 'download.html', label: 'Downloads', icon: 'icon-download', show: true },
+      { href: 'founders.html', label: 'Founders', icon: 'icon-flask-conical', show: true },
+      { href: 'login.html', label: 'Login', icon: 'icon-key-round', show: authReady && !isSignedIn }
+    ].filter((item) => item.show);
 
     return (
       <div data-name="global-settings" data-file="components/ThemeToggle.js">
@@ -188,6 +248,35 @@ function ThemeToggle() {
               </h2>
 
               <div className="space-y-6">
+                {/* Navigation */}
+                <div>
+                  <div className="mb-3 flex items-center gap-2 font-mono font-bold text-sm uppercase">
+                    <div className="icon-map"></div>
+                    Navigation
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {navItems.map((item) => {
+                      const isCurrent = currentPage === item.href;
+                      return (
+                        <a
+                          key={item.href}
+                          href={item.href}
+                          aria-current={isCurrent ? 'page' : undefined}
+                          onClick={() => setIsOpen(false)}
+                          className={`flex min-h-[48px] items-center gap-2 border px-3 py-2 font-mono text-[11px] font-bold uppercase tracking-wide transition-colors
+                            ${isCurrent
+                              ? 'border-lime bg-lime text-black'
+                              : 'border-white/10 bg-white/5 text-gray-300 hover:border-white/30 hover:bg-white/10 hover:text-white'
+                            }`}
+                        >
+                          <div className={`${item.icon} shrink-0 text-base`}></div>
+                          <span className="min-w-0 truncate">{item.label}</span>
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* Theme Toggle */}
                 <div>
                   <div className="mb-3 flex items-center justify-between">
