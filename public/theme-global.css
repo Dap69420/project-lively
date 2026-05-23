@@ -45,11 +45,32 @@ body.theme-glass .transition-smooth {
    BRUTAL MODE: Sharp Edges, Hard Shadows, Pixelated
    =========================================== */
 
+@keyframes brutal-snap-in {
+    0% { transform: translate(-6px, -6px) rotate(-0.35deg); opacity: 0; }
+    55% { transform: translate(2px, 2px) rotate(0.2deg); opacity: 1; }
+    100% { transform: translate(0, 0) rotate(0); opacity: 1; }
+}
+
+@keyframes brutal-grid-shove {
+    from { background-position: 0 0, 0 0; }
+    to { background-position: 28px 28px, -28px 0; }
+}
+
+@keyframes brutal-stripe-slide {
+    from { background-position: 0 0; }
+    to { background-position: 48px 0; }
+}
+
 body.theme-brutal {
     --theme-radius: 0px;
     --theme-shadow: 8px_8px_0px_#ccff00;
     --theme-border: 4px;
     --theme-blur: none;
+    background:
+        linear-gradient(rgba(204, 255, 0, 0.045) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(255, 0, 255, 0.038) 2px, transparent 2px),
+        #0b0b0b !important;
+    background-size: 28px 28px, 28px 28px, auto !important;
 }
 
 /* CRITICAL: Force all rounded corners to ZERO */
@@ -100,10 +121,6 @@ body.theme-brutal .glass-card {
     border-radius: 0px;
 }
 
-body.theme-brutal .transition-smooth {
-    transition: none !important;
-}
-
 /* Remove blur effects in BRUTAL mode */
 body.theme-brutal .backdrop-blur-xl,
 body.theme-brutal [class*="backdrop-blur"] {
@@ -122,6 +139,90 @@ body.theme-brutal [class*="shadow-"] {
     box-shadow: 8px 8px 0px #ccff00 !important;
 }
 
+body.theme-brutal .brutal-card,
+body.theme-brutal .glass-panel,
+body.theme-brutal .comic-card,
+body.theme-brutal .card,
+body.theme-brutal [data-name="workspace-header"],
+body.theme-brutal [data-name="profile-app"] > header,
+body.theme-brutal [data-name="global-settings"] > button {
+    background: #101010 !important;
+    border: 4px solid #ffffff !important;
+    box-shadow: 8px 8px 0 #ccff00 !important;
+    color: #ffffff;
+    position: relative;
+}
+
+body.theme-brutal .brutal-card::after,
+body.theme-brutal .glass-panel::after,
+body.theme-brutal .comic-card::after,
+body.theme-brutal .card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.045) 0,
+        rgba(255, 255, 255, 0.045) 1px,
+        transparent 1px,
+        transparent 10px
+    );
+    mix-blend-mode: screen;
+    opacity: 0.42;
+}
+
+body.theme-brutal .brutal-btn-lime,
+body.theme-brutal .brutal-btn-pink,
+body.theme-brutal button,
+body.theme-brutal a.bg-lime,
+body.theme-brutal a.bg-neonViolet {
+    transition: transform 120ms steps(2, end), box-shadow 120ms steps(2, end), filter 120ms steps(2, end) !important;
+}
+
+body.theme-brutal .brutal-btn-lime:hover,
+body.theme-brutal .brutal-btn-pink:hover,
+body.theme-brutal button:hover,
+body.theme-brutal a.bg-lime:hover,
+body.theme-brutal a.bg-neonViolet:hover {
+    transform: translate(-3px, -3px) !important;
+    box-shadow: 11px 11px 0 #ff00ff !important;
+    filter: saturate(1.2) contrast(1.08);
+}
+
+body.theme-brutal .brutal-btn-lime:active,
+body.theme-brutal .brutal-btn-pink:active,
+body.theme-brutal button:active,
+body.theme-brutal a.bg-lime:active,
+body.theme-brutal a.bg-neonViolet:active {
+    transform: translate(5px, 5px) !important;
+    box-shadow: 3px 3px 0 #ccff00 !important;
+}
+
+body.theme-brutal:not(.animations-reduced) {
+    animation: brutal-grid-shove 10s steps(20, end) infinite;
+}
+
+body.theme-brutal:not(.animations-reduced) .brutal-card,
+body.theme-brutal:not(.animations-reduced) .glass-panel,
+body.theme-brutal:not(.animations-reduced) .comic-card,
+body.theme-brutal:not(.animations-reduced) .card {
+    animation: brutal-snap-in 260ms steps(3, end) both;
+}
+
+body.theme-brutal:not(.animations-reduced) .brutal-badge,
+body.theme-brutal:not(.animations-reduced) .bg-lime,
+body.theme-brutal:not(.animations-reduced) .bg-hotpink {
+    background-image: repeating-linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.18) 0,
+        rgba(255, 255, 255, 0.18) 10px,
+        transparent 10px,
+        transparent 24px
+    ) !important;
+    animation: brutal-stripe-slide 900ms steps(6, end) infinite;
+}
+
 /* ===========================================
    NEON MODE: New global cyber UI style
    =========================================== */
@@ -136,6 +237,17 @@ body.theme-brutal [class*="shadow-"] {
     to { transform: translateY(0); opacity: 1; }
 }
 
+@keyframes neon-border-flow {
+    from { filter: hue-rotate(0deg); opacity: 0.72; }
+    50% { filter: hue-rotate(24deg); opacity: 1; }
+    to { filter: hue-rotate(0deg); opacity: 0.72; }
+}
+
+@keyframes neon-soft-pulse {
+    0%, 100% { text-shadow: 0 0 10px rgba(0, 255, 213, 0.18), 0 0 20px rgba(255, 0, 255, 0.12); }
+    50% { text-shadow: 0 0 18px rgba(0, 255, 213, 0.48), 0 0 36px rgba(255, 0, 255, 0.26); }
+}
+
 body.theme-neon {
     --theme-radius: 14px;
     --theme-border: 1px;
@@ -143,14 +255,15 @@ body.theme-neon {
     --neon-cyan: #00ffd5;
     --neon-pink: #ff00ff;
     --neon-blue: #5ee7ff;
+    --neon-yellow: #f7ff4d;
+    --neon-panel: rgba(3, 8, 18, 0.82);
     color: white;
     background:
-        linear-gradient(rgba(0, 255, 213, 0.075) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 0, 255, 0.075) 1px, transparent 1px),
-        radial-gradient(circle at top left, rgba(0, 255, 213, 0.2), transparent 34rem),
-        radial-gradient(circle at bottom right, rgba(255, 0, 255, 0.18), transparent 34rem),
+        linear-gradient(rgba(0, 255, 213, 0.09) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 0, 255, 0.065) 1px, transparent 1px),
+        linear-gradient(135deg, rgba(0, 255, 213, 0.12), rgba(255, 0, 255, 0.06) 42%, rgba(247, 255, 77, 0.055)),
         #05070d !important;
-    background-size: 32px 32px, 32px 32px, auto, auto, auto !important;
+    background-size: 34px 34px, 34px 34px, auto, auto !important;
     animation: lively-neon-drift 18s linear infinite;
 }
 
@@ -161,11 +274,35 @@ body.theme-neon .card,
 body.theme-neon section[class*="glass"],
 body.theme-neon [class*="bg-discordDarker"],
 body.theme-neon [class*="bg-discordDarkest"] {
-    background: rgba(5, 10, 20, 0.78) !important;
-    border: 1px solid rgba(0, 255, 213, 0.28) !important;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012)),
+        var(--neon-panel) !important;
+    border: 1px solid rgba(0, 255, 213, 0.38) !important;
     border-radius: var(--theme-radius) !important;
-    box-shadow: 0 0 0 1px rgba(255, 0, 255, 0.16), 0 18px 50px rgba(0, 0, 0, 0.42), 0 0 28px rgba(0, 255, 213, 0.12) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 0 0 1px rgba(255, 0, 255, 0.18),
+        0 18px 50px rgba(0, 0, 0, 0.46),
+        0 0 34px rgba(0, 255, 213, 0.18) !important;
     backdrop-filter: blur(18px);
+    position: relative;
+    overflow: hidden;
+}
+
+body.theme-neon .glass-panel::before,
+body.theme-neon .brutal-card::before,
+body.theme-neon .comic-card::before,
+body.theme-neon .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background:
+        linear-gradient(90deg, transparent, rgba(0, 255, 213, 0.16), transparent),
+        repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0, rgba(255, 255, 255, 0.035) 1px, transparent 1px, transparent 7px);
+    opacity: 0.34;
+    mix-blend-mode: screen;
 }
 
 body.theme-neon .brutal-btn-lime,
@@ -173,12 +310,17 @@ body.theme-neon .brutal-btn-pink,
 body.theme-neon a.bg-lime,
 body.theme-neon button.bg-neonViolet,
 body.theme-neon .bg-neonViolet,
-body.theme-neon .bg-mcGreen {
-    background: linear-gradient(135deg, var(--neon-cyan), var(--neon-pink)) !important;
+body.theme-neon .bg-mcGreen,
+body.theme-neon button.bg-mcGreen {
+    background: linear-gradient(135deg, var(--neon-cyan), var(--neon-blue) 48%, var(--neon-pink)) !important;
     color: #05070d !important;
     border: 1px solid rgba(255, 255, 255, 0.48) !important;
     border-radius: 10px !important;
-    box-shadow: 0 0 20px rgba(0, 255, 213, 0.34), 0 0 28px rgba(255, 0, 255, 0.18) !important;
+    box-shadow:
+        0 0 18px rgba(0, 255, 213, 0.42),
+        0 0 32px rgba(255, 0, 255, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.32) !important;
+    text-shadow: none !important;
 }
 
 body.theme-neon .text-lime,
@@ -186,20 +328,94 @@ body.theme-neon .text-hotpink,
 body.theme-neon .text-neonViolet,
 body.theme-neon .text-mcGreen {
     color: var(--neon-cyan) !important;
+    text-shadow: 0 0 14px rgba(0, 255, 213, 0.34);
+}
+
+body.theme-neon h1,
+body.theme-neon h2,
+body.theme-neon .font-pixel,
+body.theme-neon .font-black {
+    text-shadow: 0 0 16px rgba(0, 255, 213, 0.18), 0 0 28px rgba(255, 0, 255, 0.12);
+}
+
+body.theme-neon .border-4,
+body.theme-neon .border-2,
+body.theme-neon .border-white,
+body.theme-neon .border-gray-700,
+body.theme-neon .border-black\/20 {
+    border-color: rgba(0, 255, 213, 0.32) !important;
+}
+
+body.theme-neon .bg-black,
+body.theme-neon .bg-dark,
+body.theme-neon .bg-darkBg,
+body.theme-neon .bg-\[\#313338\] {
+    background-color: rgba(4, 8, 18, 0.86) !important;
+}
+
+body.theme-neon .bg-lime,
+body.theme-neon .bg-hotpink {
+    background-color: transparent !important;
+    background-image: linear-gradient(135deg, var(--neon-cyan), var(--neon-pink)) !important;
+}
+
+body.theme-neon .bg-mcPurple,
+body.theme-neon .bg-blue-500,
+body.theme-neon .h-full.bg-neonViolet,
+body.theme-neon .h-full.bg-mcPurple {
+    background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink), var(--neon-yellow)) !important;
+    box-shadow: 0 0 18px rgba(0, 255, 213, 0.34);
+}
+
+body.theme-neon .workspace-tab-nav,
+body.theme-neon [data-name="workspace-header"] {
+    background:
+        linear-gradient(180deg, rgba(0, 255, 213, 0.08), rgba(255, 0, 255, 0.04)),
+        rgba(3, 7, 16, 0.94) !important;
+    border-color: rgba(0, 255, 213, 0.26) !important;
+    box-shadow: 0 0 28px rgba(0, 255, 213, 0.12) !important;
+}
+
+body.theme-neon [data-name="workspace-header"] a,
+body.theme-neon .workspace-tab-nav button {
+    border: 1px solid rgba(0, 255, 213, 0.18) !important;
+    box-shadow: inset 0 0 18px rgba(0, 255, 213, 0.055);
 }
 
 body.theme-neon input,
 body.theme-neon textarea,
 body.theme-neon select {
-    background: rgba(0, 0, 0, 0.38) !important;
-    border-color: rgba(0, 255, 213, 0.28) !important;
+    background: rgba(0, 0, 0, 0.48) !important;
+    border-color: rgba(0, 255, 213, 0.36) !important;
     color: white !important;
+    box-shadow: inset 0 0 18px rgba(0, 255, 213, 0.055);
+}
+
+body.theme-neon input:focus,
+body.theme-neon textarea:focus,
+body.theme-neon select:focus {
+    border-color: rgba(255, 0, 255, 0.55) !important;
+    box-shadow: 0 0 0 1px rgba(255, 0, 255, 0.24), 0 0 20px rgba(0, 255, 213, 0.16) !important;
 }
 
 body.theme-neon:not(.animations-reduced) .glass-panel,
 body.theme-neon:not(.animations-reduced) .brutal-card,
 body.theme-neon:not(.animations-reduced) .comic-card {
     animation: lively-panel-rise 0.36s ease both;
+}
+
+body.theme-neon:not(.animations-reduced) h1,
+body.theme-neon:not(.animations-reduced) h2,
+body.theme-neon:not(.animations-reduced) .text-lime,
+body.theme-neon:not(.animations-reduced) .text-neonViolet {
+    animation: neon-soft-pulse 3.8s ease-in-out infinite;
+}
+
+body.theme-neon:not(.animations-reduced) .brutal-card::before,
+body.theme-neon:not(.animations-reduced) .glass-panel::before,
+body.theme-neon:not(.animations-reduced) .comic-card::before,
+body.theme-neon:not(.animations-reduced) .card::before {
+    animation: neon-border-flow 4.5s ease-in-out infinite;
 }
 
 /* ===========================================

@@ -139,45 +139,6 @@ function ThemeToggle() {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
           }
-          @keyframes neon-grid-drift {
-            from { background-position: 0 0, 0 0; }
-            to { background-position: 64px 64px, 0 0; }
-          }
-          body.theme-neon {
-            background:
-              linear-gradient(rgba(0,255,213,0.08) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,0,255,0.08) 1px, transparent 1px),
-              radial-gradient(circle at top left, rgba(0,255,213,0.18), transparent 36rem),
-              radial-gradient(circle at bottom right, rgba(255,0,255,0.16), transparent 34rem),
-              #05070d !important;
-            background-size: 32px 32px, 32px 32px, auto, auto, auto !important;
-            color: white;
-            animation: neon-grid-drift 18s linear infinite;
-          }
-          body.theme-neon .glass-panel,
-          body.theme-neon .brutal-card {
-            background: rgba(5, 10, 20, 0.78) !important;
-            border: 1px solid rgba(0, 255, 213, 0.28) !important;
-            border-radius: 14px !important;
-            box-shadow: 0 0 0 1px rgba(255,0,255,0.16), 0 18px 50px rgba(0,0,0,0.42), 0 0 28px rgba(0,255,213,0.12) !important;
-            backdrop-filter: blur(18px);
-          }
-          body.theme-neon .brutal-btn-lime,
-          body.theme-neon .brutal-btn-pink,
-          body.theme-neon a.bg-lime,
-          body.theme-neon button.bg-neonViolet,
-          body.theme-neon .bg-neonViolet {
-            background: linear-gradient(135deg, #00ffd5, #ff00ff) !important;
-            color: #05070d !important;
-            border: 1px solid rgba(255,255,255,0.45) !important;
-            border-radius: 10px !important;
-            box-shadow: 0 0 20px rgba(0,255,213,0.34), 0 0 28px rgba(255,0,255,0.18) !important;
-          }
-          body.theme-neon .text-lime,
-          body.theme-neon .text-neonViolet,
-          body.theme-neon .text-hotpink {
-            color: #00ffd5 !important;
-          }
           body.ui-compact .glass-panel,
           body.ui-compact .brutal-card {
             padding: 1rem !important;
