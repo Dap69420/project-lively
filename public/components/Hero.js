@@ -2,7 +2,9 @@ const HERO_TAGLINES = [
   'MAKE LEARNING FUN.',
   'TURN HOMEWORK INTO WINS.',
   'STUDY SMARTER.',
-  'BUILD BETTER HABITS.'
+  'BUILD BETTER HABITS.',
+  'LEARN WITH CONFIDENCE.',
+  'LEVEL UP FASTER.'
 ];
 
 function Hero() {
@@ -69,27 +71,27 @@ function Hero() {
     return (
       <section className="w-full max-w-6xl mx-auto px-6 py-14 md:py-20 flex flex-col lg:flex-row items-center gap-12" data-name="hero" data-file="components/Hero.js">
         
-        <div className="flex-1 space-y-8 relative z-10">
+        <div className="flex-1 space-y-8 relative z-10 pt-4 md:pt-8">
           <div className="inline-block brutal-badge bg-hotpink text-white border-white shadow-[4px_4px_0px_#ccff00] mb-4">
             <span className="flex items-center gap-2">
               <div className="icon-circle-alert text-sm"></div> Grade 6-9 Beta Live
             </span>
           </div>
           
-          <h1 className="text-5xl md:text-7xl lg:text-[6.1rem] font-black leading-[0.9] text-white max-w-[18rem] md:max-w-[22rem] lg:max-w-[26rem]" style={{ textShadow: '4px 4px 0px #ff00ff' }}>
+          <h1 className="text-5xl md:text-7xl lg:text-[6.1rem] font-black leading-[0.9] text-white max-w-[18rem] md:max-w-[22rem] lg:max-w-[26rem] mb-6 md:mb-8" style={{ textShadow: '4px 4px 0px #ff00ff' }}>
             VEKTRA
-            <span className="relative mt-2 block h-[1.05em] md:h-[1.02em] w-full overflow-visible whitespace-nowrap text-[clamp(1.35rem,3.1vw,2.7rem)] md:text-[clamp(1.5rem,2.8vw,3.4rem)] leading-none">
+            <span className="relative mt-2 block h-[1.05em] md:h-[1.02em] w-full overflow-visible whitespace-nowrap text-[clamp(1.2rem,2.9vw,2.4rem)] md:text-[clamp(1.35rem,2.5vw,3rem)] leading-none">
               <span className="absolute inset-0 text-lime" style={{ textShadow: '4px 4px 0px #111111, 6px 6px 0px #ff00ff' }}>
                 {reducedMotion ? HERO_TAGLINES[0] : `${taglineText}${isDeleting ? '' : '|'}`}
               </span>
             </span>
           </h1>
           
-          <p className="text-xl md:text-2xl font-mono text-gray-300 max-w-xl border-l-4 border-lime pl-4 mt-12 md:mt-14">
+          <p className="text-xl md:text-2xl font-mono text-gray-300 max-w-xl border-l-4 border-lime pl-4 mt-16 md:mt-20">
             Meet the first AI that doesn't just grade you—<span className="text-white font-bold bg-hotpink px-1 selection:bg-lime selection:text-black">it studies with you.</span>
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-6 pt-10 md:pt-12">
+          <div className="flex flex-col sm:flex-row gap-6 pt-12 md:pt-16">
             <a href={primaryHref} className="brutal-btn-lime flex items-center justify-center gap-2 text-lg no-underline inline-flex">
               {primaryText} <div className="icon-arrow-right"></div>
             </a>
@@ -101,7 +103,7 @@ function Hero() {
           </div>
         </div>
 
-        <div className="flex-1 w-full max-w-md relative mt-16 lg:mt-24">
+        <div className="flex-1 w-full max-w-md relative mt-20 lg:mt-28">
           {/* Abstract graphic replacing an image */}
           <div className="aspect-square bg-dark border-8 border-lime shadow-[16px_16px_0px_#ff00ff] relative overflow-hidden group hover:scale-105 transition-transform duration-500">
             <div className="absolute inset-0 flex items-center justify-center">
