@@ -76,9 +76,9 @@ function Hero() {
             </span>
           </div>
           
-          <h1 className="text-5xl md:text-7xl lg:text-[6.6rem] font-black leading-[0.9] text-white max-w-[14rem] md:max-w-[16rem] lg:max-w-[17rem]" style={{ textShadow: '4px 4px 0px #ff00ff' }}>
+          <h1 className="text-5xl md:text-7xl lg:text-[6.1rem] font-black leading-[0.9] text-white max-w-[18rem] md:max-w-[22rem] lg:max-w-[26rem]" style={{ textShadow: '4px 4px 0px #ff00ff' }}>
             VEKTRA
-            <span className="relative mt-2 block h-[1.15em] md:h-[1.08em] overflow-hidden whitespace-nowrap text-[clamp(1.55rem,3.7vw,3.4rem)] md:text-[clamp(1.65rem,3.2vw,4.2rem)] leading-none">
+            <span className="relative mt-2 block h-[1.05em] md:h-[1.02em] w-full overflow-visible whitespace-nowrap text-[clamp(1.35rem,3.1vw,2.7rem)] md:text-[clamp(1.5rem,2.8vw,3.4rem)] leading-none">
               <span className="absolute inset-0 text-lime" style={{ textShadow: '4px 4px 0px #111111, 6px 6px 0px #ff00ff' }}>
                 {reducedMotion ? HERO_TAGLINES[0] : `${taglineText}${isDeleting ? '' : '|'}`}
               </span>
