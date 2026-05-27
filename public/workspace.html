@@ -54,41 +54,57 @@
     <style type="text/tailwindcss">
     @layer base {
         body {
-            @apply font-sans antialiased overflow-hidden h-screen;
+            font-family: "Inter", sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow: hidden;
+            height: 100vh;
         }
         body.theme-brutal {
-            @apply bg-discordDarkest text-gray-200;
+            background: #1e1f22;
+            color: #e5e7eb;
         }
         body.theme-glass {
-            @apply bg-darkBg text-gray-200;
+            background: #0a0a0f;
+            color: #e5e7eb;
         }
     }
     
     /* Cross-Theme Overrides */
-    body.theme-glass .bg-discordDarkest { @apply bg-darkBg !important; }
-    body.theme-glass .bg-discordDarker { @apply bg-glassBg backdrop-blur-xl border-glassBorder !important; }
-    body.theme-glass .bg-\[\#313338\] { @apply bg-darkBg !important; }
-    body.theme-glass .border-gray-700 { @apply border-white/10 !important; }
-    body.theme-glass .text-mcGreen { @apply text-neonViolet !important; }
-    body.theme-glass .bg-mcGreen { @apply bg-neonViolet text-white !important; }
-    body.theme-glass .text-mcPurple { @apply text-blue-400 !important; }
-    body.theme-glass .bg-mcPurple { @apply bg-blue-500 !important; }
+    body.theme-glass .bg-discordDarkest { background: #0a0a0f !important; }
+    body.theme-glass .bg-discordDarker { background: rgba(255, 255, 255, 0.03) !important; backdrop-filter: blur(18px); border-color: rgba(255, 255, 255, 0.08) !important; }
+    body.theme-glass .bg-\[\#313338\] { background: #0a0a0f !important; }
+    body.theme-glass .border-gray-700 { border-color: rgba(255, 255, 255, 0.10) !important; }
+    body.theme-glass .text-mcGreen { color: #b026ff !important; }
+    body.theme-glass .bg-mcGreen { background: #b026ff !important; color: #ffffff !important; }
+    body.theme-glass .text-mcPurple { color: #60a5fa !important; }
+    body.theme-glass .bg-mcPurple { background: #3b82f6 !important; }
     body.theme-glass .comic-card {
-        @apply bg-glassBg border border-glassBorder backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] text-white !important;
+        background: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        backdrop-filter: blur(18px);
+        border-radius: 1rem !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+        color: #ffffff !important;
     }
     
     body.theme-brutal .glass-panel {
-        @apply bg-discordDarker border-2 border-gray-700 rounded-none shadow-[8px_8px_0px_#ccff00] backdrop-blur-none !important;
+        background: #2b2d31 !important;
+        border: 2px solid #4e5058 !important;
+        border-radius: 0 !important;
+        box-shadow: 8px 8px 0px #ccff00 !important;
+        backdrop-filter: none !important;
     }
     body.theme-brutal .bg-glow {
-        @apply hidden !important;
+        display: none !important;
     }
 
     body.theme-brutal [data-name="workspace-header"],
     body.theme-brutal [data-name="sidebar"],
     body.theme-brutal [data-name="mission-card"],
     body.theme-brutal [data-name="ai-chat"] {
-        @apply bg-discordDarker border-white !important;
+        background: #2b2d31 !important;
+        border-color: #ffffff !important;
         border-width: 2px !important;
         box-shadow: 0 0 0 4px #ccff00, 8px 8px 0 #ccff00 !important;
     }
@@ -122,13 +138,34 @@
 
     @layer components {
         .panel {
-            @apply bg-discordDarker rounded-xl border border-gray-700/50 shadow-lg overflow-hidden flex flex-col;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background: #2b2d31;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28);
         }
         .pixel-btn {
-            @apply font-pixel text-xl tracking-wider uppercase border-b-4 active:border-b-0 active:translate-y-1 transition-all;
+            font-family: "VT323", monospace;
+            font-size: 1.25rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            border-bottom: 4px solid currentColor;
+            transition: all 150ms ease;
+        }
+        .pixel-btn:active {
+            border-bottom-width: 0;
+            transform: translateY(0.25rem);
         }
         .comic-card {
-            @apply bg-white text-black rounded-lg border-4 border-black p-4 relative overflow-hidden;
+            background: #ffffff;
+            color: #000000;
+            border-radius: 0.5rem;
+            border: 4px solid #000000;
+            padding: 1rem;
+            position: relative;
+            overflow: hidden;
             box-shadow: 4px 4px 0px 0px rgba(0,0,0,1);
         }
         .custom-scrollbar::-webkit-scrollbar {

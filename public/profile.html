@@ -69,23 +69,28 @@
     
     /* Cross-Theme Overrides */
     body.theme-brutal .glass-panel {
-        @apply bg-dark border-4 border-white p-6 rounded-none backdrop-blur-none !important;
+        background: #111111 !important;
+        border: 4px solid #ffffff !important;
+        padding: 1.5rem !important;
+        border-radius: 0 !important;
+        backdrop-filter: none !important;
         box-shadow: 0 0 0 4px #ccff00, 8px 8px 0 #ccff00 !important;
     }
     body.theme-brutal .profile-hero {
         box-shadow: 0 0 0 4px #ccff00, 8px 8px 0 #ccff00 !important;
     }
-    body.theme-brutal .neon-text { @apply text-lime drop-shadow-none !important; }
-    body.theme-brutal .text-neonViolet { @apply text-lime !important; }
-    body.theme-brutal .bg-neonViolet { @apply bg-lime text-black !important; }
-    body.theme-brutal .border-neonViolet { @apply border-lime !important; }
-    body.theme-brutal .shadow-\[0_0_15px_rgba\(176\,38\,255\,0\.4\)\] { @apply shadow-[4px_4px_0px_#ccff00] !important; }
-    body.theme-brutal .shadow-\[0_0_12px_\#b026ff\] { @apply shadow-[4px_4px_0px_#ccff00] !important; }
-    body.theme-brutal .bg-glow { @apply hidden !important; }
+    body.theme-brutal .neon-text { color: #ccff00 !important; text-shadow: none !important; }
+    body.theme-brutal .text-neonViolet { color: #ccff00 !important; }
+    body.theme-brutal .bg-neonViolet { background: #ccff00 !important; color: #111111 !important; }
+    body.theme-brutal .border-neonViolet { border-color: #ccff00 !important; }
+    body.theme-brutal .shadow-\[0_0_15px_rgba\(176\,38\,255\,0\.4\)\] { box-shadow: 4px 4px 0px #ccff00 !important; }
+    body.theme-brutal .shadow-\[0_0_12px_\#b026ff\] { box-shadow: 4px 4px 0px #ccff00 !important; }
+    body.theme-brutal .bg-glow { display: none !important; }
 
     @media (max-width: 640px) {
         body.theme-brutal .glass-panel {
-            @apply border-2 p-4 !important;
+            border-width: 2px !important;
+            padding: 1rem !important;
             box-shadow: 0 0 0 3px #ccff00, 4px 4px 0 #ccff00 !important;
         }
         body.theme-brutal .profile-hero {
@@ -95,17 +100,25 @@
 
     @layer components {
         .glass-panel {
-            @apply bg-glassBg border border-glassBorder backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(18px);
+            border-radius: 1rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 300ms;
             max-width: 100%;
         }
         .glass-panel:hover {
-            @apply border-white/20 bg-white/[0.05];
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
         }
         .neon-text {
-            @apply text-neonViolet drop-shadow-[0_0_12px_rgba(176,38,255,0.6)];
+            color: #b026ff;
+            text-shadow: 0 0 12px rgba(176, 38, 255, 0.6);
         }
         .neon-border {
-            @apply border-neonViolet shadow-[0_0_15px_rgba(176,38,255,0.4)];
+            border-color: #b026ff;
+            box-shadow: 0 0 15px rgba(176, 38, 255, 0.4);
         }
         .custom-scrollbar::-webkit-scrollbar {
             height: 6px;
