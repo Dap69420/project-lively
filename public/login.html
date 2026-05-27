@@ -47,56 +47,104 @@
     <style type="text/tailwindcss">
     @layer base {
         body {
-            @apply font-sans antialiased min-h-screen flex flex-col;
+            font-family: "Space Grotesk", sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         body.theme-brutal {
-            @apply bg-dark text-white;
+            background: #111111;
+            color: #ffffff;
             background-image: radial-gradient(circle at 50% 50%, #2a2a2a 1px, transparent 1px) !important;
             background-size: 24px 24px !important;
         }
         body.theme-glass {
-            @apply bg-darkBg text-white;
+            background: #0a0a0f;
+            color: #ffffff;
             background-image: none !important;
         }
         h1, h2, h3, h4, h5, h6 {
-            @apply font-bold uppercase tracking-tight;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
         }
     }
     
     /* Cross-Theme Overrides */
     body.theme-glass .brutal-card {
-        @apply bg-glassBg border border-glassBorder backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] !important;
+        background: rgba(255,255,255,0.03) !important;
+        border: 1px solid rgba(255,255,255,0.08) !important;
+        backdrop-filter: blur(18px);
+        border-radius: 1rem !important;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
     }
     body.theme-glass .brutal-btn-lime {
-        @apply bg-neonViolet text-white border border-white/20 rounded-lg shadow-[0_0_15px_rgba(176,38,255,0.4)] px-6 py-3 transition-all hover:bg-white/10 hover:translate-x-0 hover:translate-y-0 !important;
+        background: #b026ff !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255,255,255,0.2) !important;
+        border-radius: 0.5rem !important;
+        box-shadow: 0 0 15px rgba(176,38,255,0.4) !important;
+        padding: 0.75rem 1.5rem !important;
     }
     body.theme-glass .brutal-input {
-        @apply bg-white/5 border border-white/20 text-white rounded-lg focus:border-neonViolet focus:shadow-[0_0_15px_rgba(176,38,255,0.4)] !important;
+        background: rgba(255,255,255,0.05) !important;
+        border: 1px solid rgba(255,255,255,0.2) !important;
+        color: #ffffff !important;
+        border-radius: 0.5rem !important;
     }
-    body.theme-glass .text-lime { @apply text-neonViolet !important; }
-    body.theme-glass .bg-lime { @apply bg-neonViolet/20 border-neonViolet text-neonViolet !important; }
-    body.theme-glass .border-4 { @apply border border-white/10 !important; }
+    body.theme-glass .text-lime { color: #b026ff !important; }
+    body.theme-glass .bg-lime { background: rgba(176,38,255,0.2) !important; border-color: #b026ff !important; color: #b026ff !important; }
+    body.theme-glass .border-4 { border-color: rgba(255,255,255,0.1) !important; }
     
     /* Brutal specific overrides for glass components */
     body.theme-brutal .glass-panel {
-        @apply bg-dark border-4 border-white p-6 shadow-[8px_8px_0px_#ccff00] rounded-none backdrop-blur-none !important;
+        background: #111111 !important;
+        border: 4px solid #ffffff !important;
+        padding: 1.5rem !important;
+        box-shadow: 8px 8px 0px #ccff00 !important;
+        border-radius: 0 !important;
+        backdrop-filter: none !important;
     }
     body.theme-brutal .bg-glow {
-        @apply hidden !important;
+        display: none !important;
     }
 
     @layer components {
         .brutal-card {
-            @apply bg-dark border-4 border-white p-6 shadow-[8px_8px_0px_#ccff00] rounded-none relative overflow-hidden transition-all duration-300;
+            background: #111111;
+            border: 4px solid #ffffff;
+            padding: 1.5rem;
+            box-shadow: 8px 8px 0px #ccff00;
+            border-radius: 0;
+            position: relative;
+            overflow: hidden;
+            transition: all 300ms ease;
         }
         .brutal-card-pink {
-            @apply shadow-[8px_8px_0px_#ff00ff] border-lime;
+            box-shadow: 8px 8px 0px #ff00ff;
+            border-color: #ccff00;
         }
         .brutal-btn-lime {
-            @apply bg-lime text-black font-bold uppercase border-4 border-black px-6 py-3 shadow-[6px_6px_0px_#ff00ff] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_#ff00ff] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none transition-all;
+            background: #ccff00;
+            color: #000000;
+            font-weight: 700;
+            text-transform: uppercase;
+            border: 4px solid #000000;
+            padding: 0.75rem 1.5rem;
+            box-shadow: 6px 6px 0px #ff00ff;
+            transition: all 150ms ease;
         }
         .brutal-input {
-            @apply w-full bg-white text-black font-mono font-bold border-4 border-black px-4 py-3 focus:outline-none focus:border-hotpink focus:shadow-[4px_4px_0px_#ccff00] transition-all;
+            width: 100%;
+            background: #ffffff;
+            color: #000000;
+            font-family: "Space Mono", monospace;
+            font-weight: 700;
+            border: 4px solid #000000;
+            padding: 0.75rem 1rem;
+            transition: all 150ms ease;
         }
     }
 
@@ -116,7 +164,12 @@
 
     @layer components {
         .glass-panel {
-            @apply bg-glassBg border border-glassBorder backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            backdrop-filter: blur(18px);
+            border-radius: 1rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            transition: all 300ms;
         }
     }
     </style>

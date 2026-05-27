@@ -50,7 +50,12 @@
 
         @layer components {
             .glass-panel {
-                @apply bg-glassBg border border-glassBorder backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300;
+                background: rgba(255,255,255,0.03);
+                border: 1px solid rgba(255,255,255,0.08);
+                backdrop-filter: blur(18px);
+                border-radius: 1rem;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                transition: all 300ms;
             }
         }
 

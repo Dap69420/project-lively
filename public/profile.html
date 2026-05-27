@@ -55,13 +55,19 @@
             overflow-x: hidden;
         }
         body {
-            @apply font-sans antialiased overflow-x-hidden min-h-screen;
+            font-family: "Inter", sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+            min-height: 100vh;
         }
         body.theme-glass {
-            @apply bg-darkBg text-white;
+            background: #0a0a0f;
+            color: #ffffff;
         }
         body.theme-brutal {
-            @apply bg-dark text-white;
+            background: #111111;
+            color: #ffffff;
             background-image: radial-gradient(circle at 50% 50%, #2a2a2a 1px, transparent 1px) !important;
             background-size: 24px 24px !important;
         }
@@ -135,7 +141,13 @@
             background: rgba(176, 38, 255, 0.8); 
         }
         .field {
-            @apply w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-neonViolet;
+            width: 100%;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.3);
+            padding: 0.75rem 1rem;
+            color: #ffffff;
+            outline: none;
         }
     }
 
