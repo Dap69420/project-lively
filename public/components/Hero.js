@@ -1,8 +1,8 @@
 const HERO_TAGLINES = [
-  'LEARNING FEELS LIKE A POWER-UP.',
-  'TURN HOMEWORK INTO A QUEST.',
-  'STUDY SMARTER. LEVEL FASTER.',
-  'BUILT TO MAKE SCHOOL FEEL LESS BORING.'
+  'MAKE LEARNING FUN.',
+  'TURN HOMEWORK INTO WINS.',
+  'STUDY SMARTER.',
+  'BUILD BETTER HABITS.'
 ];
 
 function Hero() {
@@ -67,7 +67,7 @@ function Hero() {
     const secondaryText = isDashboardUser ? 'OPEN DASHBOARD' : 'OPEN PROFILE';
 
     return (
-      <section className="w-full max-w-6xl mx-auto px-6 py-20 md:py-32 flex flex-col lg:flex-row items-center gap-12" data-name="hero" data-file="components/Hero.js">
+      <section className="w-full max-w-6xl mx-auto px-6 py-14 md:py-20 flex flex-col lg:flex-row items-center gap-12" data-name="hero" data-file="components/Hero.js">
         
         <div className="flex-1 space-y-8 relative z-10">
           <div className="inline-block brutal-badge bg-hotpink text-white border-white shadow-[4px_4px_0px_#ccff00] mb-4">
@@ -76,9 +76,9 @@ function Hero() {
             </span>
           </div>
           
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.9] text-white" style={{ textShadow: '4px 4px 0px #ff00ff' }}>
-            VEKTRA MAKES
-            <span className="relative mt-1 block h-[3.15em] md:h-[3.25em] lg:h-[2.75em] overflow-hidden">
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.88] text-white" style={{ textShadow: '4px 4px 0px #ff00ff' }}>
+            VEKTRA
+            <span className="relative mt-2 block h-[1.05em] overflow-hidden whitespace-nowrap text-[clamp(1.85rem,4.4vw,4rem)] md:text-[clamp(2rem,3.6vw,4.75rem)] leading-none">
               <span className="absolute inset-0 text-lime" style={{ textShadow: '4px 4px 0px #111111, 6px 6px 0px #ff00ff' }}>
                 {reducedMotion ? HERO_TAGLINES[0] : `${taglineText}${isDeleting ? '' : '|'}`}
               </span>
@@ -101,7 +101,7 @@ function Hero() {
           </div>
         </div>
 
-        <div className="flex-1 w-full max-w-md relative mt-12 lg:mt-0">
+        <div className="flex-1 w-full max-w-md relative mt-6 lg:mt-0">
           {/* Abstract graphic replacing an image */}
           <div className="aspect-square bg-dark border-8 border-lime shadow-[16px_16px_0px_#ff00ff] relative overflow-hidden group hover:scale-105 transition-transform duration-500">
             <div className="absolute inset-0 flex items-center justify-center">
