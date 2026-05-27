@@ -3,7 +3,7 @@ function ThemeToggle() {
     const getPageName = () => (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
     const lockedThemePages = ['admin', 'admin.html', 'download', 'download.html'];
     const isThemeLocked = () => lockedThemePages.includes(getPageName());
-    const getDefaultTheme = () => 'neon';
+    const getDefaultTheme = () => 'brutal';
     const getInitialTheme = () => {
       if (isThemeLocked()) return 'glass';
       const storedTheme = localStorage.getItem('lively-theme');
@@ -227,29 +227,28 @@ function ThemeToggle() {
             min-height: unset;
           }
         `}</style>
-        {/* Bottom Settings Button */}
-        <button 
+        {/* Floating Gear Button (old style) */}
+        <button
           onClick={() => setIsOpen(true)}
           data-settings-toggle="true"
-          className={`fixed bottom-4 left-4 z-[9990] flex items-center justify-center w-11 h-11 rounded-lg transition-all duration-300
-            ${theme === 'brutal' 
-              ? 'bg-black text-lime border-2 border-white shadow-[4px_4px_0px_#ff00ff] hover:translate-x-[-1px] hover:translate-y-[-1px]' 
-              : 'bg-glassBg text-neonViolet border border-white/20 backdrop-blur-xl shadow-[0_0_20px_rgba(176,38,255,0.25)] hover:bg-white/10'
-            }`}
           title="Global Settings"
-          aria-label="Open settings"
+          className={`fixed bottom-6 right-6 z-[9990] flex items-center justify-center w-14 h-14 rounded-full transition-all duration-500 hover:rotate-90
+            ${theme === 'brutal'
+              ? 'bg-black text-lime border-4 border-white shadow-[4px_4px_0px_#ff00ff] hover:shadow-[2px_2px_0px_#ff00ff]'
+              : 'bg-glassBg text-neonViolet border border-white/20 backdrop-blur-xl shadow-[0_0_20px_rgba(176,38,255,0.4)] hover:bg-white/10 hover:scale-110'
+            }`}
         >
-          <div className="icon-menu text-2xl"></div>
+          <div className="icon-settings text-2xl"></div>
         </button>
 
-        {/* Settings Sidebar */}
+        {/* Settings Modal (centered, old animation) */}
         {isOpen && (
-          <div className="fixed inset-0 z-[9999] flex justify-end bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setIsOpen(false)}>
-            <div 
-              className={`h-full w-full max-w-sm p-6 relative overflow-y-auto custom-scrollbar animate-[slide-in-right_0.22s_ease-out]
-                ${theme === 'brutal' 
-                  ? 'bg-dark border-l-4 border-white shadow-[-8px_0px_0px_#ccff00] rounded-none' 
-                  : 'bg-darkBg/95 border-l border-glassBorder backdrop-blur-2xl shadow-[0_16px_40px_rgba(0,0,0,0.5)]'
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setIsOpen(false)}>
+            <div
+              className={`w-full max-w-sm p-6 relative animate-[scale-in_0.2s_ease-out]
+                ${theme === 'brutal'
+                  ? 'bg-dark border-4 border-white shadow-[8px_8px_0px_#ccff00] rounded-none'
+                  : 'bg-glassBg border border-glassBorder backdrop-blur-2xl shadow-[0_16px_40px_rgba(0,0,0,0.5)] rounded-2xl'
                 }`}
               onClick={(e) => e.stopPropagation()}
             >
