@@ -69,7 +69,11 @@
     
     /* Cross-Theme Overrides */
     body.theme-brutal .glass-panel {
-        @apply bg-dark border-4 border-white p-6 shadow-[8px_8px_0px_#ccff00] rounded-none backdrop-blur-none !important;
+        @apply bg-dark border-4 border-white p-6 rounded-none backdrop-blur-none !important;
+        box-shadow: 0 0 0 4px #ccff00, 8px 8px 0 #ccff00 !important;
+    }
+    body.theme-brutal .profile-hero {
+        box-shadow: 0 0 0 4px #ccff00, 8px 8px 0 #ccff00 !important;
     }
     body.theme-brutal .neon-text { @apply text-lime drop-shadow-none !important; }
     body.theme-brutal .text-neonViolet { @apply text-lime !important; }
@@ -81,10 +85,11 @@
 
     @media (max-width: 640px) {
         body.theme-brutal .glass-panel {
-            @apply border-2 p-4 shadow-[4px_4px_0px_#ccff00] !important;
+            @apply border-2 p-4 !important;
+            box-shadow: 0 0 0 3px #ccff00, 4px 4px 0 #ccff00 !important;
         }
         body.theme-brutal .profile-hero {
-            @apply shadow-[3px_3px_0px_#ccff00] !important;
+            box-shadow: 0 0 0 3px #ccff00, 4px 4px 0 #ccff00 !important;
         }
     }
 

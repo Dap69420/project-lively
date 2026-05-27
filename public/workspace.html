@@ -84,6 +84,42 @@
         @apply hidden !important;
     }
 
+    body.theme-brutal [data-name="workspace-header"],
+    body.theme-brutal [data-name="sidebar"],
+    body.theme-brutal [data-name="mission-card"],
+    body.theme-brutal [data-name="ai-chat"] {
+        @apply bg-discordDarker border-white !important;
+        border-width: 2px !important;
+        box-shadow: 0 0 0 4px #ccff00, 8px 8px 0 #ccff00 !important;
+    }
+
+    body.theme-brutal [data-name="workspace-header"] .bg-discordDarkest,
+    body.theme-brutal [data-name="sidebar"] .bg-discordDarkest,
+    body.theme-brutal [data-name="mission-card"] .bg-discordDarkest,
+    body.theme-brutal [data-name="ai-chat"] .bg-discordDarkest {
+        background: #101010 !important;
+    }
+
+    body.theme-brutal [data-name="mission-card"] .comic-card {
+        box-shadow: 0 0 0 4px #ccff00, 8px 8px 0 #111 !important;
+    }
+
+    body.theme-brutal [data-name="mission-card"] .mission-banner {
+        background: #55ff55 !important;
+        color: #111 !important;
+    }
+
+    body.theme-brutal [data-name="mission-card"] .mission-objectives {
+        border-color: #111 !important;
+        background: #d9d9d9 !important;
+    }
+
+    body.theme-brutal [data-name="ai-chat"] .border-gray-700,
+    body.theme-brutal [data-name="ai-chat"] .border-black\/20,
+    body.theme-brutal [data-name="sidebar"] .border-black\/20 {
+        border-color: #ccff00 !important;
+    }
+
     @layer components {
         .panel {
             @apply bg-discordDarker rounded-xl border border-gray-700/50 shadow-lg overflow-hidden flex flex-col;
@@ -94,36 +130,6 @@
         .comic-card {
             @apply bg-white text-black rounded-lg border-4 border-black p-4 relative overflow-hidden;
             box-shadow: 4px 4px 0px 0px rgba(0,0,0,1);
-        }
-        .mission-comic-card {
-            background: var(--mission-card-bg) !important;
-            color: var(--mission-card-ink) !important;
-            border-color: var(--mission-card-border) !important;
-        }
-        body.theme-glass .comic-card.mission-comic-card,
-        body.theme-brutal .comic-card.mission-comic-card {
-            background: var(--mission-card-bg) !important;
-            color: var(--mission-card-ink) !important;
-            border-color: var(--mission-card-border) !important;
-        }
-        .mission-ink {
-            color: var(--mission-card-ink) !important;
-        }
-        .mission-banner,
-        .mission-highlight {
-            background: var(--mission-accent-bg) !important;
-            color: var(--mission-accent-ink) !important;
-        }
-        .mission-banner {
-            border-bottom-color: var(--mission-card-border) !important;
-        }
-        .mission-accent-bar {
-            background: var(--mission-accent-bg) !important;
-        }
-        .mission-objectives {
-            background: color-mix(in srgb, var(--mission-card-bg) 88%, var(--mission-card-ink) 12%) !important;
-            border-color: var(--mission-card-border) !important;
-            color: var(--mission-card-ink) !important;
         }
         .custom-scrollbar::-webkit-scrollbar {
             width: 8px;
@@ -159,18 +165,6 @@
     @keyframes scale-in {
         from { transform: scale(0.95); opacity: 0; }
         to { transform: scale(1); opacity: 1; }
-    }
-    @keyframes slide-in-right {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    @keyframes objective-pop {
-        0% { transform: scale(0.96); background: rgba(85, 255, 85, 0); }
-        35% { transform: scale(1.04); background: rgba(85, 255, 85, 0.35); }
-        100% { transform: scale(1); background: rgba(85, 255, 85, 0); }
-    }
-    .animate-objective-pop {
-        animation: objective-pop 900ms ease-out;
     }
     </style>
 </head>
