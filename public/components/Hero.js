@@ -1,7 +1,18 @@
+const HERO_TAGLINES = [
+  'LEARNING FEELS LIKE A POWER-UP.',
+  'TURN HOMEWORK INTO A QUEST.',
+  'STUDY SMARTER. LEVEL FASTER.'
+];
+
 function Hero() {
   try {
     const progress = window.LivelyProgress?.useProgress ? window.LivelyProgress.useProgress() : {};
     const [user, setUser] = React.useState(null);
+    const reducedMotion = typeof document !== 'undefined' && document.body.classList.contains('animations-reduced');
+    const [taglineIndex, setTaglineIndex] = React.useState(0);
+    const [taglineText, setTaglineText] = React.useState(reducedMotion ? HERO_TAGLINES[0] : '');
+    const [isDeleting, setIsDeleting] = React.useState(false);
+    const [isPaused, setIsPaused] = React.useState(reducedMotion);
 
     React.useEffect(() => {
       if (!window.supabaseClient) return;
@@ -13,6 +24,39 @@ function Hero() {
       });
       return () => subscription.unsubscribe();
     }, []);
+
+    React.useEffect(() => {
+      if (reducedMotion) return undefined;
+
+      const activeText = HERO_TAGLINES[taglineIndex] || HERO_TAGLINES[0];
+      let timeoutId;
+
+      if (isPaused) {
+        timeoutId = window.setTimeout(() => {
+          setIsPaused(false);
+          setIsDeleting(true);
+        }, 1100);
+      } else if (!isDeleting && taglineText.length < activeText.length) {
+        timeoutId = window.setTimeout(() => {
+          setTaglineText(activeText.slice(0, taglineText.length + 1));
+        }, taglineText.length < 4 ? 90 : 55);
+      } else if (!isDeleting && taglineText.length === activeText.length) {
+        timeoutId = window.setTimeout(() => {
+          setIsPaused(true);
+        }, 1300);
+      } else if (isDeleting && taglineText.length > 0) {
+        timeoutId = window.setTimeout(() => {
+          setTaglineText(activeText.slice(0, taglineText.length - 1));
+        }, 28);
+      } else if (isDeleting && taglineText.length === 0) {
+        timeoutId = window.setTimeout(() => {
+          setIsDeleting(false);
+          setTaglineIndex((current) => (current + 1) % HERO_TAGLINES.length);
+        }, 240);
+      }
+
+      return () => window.clearTimeout(timeoutId);
+    }, [reducedMotion, isDeleting, isPaused, taglineIndex, taglineText]);
 
     const isSignedIn = Boolean(user);
     const userType = String(user?.user_metadata?.userType || 'student').toLowerCase();
@@ -32,8 +76,11 @@ function Hero() {
           </div>
           
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.9] text-white" style={{ textShadow: '4px 4px 0px #ff00ff' }}>
-            SCHOOL IS <br/><span className="text-lime" style={{ textShadow: '4px 4px 0px #111111, 6px 6px 0px #ff00ff' }}>BORING.</span><br/>
-            LEARNING<br/> SHOULDN'T BE.
+            VEKTRA MAKES <br/>
+            <span className="text-lime inline-block min-h-[1.1em]" style={{ textShadow: '4px 4px 0px #111111, 6px 6px 0px #ff00ff' }}>
+              {reducedMotion ? HERO_TAGLINES[0] : `${taglineText}${isDeleting ? '' : '|'}`}
+            </span><br/>
+            FEEL LIKE A <br/>POWER-UP.
           </h1>
           
           <p className="text-xl md:text-2xl font-mono text-gray-300 max-w-xl border-l-4 border-lime pl-4">
