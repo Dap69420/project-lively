@@ -85,11 +85,11 @@ function Hero() {
             </span>
           </h1>
           
-          <p className="text-xl md:text-2xl font-mono text-gray-300 max-w-xl border-l-4 border-lime pl-4 mt-8 md:mt-10">
+          <p className="text-xl md:text-2xl font-mono text-gray-300 max-w-xl border-l-4 border-lime pl-4 mt-12 md:mt-14">
             Meet the first AI that doesn't just grade you—<span className="text-white font-bold bg-hotpink px-1 selection:bg-lime selection:text-black">it studies with you.</span>
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-6 pt-8 md:pt-10">
+          <div className="flex flex-col sm:flex-row gap-6 pt-10 md:pt-12">
             <a href={primaryHref} className="brutal-btn-lime flex items-center justify-center gap-2 text-lg no-underline inline-flex">
               {primaryText} <div className="icon-arrow-right"></div>
             </a>
@@ -101,7 +101,7 @@ function Hero() {
           </div>
         </div>
 
-        <div className="flex-1 w-full max-w-md relative mt-12 lg:mt-20">
+        <div className="flex-1 w-full max-w-md relative mt-16 lg:mt-24">
           {/* Abstract graphic replacing an image */}
           <div className="aspect-square bg-dark border-8 border-lime shadow-[16px_16px_0px_#ff00ff] relative overflow-hidden group hover:scale-105 transition-transform duration-500">
             <div className="absolute inset-0 flex items-center justify-center">
