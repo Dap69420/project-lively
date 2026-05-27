@@ -265,6 +265,10 @@ body.theme-brutal [data-name="workspace-app"] .border-black\/20 {
     border-color: #ffffff !important;
 }
 
+body.theme-brutal [data-name="workspace-app"] [class*="shadow-"]:not(.shadow-none) {
+    box-shadow: 6px 6px 0 #ccff00 !important;
+}
+
 body.theme-brutal .panel {
     background: #101010 !important;
     border: 3px solid #ffffff !important;
