@@ -1,7 +1,8 @@
 const HERO_TAGLINES = [
   'LEARNING FEELS LIKE A POWER-UP.',
   'TURN HOMEWORK INTO A QUEST.',
-  'STUDY SMARTER. LEVEL FASTER.'
+  'STUDY SMARTER. LEVEL FASTER.',
+  'BUILT TO MAKE SCHOOL FEEL LESS BORING.'
 ];
 
 function Hero() {
@@ -10,7 +11,7 @@ function Hero() {
     const [user, setUser] = React.useState(null);
     const reducedMotion = typeof document !== 'undefined' && document.body.classList.contains('animations-reduced');
     const [taglineIndex, setTaglineIndex] = React.useState(0);
-    const [taglineText, setTaglineText] = React.useState(reducedMotion ? HERO_TAGLINES[0] : '');
+    const [taglineText, setTaglineText] = React.useState(HERO_TAGLINES[0]);
     const [isDeleting, setIsDeleting] = React.useState(false);
     const [isPaused, setIsPaused] = React.useState(reducedMotion);
 
@@ -76,11 +77,11 @@ function Hero() {
           </div>
           
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.9] text-white" style={{ textShadow: '4px 4px 0px #ff00ff' }}>
-            VEKTRA MAKES <br/>
+            VEKTRA MAKES<br/>
             <span className="text-lime inline-block min-h-[1.1em]" style={{ textShadow: '4px 4px 0px #111111, 6px 6px 0px #ff00ff' }}>
               {reducedMotion ? HERO_TAGLINES[0] : `${taglineText}${isDeleting ? '' : '|'}`}
             </span><br/>
-            FEEL LIKE A <br/>POWER-UP.
+            STUDYING FEEL FAST.
           </h1>
           
           <p className="text-xl md:text-2xl font-mono text-gray-300 max-w-xl border-l-4 border-lime pl-4">
@@ -99,7 +100,7 @@ function Hero() {
           </div>
         </div>
 
-        <div className="flex-1 w-full max-w-md relative mt-12 lg:mt-0 animate-float">
+        <div className="flex-1 w-full max-w-md relative mt-12 lg:mt-0">
           {/* Abstract graphic replacing an image */}
           <div className="aspect-square bg-dark border-8 border-lime shadow-[16px_16px_0px_#ff00ff] relative overflow-hidden group hover:scale-105 transition-transform duration-500">
             <div className="absolute inset-0 flex items-center justify-center">
