@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="assets/vektra-logo-bg.png">
-    <title>Vektra - Founder's Lab</title>
-    <meta name="description" content="Built from the ground up, under the radar. Support Vektra.">
+    <title>Project Lively - Founder's Lab</title>
+    <meta name="description" content="Built from the ground up, under the radar. Support Project Lively.">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,8 +15,6 @@
     <script src="https://resource.trickle.so/vendor_lib/unpkg/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://resource.trickle.so/vendor_lib/unpkg/lucide-static@0.516.0/font/lucide.css" rel="stylesheet">
-    <link rel="stylesheet" href="theme-global.css">
-    <script src="theme-bootstrap.js" defer></script>
 
     <script>
         tailwind.config = {
@@ -45,45 +42,28 @@
     <style type="text/tailwindcss">
     @layer base {
         body {
-            font-family: "Space Grotesk", sans-serif;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+            @apply font-sans antialiased min-h-screen flex flex-col;
         }
         body.theme-brutal {
-            background: #111111;
-            color: #ffffff;
+            @apply bg-dark text-white;
         }
         body.theme-glass {
-            background: #0a0a0f;
-            color: #ffffff;
+            @apply bg-darkBg text-white;
         }
         h1, h2, h3, h4, h5, h6 {
-            font-weight: 700;
-            letter-spacing: -0.02em;
+            @apply font-bold tracking-tight;
         }
     }
     
     /* Cross-Theme Overrides */
     body.theme-glass .brutal-card {
-        background: rgba(255,255,255,0.03) !important;
-        border: 1px solid rgba(255,255,255,0.08) !important;
-        backdrop-filter: blur(18px);
-        border-radius: 1rem !important;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+        @apply bg-glassBg border border-glassBorder backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] !important;
     }
     body.theme-glass .brutal-btn-lime {
-        background: #b026ff !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(255,255,255,0.2) !important;
-        border-radius: 0.5rem !important;
-        box-shadow: 0 0 15px rgba(176,38,255,0.4) !important;
-        padding: 0.75rem 1.5rem !important;
+        @apply bg-neonViolet text-white border border-white/20 rounded-lg shadow-[0_0_15px_rgba(176,38,255,0.4)] px-6 py-3 transition-all hover:bg-white/10 hover:translate-x-0 hover:translate-y-0 !important;
     }
-    body.theme-glass .text-lime { color: #b026ff !important; }
-    body.theme-glass .border-4 { border-color: rgba(255,255,255,0.1) !important; }
+    body.theme-glass .text-lime { @apply text-neonViolet !important; }
+    body.theme-glass .border-4 { @apply border border-white/10 !important; }
     body.theme-glass .circuit-bg {
         background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23b026ff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
     }
@@ -93,37 +73,18 @@
     }
 
     body.theme-brutal .glass-panel {
-        background: #111111 !important;
-        border: 4px solid #ffffff !important;
-        padding: 1.5rem !important;
-        box-shadow: 8px 8px 0px #ccff00 !important;
-        border-radius: 0 !important;
-        backdrop-filter: none !important;
+        @apply bg-dark border-4 border-white p-6 shadow-[8px_8px_0px_#ccff00] rounded-none backdrop-blur-none !important;
     }
     body.theme-brutal .bg-glow {
-        display: none !important;
+        @apply hidden !important;
     }
 
     @layer components {
         .brutal-card {
-            background: #111111;
-            border: 4px solid #ffffff;
-            padding: 1.5rem;
-            box-shadow: 8px 8px 0px #ccff00;
-            border-radius: 0;
-            position: relative;
-            overflow: hidden;
-            transition: all 300ms ease;
+            @apply bg-dark border-4 border-white p-6 shadow-[8px_8px_0px_#ccff00] rounded-none relative overflow-hidden transition-all duration-300;
         }
         .brutal-btn-lime {
-            background: #ccff00;
-            color: #000000;
-            font-weight: 700;
-            text-transform: uppercase;
-            border: 4px solid #000000;
-            padding: 0.75rem 1.5rem;
-            box-shadow: 6px 6px 0px #ff00ff;
-            transition: all 150ms ease;
+            @apply bg-lime text-black font-bold uppercase border-4 border-black px-6 py-3 shadow-[6px_6px_0px_#ff00ff] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_#ff00ff] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none transition-all;
         }
     }
 

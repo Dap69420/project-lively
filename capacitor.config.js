@@ -1,8 +1,8 @@
-const liveUrl = process.env.CAPACITOR_SERVER_URL || 'https://vektra.games';
+const liveUrl = process.env.CAPACITOR_SERVER_URL || '';
 
 module.exports = {
-  appId: 'com.dapmedia.vektra',
-  appName: 'Vektra',
+  appId: 'com.buddyai.lively',
+  appName: 'Project Lively',
   webDir: 'public',
   bundledWebRuntime: false,
   server: Object.assign(

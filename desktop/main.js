@@ -1,20 +1,16 @@
 const { app, BrowserWindow, shell } = require('electron');
 
-const APP_URL = 'https://vektra.games/login.html?desktop=1';
+const APP_URL = 'https://project-lively.vercel.app/login.html?desktop=1';
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1360,
-    height: 860,
-    minWidth: 1040,
-    minHeight: 680,
-    title: 'Vektra',
+    width: 1280,
+    height: 820,
+    minWidth: 980,
+    minHeight: 640,
+    title: 'Project Lively',
     autoHideMenuBar: true,
-    show: false,
-    center: true,
-    backgroundColor: '#05070d',
-    backgroundMaterial: 'mica',
-    darkTheme: true,
+    backgroundColor: '#0a0a0f',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
@@ -22,12 +18,9 @@ function createWindow() {
   });
 
   win.loadURL(APP_URL);
-  win.once('ready-to-show', () => {
-    win.show();
-  });
 
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('https://vektra.games')) {
+    if (url.startsWith('https://project-lively.vercel.app')) {
       return { action: 'allow' };
     }
     shell.openExternal(url);

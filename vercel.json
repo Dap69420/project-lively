@@ -4,12 +4,12 @@
   "redirects": [
     {
       "source": "/download/android",
-      "destination": "/downloads/Vektra.apk",
+      "destination": "/downloads/project-lively.apk",
       "permanent": false
     },
     {
       "source": "/download/windows",
-      "destination": "https://github.com/Dap69420/Vektra/releases/download/Release/Vektra.Setup.1.0.2.exe",
+      "destination": "https://github.com/Dap69420/project-lively/releases/download/Installer/Project.Lively.Setup.1.0.0.exe",
       "permanent": false
     },
     {

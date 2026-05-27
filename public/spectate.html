@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="assets/vektra-logo-bg.png">
-    <title>Vektra - Parent Spectate</title>
+  <title>Project Lively - Parent Spectate</title>
   <script src="https://resource.trickle.so/vendor_lib/unpkg/react@18/umd/react.production.min.js"></script>
   <script src="https://resource.trickle.so/vendor_lib/unpkg/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://resource.trickle.so/vendor_lib/unpkg/@babel/standalone/babel.min.js"></script>
@@ -13,8 +12,6 @@
   <script src="/api/config"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="utils/supabase.js"></script>
-  <link rel="stylesheet" href="theme-global.css">
-  <script src="theme-bootstrap.js" defer></script>
   <script>
     tailwind.config = {
       theme: {
@@ -45,11 +42,6 @@
 </head>
 <body>
   <div id="root"></div>
-  <div id="settings-root"></div>
-  <script type="text/babel" src="components/ThemeToggle.js"></script>
   <script type="text/babel" src="spectate-app.js"></script>
-  <script type="text/babel">
-    ReactDOM.createRoot(document.getElementById('settings-root')).render(<ThemeToggle />);
-  </script>
 </body>
 </html>

@@ -520,7 +520,7 @@ function FamilyRequests({ user }) {
           {requests.map((request) => (
             <div key={request.id} className="rounded-xl border border-white/10 bg-black/20 p-4">
               <p className="text-sm text-gray-300">
-                <span className="font-bold text-white">{request.parent_email || 'A parent account'}</span> wants to view your Vektra progress.
+                <span className="font-bold text-white">{request.parent_email || 'A parent account'}</span> wants to view your Project Lively progress.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button

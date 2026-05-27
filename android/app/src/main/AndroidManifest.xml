@@ -10,7 +10,7 @@
         android:theme="@style/AppTheme">
 
         <meta-data
-            android:name="com.dapmedia.vektra.publisher"
+            android:name="com.projectlively.publisher"
             android:value="@string/publisher_name" />
 
         <activity
@@ -30,7 +30,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="com.dapmedia.vektra" android:host="login" />
+                <data android:scheme="com.buddyai.lively" android:host="login" />
             </intent-filter>
 
         </activity>

@@ -13,7 +13,7 @@ function TheVision() {
         
         <div className="brutal-card group">
           <h3 className="text-2xl uppercase mb-4 text-hotpink flex items-center gap-2">
-            <div className="icon-zap"></div> How Vektra makes AI feel alive
+            <div className="icon-zap"></div> How we make AI lively
           </h3>
           <p className="font-mono text-sm text-gray-300 leading-relaxed">
             We don't feed answers; we prompt questions. The AI is designed to adapt its tone, gauge your frustration, and keep the momentum going like a co-op game mode rather than a pop quiz.

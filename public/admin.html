@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vektra - Admin</title>
+    <title>Project Lively - Admin</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,8 +17,6 @@
     <script src="/api/config"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="utils/supabase.js"></script>
-    <link rel="stylesheet" href="theme-global.css">
-    <script src="theme-bootstrap.js" defer></script>
 
     <script>
         tailwind.config = {
@@ -31,7 +29,7 @@
                         dark: '#111111',
                         darkBg: '#0a0a0f',
                         glassBg: 'rgba(255, 255, 255, 0.03)',
-                        glassBorder: 'rgba(34, 28, 28, 0.08)'
+                        glassBorder: 'rgba(255, 255, 255, 0.08)'
                     },
                     fontFamily: {
                         sans: ['"Space Grotesk"', 'sans-serif'],
@@ -50,12 +48,7 @@
 
         @layer components {
             .glass-panel {
-                background: rgba(255,255,255,0.03);
-                border: 1px solid rgba(255,255,255,0.08);
-                backdrop-filter: blur(18px);
-                border-radius: 1rem;
-                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-                transition: all 300ms;
+                @apply bg-glassBg border border-glassBorder backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300;
             }
         }
 
@@ -64,6 +57,67 @@
             background-image: radial-gradient(circle at 50% 50%, #2a2a2a 1px, transparent 1px) !important;
             background-size: 24px 24px !important;
             color: #ffffff !important;
+        }
+
+        .theme-brutal > .fixed {
+            display: none !important;
+        }
+
+        .theme-brutal .glass-panel {
+            backdrop-filter: none;
+            background: #111111 !important;
+            color: #ffffff !important;
+            border: 4px solid #ffffff !important;
+            border-radius: 0 !important;
+            box-shadow: 8px 8px 0 #ccff00 !important;
+        }
+
+        .theme-brutal input,
+        .theme-brutal select,
+        .theme-brutal textarea {
+            background: #fff !important;
+            color: #111 !important;
+            border: 4px solid #111 !important;
+            border-radius: 0 !important;
+            box-shadow: 4px 4px 0 #ff00ff !important;
+        }
+
+        .theme-brutal input::placeholder,
+        .theme-brutal textarea::placeholder {
+            color: #555 !important;
+        }
+
+        .theme-brutal button {
+            border-radius: 0 !important;
+        }
+
+        .theme-brutal button,
+        .theme-brutal a.bg-neonViolet,
+        .theme-brutal .bg-neonViolet {
+            background: #ccff00 !important;
+            color: #111111 !important;
+            border: 4px solid #111111 !important;
+            box-shadow: 6px 6px 0 #ff00ff !important;
+            text-transform: uppercase;
+        }
+
+        .theme-brutal button.bg-black\/30 {
+            background: #111111 !important;
+            color: #ffffff !important;
+            border-color: #ffffff !important;
+            box-shadow: 4px 4px 0 #ccff00 !important;
+        }
+
+        .theme-brutal button:hover,
+        .theme-brutal a.bg-neonViolet:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 4px 4px 0 #ff00ff !important;
+        }
+
+        .theme-brutal button:active,
+        .theme-brutal a.bg-neonViolet:active {
+            transform: translate(6px, 6px);
+            box-shadow: none !important;
         }
 
         .theme-brutal .bg-darkBg {

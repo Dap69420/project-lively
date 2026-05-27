@@ -26,7 +26,7 @@ function Features() {
         
         <div className="mb-16 text-center">
           <h2 className="text-4xl md:text-5xl font-black text-white inline-block border-b-8 border-hotpink pb-2">
-            THE <span className="text-lime">VEKTRA</span> DIFFERENCE
+            THE <span className="text-lime">LIVELY</span> DIFFERENCE
           </h2>
         </div>
 

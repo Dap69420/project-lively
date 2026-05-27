@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="assets/vektra-logo-bg.png">
-    <title>Vektra - Workspace</title>
+    <title>Project Lively - Workspace</title>
     <meta name="description" content="Your AI Study Partner Workspace">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,8 +20,6 @@
         <script src="utils/progression.js"></script>
     <script src="utils/supabase.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <link rel="stylesheet" href="theme-global.css">
-    <script src="theme-bootstrap.js" defer></script>
 
     <script>
         tailwind.config = {
@@ -54,82 +51,76 @@
     <style type="text/tailwindcss">
     @layer base {
         body {
-            font-family: "Inter", sans-serif;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            overflow: hidden;
-            height: 100vh;
+            @apply font-sans antialiased overflow-hidden h-screen;
         }
         body.theme-brutal {
-            background: #1e1f22;
-            color: #e5e7eb;
+            @apply bg-discordDarkest text-gray-200;
         }
         body.theme-glass {
-            background: #0a0a0f;
-            color: #e5e7eb;
+            @apply bg-darkBg text-gray-200;
         }
     }
     
     /* Cross-Theme Overrides */
-    body.theme-glass .bg-discordDarkest { background: #0a0a0f !important; }
-    body.theme-glass .bg-discordDarker { background: rgba(255, 255, 255, 0.03) !important; backdrop-filter: blur(18px); border-color: rgba(255, 255, 255, 0.08) !important; }
-    body.theme-glass .bg-\[\#313338\] { background: #0a0a0f !important; }
-    body.theme-glass .border-gray-700 { border-color: rgba(255, 255, 255, 0.10) !important; }
-    body.theme-glass .text-mcGreen { color: #b026ff !important; }
-    body.theme-glass .bg-mcGreen { background: #b026ff !important; color: #ffffff !important; }
-    body.theme-glass .text-mcPurple { color: #60a5fa !important; }
-    body.theme-glass .bg-mcPurple { background: #3b82f6 !important; }
+    body.theme-glass .bg-discordDarkest { @apply bg-darkBg !important; }
+    body.theme-glass .bg-discordDarker { @apply bg-glassBg backdrop-blur-xl border-glassBorder !important; }
+    body.theme-glass .bg-\[\#313338\] { @apply bg-darkBg !important; }
+    body.theme-glass .border-gray-700 { @apply border-white/10 !important; }
+    body.theme-glass .text-mcGreen { @apply text-neonViolet !important; }
+    body.theme-glass .bg-mcGreen { @apply bg-neonViolet text-white !important; }
+    body.theme-glass .text-mcPurple { @apply text-blue-400 !important; }
+    body.theme-glass .bg-mcPurple { @apply bg-blue-500 !important; }
     body.theme-glass .comic-card {
-        background: rgba(255, 255, 255, 0.03) !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        backdrop-filter: blur(18px);
-        border-radius: 1rem !important;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
-        color: #ffffff !important;
+        @apply bg-glassBg border border-glassBorder backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] text-white !important;
     }
     
     body.theme-brutal .glass-panel {
-        background: #2b2d31 !important;
-        border: 2px solid #4e5058 !important;
-        border-radius: 0 !important;
-        box-shadow: 8px 8px 0px #ccff00 !important;
-        backdrop-filter: none !important;
+        @apply bg-discordDarker border-2 border-gray-700 rounded-none shadow-[8px_8px_0px_#ccff00] backdrop-blur-none !important;
     }
     body.theme-brutal .bg-glow {
-        display: none !important;
+        @apply hidden !important;
     }
 
     @layer components {
         .panel {
-            border-radius: 0.75rem;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            background: #2b2d31;
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28);
+            @apply bg-discordDarker rounded-xl border border-gray-700/50 shadow-lg overflow-hidden flex flex-col;
         }
         .pixel-btn {
-            font-family: "VT323", monospace;
-            font-size: 1.25rem;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            border-bottom: 4px solid currentColor;
-            transition: all 150ms ease;
-        }
-        .pixel-btn:active {
-            border-bottom-width: 0;
-            transform: translateY(0.25rem);
+            @apply font-pixel text-xl tracking-wider uppercase border-b-4 active:border-b-0 active:translate-y-1 transition-all;
         }
         .comic-card {
-            background: #ffffff;
-            color: #000000;
-            border-radius: 0.5rem;
-            border: 4px solid #000000;
-            padding: 1rem;
-            position: relative;
-            overflow: hidden;
+            @apply bg-white text-black rounded-lg border-4 border-black p-4 relative overflow-hidden;
             box-shadow: 4px 4px 0px 0px rgba(0,0,0,1);
+        }
+        .mission-comic-card {
+            background: var(--mission-card-bg) !important;
+            color: var(--mission-card-ink) !important;
+            border-color: var(--mission-card-border) !important;
+        }
+        body.theme-glass .comic-card.mission-comic-card,
+        body.theme-brutal .comic-card.mission-comic-card {
+            background: var(--mission-card-bg) !important;
+            color: var(--mission-card-ink) !important;
+            border-color: var(--mission-card-border) !important;
+        }
+        .mission-ink {
+            color: var(--mission-card-ink) !important;
+        }
+        .mission-banner,
+        .mission-highlight {
+            background: var(--mission-accent-bg) !important;
+            color: var(--mission-accent-ink) !important;
+        }
+        .mission-banner {
+            border-bottom-color: var(--mission-card-border) !important;
+        }
+        .mission-accent-bar {
+            background: var(--mission-accent-bg) !important;
+        }
+        .mission-objectives {
+            background: color-mix(in srgb, var(--mission-card-bg) 88%, var(--mission-card-ink) 12%) !important;
+            border-color: var(--mission-card-border) !important;
+            color: var(--mission-card-ink) !important;
         }
         .custom-scrollbar::-webkit-scrollbar {
             width: 8px;
@@ -165,6 +156,18 @@
     @keyframes scale-in {
         from { transform: scale(0.95); opacity: 0; }
         to { transform: scale(1); opacity: 1; }
+    }
+    @keyframes slide-in-right {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes objective-pop {
+        0% { transform: scale(0.96); background: rgba(85, 255, 85, 0); }
+        35% { transform: scale(1.04); background: rgba(85, 255, 85, 0.35); }
+        100% { transform: scale(1); background: rgba(85, 255, 85, 0); }
+    }
+    .animate-objective-pop {
+        animation: objective-pop 900ms ease-out;
     }
     </style>
 </head>

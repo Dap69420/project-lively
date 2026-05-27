@@ -18,7 +18,7 @@ function Header() {
               <div className="icon-user text-gray-300"></div>
             </a>
             <h1 className="font-pixel text-3xl text-white tracking-wider flex items-center gap-2 ml-2">
-              <div className="w-4 h-4 bg-mcGreen"></div> VEKTRA_WORKSPACE
+              <div className="w-4 h-4 bg-mcGreen"></div> LIVELY_WORKSPACE
             </h1>
           </div>
           

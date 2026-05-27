@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="assets/vektra-logo-bg.png">
-    <title>Vektra - User Evolution</title>
+    <title>Project Lively - User Evolution</title>
     <meta name="description" content="Track your learning evolution and skills.">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,8 +19,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="utils/progression.js"></script>
     <script src="utils/supabase.js"></script>
-    <link rel="stylesheet" href="theme-global.css">
-    <script src="theme-bootstrap.js" defer></script>
 
     <script>
         tailwind.config = {
@@ -55,19 +52,13 @@
             overflow-x: hidden;
         }
         body {
-            font-family: "Inter", sans-serif;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            overflow-x: hidden;
-            min-height: 100vh;
+            @apply font-sans antialiased overflow-x-hidden min-h-screen;
         }
         body.theme-glass {
-            background: #0a0a0f;
-            color: #ffffff;
+            @apply bg-darkBg text-white;
         }
         body.theme-brutal {
-            background: #111111;
-            color: #ffffff;
+            @apply bg-dark text-white;
             background-image: radial-gradient(circle at 50% 50%, #2a2a2a 1px, transparent 1px) !important;
             background-size: 24px 24px !important;
         }
@@ -75,56 +66,38 @@
     
     /* Cross-Theme Overrides */
     body.theme-brutal .glass-panel {
-        background: #111111 !important;
-        border: 4px solid #ffffff !important;
-        padding: 1.5rem !important;
-        border-radius: 0 !important;
-        backdrop-filter: none !important;
-        box-shadow: 0 0 0 4px #ccff00, 8px 8px 0 #ccff00 !important;
+        @apply bg-dark border-4 border-white p-6 shadow-[8px_8px_0px_#ccff00] rounded-none backdrop-blur-none !important;
     }
-    body.theme-brutal .profile-hero {
-        box-shadow: 0 0 0 4px #ccff00, 8px 8px 0 #ccff00 !important;
-    }
-    body.theme-brutal .neon-text { color: #ccff00 !important; text-shadow: none !important; }
-    body.theme-brutal .text-neonViolet { color: #ccff00 !important; }
-    body.theme-brutal .bg-neonViolet { background: #ccff00 !important; color: #111111 !important; }
-    body.theme-brutal .border-neonViolet { border-color: #ccff00 !important; }
-    body.theme-brutal .shadow-\[0_0_15px_rgba\(176\,38\,255\,0\.4\)\] { box-shadow: 4px 4px 0px #ccff00 !important; }
-    body.theme-brutal .shadow-\[0_0_12px_\#b026ff\] { box-shadow: 4px 4px 0px #ccff00 !important; }
-    body.theme-brutal .bg-glow { display: none !important; }
+    body.theme-brutal .neon-text { @apply text-lime drop-shadow-none !important; }
+    body.theme-brutal .text-neonViolet { @apply text-lime !important; }
+    body.theme-brutal .bg-neonViolet { @apply bg-lime text-black !important; }
+    body.theme-brutal .border-neonViolet { @apply border-lime !important; }
+    body.theme-brutal .shadow-\[0_0_15px_rgba\(176\,38\,255\,0\.4\)\] { @apply shadow-[4px_4px_0px_#ccff00] !important; }
+    body.theme-brutal .shadow-\[0_0_12px_\#b026ff\] { @apply shadow-[4px_4px_0px_#ccff00] !important; }
+    body.theme-brutal .bg-glow { @apply hidden !important; }
 
     @media (max-width: 640px) {
         body.theme-brutal .glass-panel {
-            border-width: 2px !important;
-            padding: 1rem !important;
-            box-shadow: 0 0 0 3px #ccff00, 4px 4px 0 #ccff00 !important;
+            @apply border-2 p-4 shadow-[4px_4px_0px_#ccff00] !important;
         }
         body.theme-brutal .profile-hero {
-            box-shadow: 0 0 0 3px #ccff00, 4px 4px 0 #ccff00 !important;
+            @apply shadow-[3px_3px_0px_#ccff00] !important;
         }
     }
 
     @layer components {
         .glass-panel {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(18px);
-            border-radius: 1rem;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            transition: all 300ms;
+            @apply bg-glassBg border border-glassBorder backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300;
             max-width: 100%;
         }
         .glass-panel:hover {
-            border-color: rgba(255, 255, 255, 0.2);
-            background: rgba(255, 255, 255, 0.05);
+            @apply border-white/20 bg-white/[0.05];
         }
         .neon-text {
-            color: #b026ff;
-            text-shadow: 0 0 12px rgba(176, 38, 255, 0.6);
+            @apply text-neonViolet drop-shadow-[0_0_12px_rgba(176,38,255,0.6)];
         }
         .neon-border {
-            border-color: #b026ff;
-            box-shadow: 0 0 15px rgba(176, 38, 255, 0.4);
+            @apply border-neonViolet shadow-[0_0_15px_rgba(176,38,255,0.4)];
         }
         .custom-scrollbar::-webkit-scrollbar {
             height: 6px;
@@ -141,13 +114,7 @@
             background: rgba(176, 38, 255, 0.8); 
         }
         .field {
-            width: 100%;
-            border-radius: 0.75rem;
-            border: 1px solid rgba(255,255,255,0.1);
-            background: rgba(0,0,0,0.3);
-            padding: 0.75rem 1rem;
-            color: #ffffff;
-            outline: none;
+            @apply w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-neonViolet;
         }
     }
 

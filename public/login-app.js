@@ -40,7 +40,7 @@ function LoginApp() {
     const [currentUser, setCurrentUser] = React.useState(null);
     const [showSetup, setShowSetup] = React.useState(false);
     const [nativeMode, setNativeMode] = React.useState(false);
-    const nativeRedirectUrl = 'com.dapmedia.vektra://login';
+    const nativeRedirectUrl = 'com.buddyai.lively://login';
     const getCapacitorPlugin = (name) => {
       try {
         return window.Capacitor?.Plugins?.[name] || window.Capacitor?.[name] || null;
@@ -201,7 +201,7 @@ function LoginApp() {
           />
         ) : null}
         
-        <div className="flex-grow flex flex-col items-center justify-center p-6 relative overflow-x-hidden" data-name="login-app" data-file="login-app.js">
+        <div className="flex-grow flex flex-col items-center justify-center p-6 relative overflow-hidden" data-name="login-app" data-file="login-app.js">
         
         {/* Background glow effects */}
         <div className="bg-glow fixed top-[-20%] left-[-10%] w-[50%] h-[50%] bg-neonViolet rounded-full mix-blend-screen filter blur-[120px] opacity-20 pointer-events-none z-0"></div>
@@ -212,7 +212,7 @@ function LoginApp() {
         <div className="absolute bottom-10 right-10 text-[10rem] font-black font-mono text-white opacity-5 select-none rotate-12 pointer-events-none">ALT</div>
 
         {!nativeMode ? (
-          <a href="./index.html" onClick={(event) => { event.preventDefault(); window.location.assign('./index.html'); }} className="absolute top-6 left-6 flex items-center gap-2 text-white hover:text-lime transition-colors font-mono font-bold group relative z-10">
+          <a href="index.html" className="absolute top-6 left-6 flex items-center gap-2 text-white hover:text-lime transition-colors font-mono font-bold group relative z-10">
             <div className="icon-arrow-left transform group-hover:-translate-x-1 transition-transform"></div> BACK TO BASE
           </a>
         ) : null}
@@ -220,15 +220,17 @@ function LoginApp() {
         <div className="w-full max-w-md relative z-10">
           {/* Logo Header */}
           <div className="flex items-center justify-center gap-3 mb-8">
-            <img src="assets/vektra-logo-bg.png" alt="Vektra logo" className="w-12 h-12 object-cover rounded-lg border border-white/15 shadow-[0_0_18px_rgba(0,255,213,0.25)]" />
-            <h1 className="text-4xl text-white tracking-tighter">VEKTRA</h1>
+            <div className="w-12 h-12 bg-lime border-4 border-black flex items-center justify-center shadow-[4px_4px_0px_#ff00ff]">
+              <div className="icon-zap text-2xl text-black"></div>
+            </div>
+            <h1 className="text-4xl text-white tracking-tighter">LIVELY</h1>
           </div>
 
           <div className="brutal-card brutal-card-pink bg-black">
             <div className="flex justify-between items-center mb-8 border-b-4 border-white/20 pb-4">
               <div>
                 <h2 className="text-2xl text-lime">{nativeMode ? 'MOBILE ACCESS' : 'ACCESS PORTAL'}</h2>
-                <p className="mt-2 font-mono text-xs uppercase tracking-wider text-gray-400">Use Google to continue with Vektra</p>
+                <p className="mt-2 font-mono text-xs uppercase tracking-wider text-gray-400">Use Google to continue with Project Lively</p>
               </div>
               <div className="h-10 w-10 bg-lime border-2 border-black flex items-center justify-center shadow-[3px_3px_0px_#ff00ff]">
                 <div className="icon-key-round text-black"></div>

@@ -22,7 +22,7 @@ function Hero() {
     const secondaryText = isDashboardUser ? 'OPEN DASHBOARD' : 'OPEN PROFILE';
 
     return (
-      <section className="w-full max-w-6xl mx-auto px-6 py-16 md:py-24 flex flex-col lg:flex-row items-center gap-10" data-name="hero" data-file="components/Hero.js">
+      <section className="w-full max-w-6xl mx-auto px-6 py-20 md:py-32 flex flex-col lg:flex-row items-center gap-12" data-name="hero" data-file="components/Hero.js">
         
         <div className="flex-1 space-y-8 relative z-10">
           <div className="inline-block brutal-badge bg-hotpink text-white border-white shadow-[4px_4px_0px_#ccff00] mb-4">
@@ -31,13 +31,12 @@ function Hero() {
             </span>
           </div>
           
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-black leading-[0.95] text-white" style={{ textShadow: '4px 4px 0px #ff00ff' }}>
-            SCHOOL BUILDS<br/> THE FOUNDATION.<br/>
-            <span className="text-lime" style={{ textShadow: '4px 4px 0px #111111, 6px 6px 0px #ff00ff' }}>WE BUILD</span><br/>
-            THE EXCITEMENT.
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.9] text-white" style={{ textShadow: '4px 4px 0px #ff00ff' }}>
+            SCHOOL IS <br/><span className="text-lime" style={{ textShadow: '4px 4px 0px #111111, 6px 6px 0px #ff00ff' }}>BORING.</span><br/>
+            LEARNING<br/> SHOULDN'T BE.
           </h1>
           
-          <p className="text-lg md:text-xl font-mono text-gray-300 max-w-xl border-l-4 border-lime pl-4">
+          <p className="text-xl md:text-2xl font-mono text-gray-300 max-w-xl border-l-4 border-lime pl-4">
             Meet the first AI that doesn't just grade you—<span className="text-white font-bold bg-hotpink px-1 selection:bg-lime selection:text-black">it studies with you.</span>
           </p>
           
@@ -53,9 +52,9 @@ function Hero() {
           </div>
         </div>
 
-        <div className="flex-1 w-full max-w-sm relative mt-8 lg:mt-0 animate-float">
+        <div className="flex-1 w-full max-w-md relative mt-12 lg:mt-0 animate-float">
           {/* Abstract graphic replacing an image */}
-          <div className="aspect-[4/3] sm:aspect-square bg-dark border-8 border-lime shadow-[12px_12px_0px_#ff00ff] relative overflow-hidden group hover:scale-105 transition-transform duration-500">
+          <div className="aspect-square bg-dark border-8 border-lime shadow-[16px_16px_0px_#ff00ff] relative overflow-hidden group hover:scale-105 transition-transform duration-500">
             <div className="absolute inset-0 flex items-center justify-center">
                <div className="text-[12rem] text-white opacity-20 group-hover:scale-110 transition-transform duration-500 font-mono font-black">AI</div>
             </div>

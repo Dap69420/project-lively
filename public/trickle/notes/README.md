@@ -1,4 +1,4 @@
-# Vektra - Landing Page
+# Project Lively - Landing Page
 
 **Vibe:** Retro-Future / Neubrutalism (Landing & Auth), Discord-Minecraft (Workspace), Glassmorphism Dark Mode (Profile)
 **Target Audience:** Grade 6-9 Students

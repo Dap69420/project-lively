@@ -126,7 +126,7 @@ function WorkspaceApp() {
             
             <div className="flex-1 flex flex-col" style={{ minWidth: 0 }}>
               {/* Tab Navigation */}
-              <div className="workspace-tab-nav flex gap-2 overflow-x-auto p-2 sm:p-3 bg-discordDarker border-b border-gray-700 z-20 custom-scrollbar">
+              <div className="flex gap-2 overflow-x-auto p-2 sm:p-3 bg-discordDarker border-b border-gray-700 z-20 custom-scrollbar">
                 <button
                   onClick={() => setActiveTab('mission')}
                   className={`md:hidden shrink-0 px-3 py-2 rounded font-mono text-xs sm:text-sm font-bold transition-all ${

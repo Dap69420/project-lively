@@ -3,43 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="assets/vektra-logo-bg.png">
-    <title>Vektra Downloads</title>
-  <meta name="description" content="Download Vektra for Windows and Android.">
+  <title>Project Lively Downloads</title>
+  <meta name="description" content="Download Project Lively for Windows and Android.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://resource.trickle.so/vendor_lib/unpkg/react@18/umd/react.production.min.js"></script>
-  <script src="https://resource.trickle.so/vendor_lib/unpkg/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://resource.trickle.so/vendor_lib/unpkg/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://resource.trickle.so/vendor_lib/unpkg/lucide-static@0.516.0/font/lucide.css" rel="stylesheet">
-  <script src="/api/config"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="utils/supabase.js"></script>
-  <link rel="stylesheet" href="theme-global.css">
-  <script src="theme-bootstrap.js" defer></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            neonViolet: '#b026ff',
-            lime: '#ccff00',
-            hotpink: '#ff00ff',
-            dark: '#111111',
-            darkBg: '#0a0a0f',
-            glassBg: 'rgba(255, 255, 255, 0.03)',
-            glassBorder: 'rgba(255, 255, 255, 0.08)'
-          },
-          fontFamily: {
-            sans: ['"Space Grotesk"', 'sans-serif'],
-            mono: ['"Space Mono"', 'monospace']
-          }
-        }
-      }
-    };
-  </script>
   <style>
     :root {
       --lime: #ccff00;
@@ -47,8 +16,6 @@
       --dark: #111111;
       --panel: #171717;
       --muted: #b8b8c8;
-      --cyan: #00ffd5;
-      --yellow: #ffd400;
     }
 
     * { box-sizing: border-box; }
@@ -61,17 +28,6 @@
       background-color: var(--dark);
       background-image: radial-gradient(circle at 50% 50%, #2a2a2a 1px, transparent 1px);
       background-size: 24px 24px;
-    }
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      background:
-        linear-gradient(120deg, rgba(204,255,0,0.08), transparent 34%),
-        radial-gradient(circle at 86% 12%, rgba(255,0,255,0.24), transparent 24rem),
-        radial-gradient(circle at 12% 88%, rgba(0,255,213,0.18), transparent 28rem);
-      animation: aurora 10s ease-in-out infinite alternate;
     }
     a { color: inherit; }
     .page { width: min(1120px, 100%); margin: 0 auto; padding: 20px 16px 52px; }
@@ -104,30 +60,6 @@
       box-shadow: 8px 8px 0 var(--lime);
       padding: clamp(22px, 4vw, 38px);
       overflow: hidden;
-      position: relative;
-    }
-    .hero::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background: linear-gradient(transparent 50%, rgba(255,255,255,0.025) 50%);
-      background-size: 100% 6px;
-      mix-blend-mode: screen;
-    }
-    .hero-shell {
-      position: relative;
-      z-index: 1;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
-      gap: 18px;
-      align-items: center;
-    }
-    .hero-copy {
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
     }
     .eyebrow {
       display: inline-flex;
@@ -145,7 +77,7 @@
       text-transform: uppercase;
     }
     h1 {
-      margin: 0;
+      margin: 22px 0 14px;
       font-size: clamp(44px, 8vw, 86px);
       line-height: 0.92;
       letter-spacing: -0.04em;
@@ -167,28 +99,6 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 18px;
       margin-top: 28px;
-    }
-    .card.featured {
-      border-color: var(--lime);
-      background:
-        linear-gradient(135deg, rgba(204,255,0,0.09), transparent 38%),
-        rgba(0,0,0,0.42);
-      box-shadow: 6px 6px 0 rgba(255,0,255,0.62);
-    }
-    .badges {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin: 14px 0 0;
-    }
-    .badge {
-      border: 1px solid rgba(255,255,255,0.18);
-      background: rgba(255,255,255,0.06);
-      padding: 5px 8px;
-      color: #f2f2ff;
-      font-family: "Space Mono", monospace;
-      font-size: 11px;
-      text-transform: uppercase;
     }
     .card {
       min-width: 0;
@@ -243,28 +153,6 @@
       gap: 18px;
       margin-top: 26px;
     }
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-      margin-top: 26px;
-    }
-    .step {
-      border: 2px solid rgba(255,255,255,0.16);
-      background: rgba(255,255,255,0.04);
-      padding: 16px;
-      font-family: "Space Mono", monospace;
-      font-size: 12px;
-      color: var(--muted);
-    }
-    .step strong {
-      display: block;
-      margin-bottom: 8px;
-      color: white;
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 15px;
-      text-transform: uppercase;
-    }
     .warning {
       border: 2px solid rgba(255, 212, 0, 0.45);
       background: rgba(255, 212, 0, 0.08);
@@ -280,27 +168,13 @@
       font-family: "Space Mono", monospace;
       font-size: 13px;
     }
-    @keyframes aurora {
-      from { opacity: 0.72; transform: translate3d(0, 0, 0); }
-      to { opacity: 1; transform: translate3d(0, -12px, 0); }
-    }
-    @keyframes soft-pop {
-      from { transform: translateY(10px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-    .card, .warning, .step { animation: soft-pop 0.5s ease both; }
-    .card:nth-child(2) { animation-delay: 0.08s; }
-    .step:nth-child(2) { animation-delay: 0.08s; }
-    .step:nth-child(3) { animation-delay: 0.16s; }
     @media (max-width: 760px) {
       .page { padding: 16px 12px 38px; }
-      .topbar { align-items: flex-start; font-size: 11px; padding-bottom: 16px; }
+      .topbar { align-items: flex-start; font-size: 11px; }
       .hero { border-width: 2px; box-shadow: 4px 4px 0 var(--lime); }
-      .hero-shell, .download-grid, .notes, .steps { grid-template-columns: 1fr; }
+      .download-grid, .notes { grid-template-columns: 1fr; }
       .button { width: 100%; box-shadow: 4px 4px 0 var(--pink); }
       .button.secondary { box-shadow: 4px 4px 0 var(--lime); }
-      .actions { position: static; }
-      h1 { font-size: clamp(40px, 13vw, 62px); }
     }
   </style>
   <script>
@@ -325,39 +199,30 @@
   <div class="page">
     <nav class="topbar" aria-label="Main navigation">
       <a class="brand" href="index.html">
-        <span class="mark"><img src="assets/vektra-logo-bg.png" alt="Vektra logo" width="28" height="28" style="width: 28px; height: 28px; object-fit: cover; border-radius: 8px;"></span>
-        <span>Vektra</span>
+        <span class="mark"><span class="icon-zap"></span></span>
+        <span>Project Lively</span>
       </a>
       <span>Publisher: Dap Media</span>
     </nav>
 
     <main class="hero">
-      <div class="hero-shell">
-        <div class="hero-copy">
-          <span class="eyebrow"><span class="icon-download"></span> Downloads</span>
-          <h1>Get Vektra</h1>
-          <p class="lead">
-            Install Vektra on Windows or Android for a cleaner full-screen learning experience with the same synced account, courses, XP, coins, and progress.
-          </p>
-        </div>
-      </div>
+      <span class="eyebrow"><span class="icon-download"></span> Downloads</span>
+      <h1>Get Project Lively</h1>
+      <p class="lead">
+        Install Project Lively on Windows or Android for a cleaner full-screen learning experience with the same synced account, courses, XP, coins, and progress.
+      </p>
 
       <section class="download-grid" aria-label="Downloads">
-        <article class="card featured">
+        <article class="card">
           <div class="iconbox"><span class="icon-monitor-down"></span></div>
           <h2>Windows</h2>
           <p>Recommended for laptops and desktops. The installer creates shortcuts and keeps the app in a normal Windows install location.</p>
-          <div class="badges" aria-label="Windows installer details">
-            <span class="badge">Vektra.Setup.1.0.2.exe</span>
-            <span class="badge">Desktop</span>
-            <span class="badge">Unsigned beta</span>
-          </div>
           <div class="actions">
-            <a class="button" href="https://github.com/Dap69420/Vektra/releases/download/Release/Vektra.Setup.1.0.2.exe">
+            <a class="button" href="https://github.com/Dap69420/lively.exe/releases/download/Release/Project.Lively.Setup.1.0.0.exe">
               <span class="icon-download"></span>
               Installer
             </a>
-            <a class="button secondary" href="https://github.com/Dap69420/Vektra/releases/tag/Release">
+            <a class="button secondary" href="https://github.com/Dap69420/lively.exe/releases/tag/Release">
               Release Page
             </a>
           </div>
@@ -366,7 +231,7 @@
         <article class="card">
           <div class="iconbox"><span class="icon-smartphone"></span></div>
           <h2>Android</h2>
-          <p>Recommended for Android phones. Download the APK, allow install from your browser if Android asks, then open Vektra.</p>
+          <p>Recommended for Android phones. Download the APK, allow install from your browser if Android asks, then open Project Lively.</p>
           <div class="actions">
             <a class="button" href="/download/android">
               <span class="icon-download"></span>
@@ -376,16 +241,10 @@
         </article>
       </section>
 
-      <section class="steps" aria-label="Install steps">
-        <div class="step"><strong>1. Download</strong>Grab the Windows installer or Android APK from the cards above.</div>
-        <div class="step"><strong>2. Approve</strong>If your device warns you, confirm only if you downloaded from this page.</div>
-        <div class="step"><strong>3. Sign in</strong>Open Vektra and continue with the same account, courses, and progress.</div>
-      </section>
-
       <section class="notes" aria-label="Install warnings">
         <div class="warning">
           <strong>Why Windows may warn you:</strong><br>
-          The Windows app is new and unsigned, so SmartScreen may say the publisher is unknown. That warning is expected until Vektra has a paid code-signing certificate.
+          The Windows app is new and unsigned, so SmartScreen may say the publisher is unknown. That warning is expected until Project Lively has a paid code-signing certificate.
         </div>
         <div class="warning">
           <strong>Why Android may warn you:</strong><br>
@@ -393,13 +252,8 @@
         </div>
       </section>
 
-      <p class="publisher">App name: <strong>Vektra</strong><br>Publisher: <strong>Dap Media</strong></p>
+      <p class="publisher">App name: <strong>Project Lively</strong><br>Publisher: <strong>Dap Media</strong></p>
     </main>
   </div>
-  <div id="settings-root"></div>
-  <script type="text/babel" src="components/ThemeToggle.js"></script>
-  <script type="text/babel">
-    ReactDOM.createRoot(document.getElementById('settings-root')).render(<ThemeToggle />);
-  </script>
 </body>
 </html>
