@@ -6,7 +6,7 @@ function TheStory() {
           "Built from the ground up, under the radar."
         </h1>
         <p className="text-lg md:text-xl font-mono text-gray-300 leading-relaxed text-center">
-          Project Lively started as a late-night experiment to fix a broken learning system. No massive team, no corporate backing—just pure code and a belief that AI should feel like a brilliant buddy, not a boring textbook.
+          Vektra started as a late-night experiment to fix a broken learning system. No massive team, no corporate backing—just pure code and a belief that AI should feel like a brilliant buddy, not a boring textbook.
         </p>
       </div>
     );

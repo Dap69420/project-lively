@@ -85,7 +85,7 @@ function App() {
           type: 'android',
           icon: 'icon-smartphone',
           eyebrow: 'Android App Available',
-          title: 'Download Project Lively',
+          title: 'Download Vektra',
           text: 'The Android app gives the workspace a cleaner full-screen mobile feel.',
           href: '/download/android',
           cta: 'Get APK'
@@ -95,8 +95,8 @@ function App() {
           type: 'windows',
           icon: 'icon-monitor-down',
           eyebrow: 'Windows App Available',
-          title: 'Install Project Lively',
-          text: 'The Windows app opens Project Lively like a real desktop app with no browser tabs.',
+          title: 'Install Vektra',
+          text: 'The Windows app opens Vektra like a real desktop app with no browser tabs.',
           href: '/download/windows',
           cta: 'Get Installer'
         });
@@ -144,10 +144,8 @@ function App() {
         {/* Navigation / Header */}
         <header className="w-full max-w-6xl mx-auto p-6 flex justify-between items-center border-b-4 border-white/10 relative z-10" data-name="header">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-lime border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#ff00ff]">
-              <div className="icon-zap text-xl text-black"></div>
-            </div>
-            <h1 className="text-2xl text-lime tracking-tighter">PROJECT LIVELY</h1>
+            <img src="assets/vektra-logo.png" alt="Vektra" className="h-10 w-10 object-contain drop-shadow-[2px_2px_0px_#ff00ff]" />
+            <h1 className="text-2xl text-lime tracking-tighter">VEKTRA</h1>
           </div>
           <nav className="hidden md:flex items-center gap-6 font-mono text-sm">
             <a href="#features" className="hover:text-lime transition-colors">FEATURES</a>
@@ -181,7 +179,7 @@ function App() {
             <div className="icon-flask-conical text-xs"></div> Visit the Founder's Lab
           </a>
           <p className="font-mono text-white/50 text-sm">
-            &copy; 2026 Project Lively. Built by students, for students. 
+            &copy; 2026 Vektra. Built by students, for students. 
           </p>
         </footer>
         

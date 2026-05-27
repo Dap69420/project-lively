@@ -25,7 +25,7 @@ function Header({ user }) {
         <div className="min-h-14 px-3 sm:px-4 lg:px-6 py-2 flex flex-wrap gap-2 justify-between items-center border-b border-black/20">
           <div className="flex min-w-0 items-center gap-2 sm:gap-4">
             <a href="index.html" className="flex shrink-0 items-center justify-center w-9 h-9 rounded bg-discordDark hover:bg-gray-600 transition-colors" title="Home">
-              <div className="icon-house text-gray-300"></div>
+              <img src="assets/vektra-logo.png" alt="Vektra" className="h-6 w-6 object-contain" />
             </a>
             <a href="profile.html" className="group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-mcPurple/50 bg-discordDark shadow-[0_0_14px_rgba(170,0,170,0.18)] transition-all hover:-translate-y-0.5 hover:border-mcGreen hover:shadow-[0_0_18px_rgba(85,255,85,0.22)]" title="User Evolution Profile">
               {avatarUrl ? (
