@@ -202,7 +202,7 @@ body.theme-brutal button,
 body.theme-brutal a.bg-lime,
 body.theme-brutal a.bg-neonViolet {
     transform: translate(0, 0) !important;
-    transition: transform 120ms ease, filter 120ms ease !important;
+    transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease !important;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -212,6 +212,7 @@ body.theme-brutal a.bg-neonViolet {
     body.theme-brutal a.bg-lime:hover,
     body.theme-brutal a.bg-neonViolet:hover {
         transform: translate(2px, 2px) !important;
+        box-shadow: 4px 4px 0 #ff00ff !important;
         filter: contrast(1.06);
     }
 }
@@ -221,7 +222,8 @@ body.theme-brutal .brutal-btn-pink:active,
 body.theme-brutal button:active,
 body.theme-brutal a.bg-lime:active,
 body.theme-brutal a.bg-neonViolet:active {
-    transform: translate(4px, 4px) !important;
+    transform: translate(6px, 6px) !important;
+    box-shadow: none !important;
 }
 
 body.theme-brutal input,
