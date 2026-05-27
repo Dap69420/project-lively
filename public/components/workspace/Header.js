@@ -27,7 +27,7 @@ function Header({ user }) {
             <a href="index.html" className="flex shrink-0 items-center justify-center w-9 h-9 rounded bg-discordDark hover:bg-gray-600 transition-colors" title="Home">
               <div className="icon-house text-gray-300"></div>
             </a>
-            <a href="profile.html" className="group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-mcPurple/50 bg-discordDark shadow-[0_0_14px_rgba(170,0,170,0.18)] transition-all hover:-translate-y-0.5 hover:border-mcGreen hover:shadow-[0_0_18px_rgba(85,255,85,0.22)]" title="User Evolution Profile">
+            <a href="profile.html" data-avatar-shell="true" className="group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-mcPurple/50 bg-discordDark shadow-[0_0_14px_rgba(170,0,170,0.18)] transition-all hover:-translate-y-0.5 hover:border-mcGreen hover:shadow-[0_0_18px_rgba(85,255,85,0.22)]" title="User Evolution Profile">
               {avatarUrl ? (
                 <img src={avatarUrl} alt={`${alias} profile`} className="h-full w-full rounded-xl object-cover p-0.5" />
               ) : (
