@@ -217,6 +217,25 @@ body.theme-brutal a.bg-neonViolet {
     }
 }
 
+body.theme-brutal [data-name="ai-chat"] button,
+body.theme-brutal [data-name="sketch-panel"] button,
+body.theme-brutal [data-name="sketch-panel"] a.bg-lime,
+body.theme-brutal [data-name="sketch-panel"] a.bg-neonViolet {
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, opacity 150ms ease !important;
+}
+
+body.theme-brutal [data-name="ai-chat"] button:hover,
+body.theme-brutal [data-name="sketch-panel"] button:hover,
+body.theme-brutal [data-name="sketch-panel"] a.bg-lime:hover,
+body.theme-brutal [data-name="sketch-panel"] a.bg-neonViolet:hover,
+body.theme-brutal [data-name="ai-chat"] button:active,
+body.theme-brutal [data-name="sketch-panel"] button:active,
+body.theme-brutal [data-name="sketch-panel"] a.bg-lime:active,
+body.theme-brutal [data-name="sketch-panel"] a.bg-neonViolet:active {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
 body.theme-brutal .brutal-btn-lime:active,
 body.theme-brutal .brutal-btn-pink:active,
 body.theme-brutal button:active,
@@ -386,6 +405,32 @@ body.theme-brutal [data-name="profile-app"] .glass-panel {
     background: #151515 !important;
     border: 4px solid #ffffff !important;
     box-shadow: 8px 8px 0 #ccff00 !important;
+    overflow: visible;
+    position: relative;
+}
+
+body.theme-brutal [data-name="profile-app"] .glass-panel::before,
+body.theme-brutal [data-name="profile-app"] .glass-panel::after {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    width: 14px;
+    height: 14px;
+    pointer-events: none;
+}
+
+body.theme-brutal [data-name="profile-app"] .glass-panel::before {
+    top: -6px;
+    right: -6px;
+    border-top: 4px solid #ff00ff;
+    border-right: 4px solid #ff00ff;
+}
+
+body.theme-brutal [data-name="profile-app"] .glass-panel::after {
+    bottom: -6px;
+    left: -6px;
+    border-bottom: 4px solid #ccff00;
+    border-left: 4px solid #ccff00;
 }
 
 body.theme-brutal [data-name="profile-app"] .bg-white\/5,
