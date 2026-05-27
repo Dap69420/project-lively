@@ -248,8 +248,25 @@ body.theme-brutal:not(.animations-reduced) .card {
 
 /* Workspace brutal overrides */
 body.theme-brutal [data-name="workspace-app"] {
-    background: #111111 !important;
+    --workspace-panel: #2b2d31;
+    --workspace-panel-deep: #1e1f22;
+    --workspace-panel-soft: #313338;
+    --workspace-border: #404756;
+    --workspace-accent: #48ff4f;
+    background: #1e1f22 !important;
     color: #ffffff;
+}
+
+body.theme-brutal [data-name="workspace-app"] *,
+body.theme-brutal [data-name="workspace-app"] .rounded,
+body.theme-brutal [data-name="workspace-app"] .rounded-lg,
+body.theme-brutal [data-name="workspace-app"] .rounded-xl,
+body.theme-brutal [data-name="workspace-app"] .rounded-2xl {
+    border-radius: 8px !important;
+}
+
+body.theme-brutal [data-name="workspace-app"] .rounded-full {
+    border-radius: 999px !important;
 }
 
 body.theme-brutal [data-name="workspace-app"] .bg-glow,
@@ -258,20 +275,20 @@ body.theme-brutal [data-name="profile-app"] .bg-glow {
 }
 
 body.theme-brutal [data-name="workspace-app"] .bg-discordDarkest {
-    background: #111111 !important;
+    background: var(--workspace-panel-deep) !important;
 }
 
 body.theme-brutal [data-name="workspace-app"] .bg-discordDarker {
-    background: #1b1b1f !important;
+    background: var(--workspace-panel) !important;
 }
 
 body.theme-brutal [data-name="workspace-app"] .bg-discordDark {
-    background: #24242a !important;
+    background: var(--workspace-panel-soft) !important;
 }
 
 body.theme-brutal [data-name="workspace-app"] .border-gray-700,
 body.theme-brutal [data-name="workspace-app"] .border-black\/20 {
-    border-color: #3f4654 !important;
+    border-color: var(--workspace-border) !important;
 }
 
 body.theme-brutal [data-name="workspace-app"] [class*="shadow-"]:not(.shadow-none) {
@@ -279,44 +296,83 @@ body.theme-brutal [data-name="workspace-app"] [class*="shadow-"]:not(.shadow-non
 }
 
 body.theme-brutal .panel {
-    background: #19191d !important;
-    border: 2px solid #4a5160 !important;
+    background: var(--workspace-panel-deep) !important;
+    border: 1px solid var(--workspace-border) !important;
     box-shadow: none !important;
 }
 
 body.theme-brutal .workspace-tab-nav,
 body.theme-brutal [data-name="workspace-header"],
 body.theme-brutal [data-name="sidebar"] {
-    background: #18181c !important;
-    border-color: #3f4654 !important;
+    background: var(--workspace-panel) !important;
+    border-width: 1px !important;
+    border-color: var(--workspace-border) !important;
     box-shadow: none !important;
 }
 
 body.theme-brutal .workspace-tab-nav button {
-    background: #222228 !important;
-    border: 2px solid #4a5160 !important;
+    background: var(--workspace-panel-deep) !important;
+    border: 1px solid var(--workspace-border) !important;
     color: #f5f5f5 !important;
     box-shadow: none !important;
 }
 
 body.theme-brutal .workspace-tab-nav button.bg-mcGreen {
-    background: #ccff00 !important;
-    border-color: #0b0b0b !important;
+    background: var(--workspace-accent) !important;
+    border-color: var(--workspace-accent) !important;
     color: #0b0b0b !important;
-    box-shadow: 4px 4px 0 #ff00ff !important;
+    box-shadow: none !important;
 }
 
 body.theme-brutal [data-name="ai-chat"] .bg-\[\#313338\],
 body.theme-brutal [data-name="mission-card"] [class*="bg-["],
 body.theme-brutal [data-name="sketch-panel"] {
-    background-color: #1a1a1f !important;
+    background-color: var(--workspace-panel-soft) !important;
+}
+
+body.theme-brutal [data-name="mission-card"] .comic-card {
+    background: var(--mission-card-bg, #f7f6f0) !important;
+    border: 4px solid var(--mission-card-border, #0b0b0b) !important;
+    box-shadow: 6px 6px 0 var(--mission-accent-bg, #48ff4f) !important;
+    color: var(--mission-card-ink, #0b0b0b) !important;
+}
+
+body.theme-brutal [data-name="mission-card"] .mission-banner {
+    background: var(--mission-accent-bg, #48ff4f) !important;
+    color: var(--mission-accent-ink, #0b0b0b) !important;
+    border-color: var(--mission-card-border, #0b0b0b) !important;
+}
+
+body.theme-brutal [data-name="mission-card"] .mission-objectives {
+    border-color: var(--mission-card-border, #0b0b0b) !important;
+}
+
+body.theme-brutal [data-name="mission-card"] .mission-ink {
+    color: var(--mission-card-ink, #0b0b0b) !important;
 }
 
 body.theme-brutal [data-name="workspace-app"] input,
 body.theme-brutal [data-name="workspace-app"] textarea,
 body.theme-brutal [data-name="workspace-app"] select {
-    border-width: 2px !important;
-    box-shadow: 4px 4px 0 #ff00ff !important;
+    background: var(--workspace-panel-deep) !important;
+    border: 1px solid var(--workspace-border) !important;
+    color: #f5f5f5 !important;
+    box-shadow: none !important;
+}
+
+body.theme-brutal [data-name="workspace-app"] input[type="color"] {
+    background: #ffffff !important;
+}
+
+body.theme-brutal [data-name="workspace-app"] .bg-mcGreen,
+body.theme-brutal [data-name="workspace-app"] button.bg-mcGreen {
+    background: var(--workspace-accent) !important;
+    color: #0b0b0b !important;
+}
+
+body.theme-brutal [data-name="workspace-app"] .text-mcGreen,
+body.theme-brutal [data-name="workspace-app"] .text-lime {
+    color: var(--workspace-accent) !important;
 }
 
 /* Profile brutal overrides */
